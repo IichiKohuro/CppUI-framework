@@ -1,0 +1,13 @@
+BasedOnStyle: Microsoft
+ColumnLimit: 110
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+BreakBeforeBraces: Attach
+BinPackArguments: false
+BinPackParameters: false
+AllowShortFunctionsOnASingleLine: InlineOnly
+PointerAlignment: Left
+ReferenceAlignment: Left
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve

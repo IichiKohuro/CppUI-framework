@@ -1,0 +1,212 @@
+{
+  "version": 8,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 28,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "windows-msvc-debug",
+      "displayName": "Windows MSVC x64 Debug",
+      "description": "Ninja Debug build; run from a VS developer shell or tools/build.ps1",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/windows-msvc-debug",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CPPUI_BUILD_SAMPLES": "ON",
+        "CPPUI_BUILD_TESTS": "ON",
+        "CPPUI_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "windows-msvc-release",
+      "displayName": "Windows MSVC x64 Release",
+      "description": "Ninja Release build; run from a VS developer shell or tools/build.ps1",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/windows-msvc-release",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CPPUI_BUILD_SAMPLES": "ON",
+        "CPPUI_BUILD_TESTS": "ON",
+        "CPPUI_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "windows-vs2026-debug",
+      "displayName": "Visual Studio 2026 x64 Debug",
+      "description": "MSBuild multi-config build; recommended on hosts with localized MSVC /showIncludes output",
+      "generator": "Visual Studio 18 2026",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "binaryDir": "${sourceDir}/out/build/windows-vs2026-debug",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CPPUI_BUILD_SAMPLES": "ON",
+        "CPPUI_BUILD_TESTS": "ON",
+        "CPPUI_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "windows-vs2026-release",
+      "displayName": "Visual Studio 2026 x64 Release",
+      "description": "MSBuild multi-config build; recommended on hosts with localized MSVC /showIncludes output",
+      "generator": "Visual Studio 18 2026",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "binaryDir": "${sourceDir}/out/build/windows-vs2026-release",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CPPUI_BUILD_SAMPLES": "ON",
+        "CPPUI_BUILD_TESTS": "ON",
+        "CPPUI_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "windows-vs2022-debug",
+      "displayName": "Visual Studio 2022 x64 Debug",
+      "description": "MSBuild multi-config build for Visual Studio 2022",
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "binaryDir": "${sourceDir}/out/build/windows-vs2022-debug",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CPPUI_BUILD_SAMPLES": "ON",
+        "CPPUI_BUILD_TESTS": "ON",
+        "CPPUI_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "windows-vs2022-release",
+      "displayName": "Visual Studio 2022 x64 Release",
+      "description": "MSBuild multi-config build for Visual Studio 2022",
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "binaryDir": "${sourceDir}/out/build/windows-vs2022-release",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "CPPUI_BUILD_SAMPLES": "ON",
+        "CPPUI_BUILD_TESTS": "ON",
+        "CPPUI_WARNINGS_AS_ERRORS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-msvc-debug",
+      "configurePreset": "windows-msvc-debug"
+    },
+    {
+      "name": "windows-msvc-release",
+      "configurePreset": "windows-msvc-release"
+    },
+    {
+      "name": "windows-vs2026-debug",
+      "configurePreset": "windows-vs2026-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-vs2026-release",
+      "configurePreset": "windows-vs2026-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-vs2022-debug",
+      "configurePreset": "windows-vs2022-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-vs2022-release",
+      "configurePreset": "windows-vs2022-release",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "windows-msvc-debug",
+      "configurePreset": "windows-msvc-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-msvc-release",
+      "configurePreset": "windows-msvc-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-vs2026-debug",
+      "configurePreset": "windows-vs2026-debug",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-vs2026-release",
+      "configurePreset": "windows-vs2026-release",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-vs2022-debug",
+      "configurePreset": "windows-vs2022-debug",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-vs2022-release",
+      "configurePreset": "windows-vs2022-release",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

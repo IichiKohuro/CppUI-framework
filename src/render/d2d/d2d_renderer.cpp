@@ -1,0 +1,571 @@
+#include "render/d2d/d2d_renderer.hpp"
+
+#include <algorithm>
+#include <string_view>
+
+#include <d2d1helper.h>
+
+namespace cppui {
+namespace {
+
+constexpr D2D1_COLOR_F ToColorF(const Color& color) noexcept {
+    return D2D1_COLOR_F{
+        static_cast<float>(color.r) / 255.0f,
+        static_cast<float>(color.g) / 255.0f,
+        static_cast<float>(color.b) / 255.0f,
+        static_cast<float>(color.a) / 255.0f,
+    };
+}
+
+bool CreateTextFormat(IDWriteFactory* factory,
+                      const wchar_t* family,
+                      float size,
+                      DWRITE_FONT_WEIGHT weight,
+                      DWRITE_TEXT_ALIGNMENT alignment,
+                      DWRITE_PARAGRAPH_ALIGNMENT paragraph_alignment,
+                      IDWriteTextFormat** output) {
+    IDWriteTextFormat* format = nullptr;
+
+    HRESULT hr = factory->CreateTextFormat(family,
+                                           nullptr,
+                                           weight,
+                                           DWRITE_FONT_STYLE_NORMAL,
+                                           DWRITE_FONT_STRETCH_NORMAL,
+                                           size,
+                                           L"en-us",
+                                           &format);
+    if (FAILED(hr)) {
+        return false;
+    }
+
+    format->SetTextAlignment(alignment);
+    format->SetParagraphAlignment(paragraph_alignment);
+    format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+
+    *output = format;
+    return true;
+}
+
+}  // namespace
+
+D2DRenderer::~D2DRenderer() {
+    Shutdown();
+}
+
+bool D2DRenderer::Initialize(HWND hwnd, const ThemeTokens& theme) {
+    if (initialized_) {
+        Shutdown();
+    }
+
+    hwnd_ = hwnd;
+    theme_ = theme;
+    last_error_ = S_OK;
+
+    RECT client{};
+    if (!GetClientRect(hwnd_, &client)) {
+        last_error_ = HRESULT_FROM_WIN32(GetLastError());
+        return false;
+    }
+
+    width_ = static_cast<UINT>(std::max<LONG>(1, client.right - client.left));
+    height_ = static_cast<UINT>(std::max<LONG>(1, client.bottom - client.top));
+
+    dpi_ = static_cast<float>(GetDpiForWindow(hwnd_));
+    if (dpi_ <= 0.0f) {
+        dpi_ = 96.0f;
+    }
+
+    if (!CreateDeviceResources() || !CreateSwapChain() || !CreateTextFormats() ||
+        !CreateBrushes() || !CreateTargetBitmap()) {
+        Shutdown();
+        return false;
+    }
+
+    initialized_ = true;
+    return true;
+}
+
+bool D2DRenderer::CreateDeviceResources() {
+    UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+    const D3D_FEATURE_LEVEL feature_levels[] = {
+        D3D_FEATURE_LEVEL_11_1,
+        D3D_FEATURE_LEVEL_11_0,
+    };
+
+    D3D_FEATURE_LEVEL selected_feature_level{};
+    HRESULT hr = D3D11CreateDevice(nullptr,
+                                   D3D_DRIVER_TYPE_HARDWARE,
+                                   nullptr,
+                                   flags,
+                                   feature_levels,
+                                   ARRAYSIZE(feature_levels),
+                                   D3D11_SDK_VERSION,
+                                   d3d_device_.GetAddressOf(),
+                                   &selected_feature_level,
+                                   d3d_context_.GetAddressOf());
+
+    if (FAILED(hr)) {
+        // The WARP fallback keeps the framework usable in VMs and over RDP.
+        hr = D3D11CreateDevice(nullptr,
+                               D3D_DRIVER_TYPE_WARP,
+                               nullptr,
+                               flags,
+                               feature_levels,
+                               ARRAYSIZE(feature_levels),
+                               D3D11_SDK_VERSION,
+                               d3d_device_.GetAddressOf(),
+                               &selected_feature_level,
+                               d3d_context_.GetAddressOf());
+    }
+
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    ID2D1Factory1* factory = nullptr;
+    D2D1_FACTORY_OPTIONS factory_options{};
+    hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
+                           __uuidof(ID2D1Factory1),
+                           &factory_options,
+                           reinterpret_cast<void**>(&factory));
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+    d2d_factory_.Attach(factory);
+
+    Microsoft::WRL::ComPtr<IDXGIDevice> dxgi_device;
+    hr = d3d_device_.As(&dxgi_device);
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    hr = d2d_factory_->CreateDevice(dxgi_device.Get(), d2d_device_.GetAddressOf());
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    hr = d2d_device_->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
+                                          d2d_context_.GetAddressOf());
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    IDWriteFactory* write_factory = nullptr;
+    hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED,
+                             __uuidof(IDWriteFactory),
+                             reinterpret_cast<IUnknown**>(&write_factory));
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+    write_factory_.Attach(write_factory);
+
+    return true;
+}
+
+bool D2DRenderer::CreateSwapChain() {
+    if (!d3d_device_ || width_ == 0 || height_ == 0) {
+        return false;
+    }
+
+    Microsoft::WRL::ComPtr<IDXGIDevice> dxgi_device;
+    HRESULT hr = d3d_device_.As(&dxgi_device);
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
+    hr = dxgi_device->GetAdapter(adapter.GetAddressOf());
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    Microsoft::WRL::ComPtr<IDXGIFactory2> dxgi_factory;
+    hr = adapter->GetParent(IID_PPV_ARGS(dxgi_factory.GetAddressOf()));
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    DXGI_SWAP_CHAIN_DESC1 description{};
+    description.Width = width_;
+    description.Height = height_;
+    description.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    description.Stereo = FALSE;
+    description.SampleDesc.Count = 1;
+    description.SampleDesc.Quality = 0;
+    description.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    description.BufferCount = 2;
+    description.Scaling = DXGI_SCALING_STRETCH;
+    description.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+    description.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+    description.Flags = 0;
+
+    hr = dxgi_factory->CreateSwapChainForHwnd(d3d_device_.Get(),
+                                              hwnd_,
+                                              &description,
+                                              nullptr,
+                                              nullptr,
+                                              swap_chain_.GetAddressOf());
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    (void)dxgi_factory->MakeWindowAssociation(hwnd_, DXGI_MWA_NO_ALT_ENTER);
+    return true;
+}
+
+bool D2DRenderer::CreateTargetBitmap() {
+    if (!swap_chain_ || !d2d_context_) {
+        return false;
+    }
+
+    Microsoft::WRL::ComPtr<IDXGISurface> surface;
+    HRESULT hr = swap_chain_->GetBuffer(0, IID_PPV_ARGS(surface.GetAddressOf()));
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    D2D1_BITMAP_PROPERTIES1 properties{};
+    properties.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_IGNORE);
+    properties.dpiX = dpi_;
+    properties.dpiY = dpi_;
+    properties.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
+
+    hr = d2d_context_->CreateBitmapFromDxgiSurface(surface.Get(),
+                                                   &properties,
+                                                   target_bitmap_.GetAddressOf());
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    d2d_context_->SetTarget(target_bitmap_.Get());
+    d2d_context_->SetDpi(dpi_, dpi_);
+    return true;
+}
+
+bool D2DRenderer::CreateTextFormats() {
+    if (!write_factory_) {
+        return false;
+    }
+
+    if (!CreateTextFormat(write_factory_.Get(),
+                          L"Segoe UI",
+                          34.0f,
+                          DWRITE_FONT_WEIGHT_SEMI_BOLD,
+                          DWRITE_TEXT_ALIGNMENT_LEADING,
+                          DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+                          title_format_.GetAddressOf())) {
+        last_error_ = E_FAIL;
+        return false;
+    }
+
+    if (!CreateTextFormat(write_factory_.Get(),
+                          L"Segoe UI",
+                          14.0f,
+                          DWRITE_FONT_WEIGHT_NORMAL,
+                          DWRITE_TEXT_ALIGNMENT_LEADING,
+                          DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+                          subtitle_format_.GetAddressOf())) {
+        last_error_ = E_FAIL;
+        return false;
+    }
+
+    if (!CreateTextFormat(write_factory_.Get(),
+                          L"Segoe UI",
+                          11.0f,
+                          DWRITE_FONT_WEIGHT_NORMAL,
+                          DWRITE_TEXT_ALIGNMENT_LEADING,
+                          DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+                          meta_format_.GetAddressOf())) {
+        last_error_ = E_FAIL;
+        return false;
+    }
+
+    if (!CreateTextFormat(write_factory_.Get(),
+                          L"Segoe UI",
+                          10.0f,
+                          DWRITE_FONT_WEIGHT_SEMI_BOLD,
+                          DWRITE_TEXT_ALIGNMENT_LEADING,
+                          DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+                          pill_format_.GetAddressOf())) {
+        last_error_ = E_FAIL;
+        return false;
+    }
+
+    if (!CreateTextFormat(write_factory_.Get(),
+                          L"Segoe UI",
+                          10.0f,
+                          DWRITE_FONT_WEIGHT_NORMAL,
+                          DWRITE_TEXT_ALIGNMENT_TRAILING,
+                          DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+                          version_format_.GetAddressOf())) {
+        last_error_ = E_FAIL;
+        return false;
+    }
+
+    return true;
+}
+
+bool D2DRenderer::CreateBrushes() {
+    return CreateSolidBrush(theme_.window_bg, brush_window_.GetAddressOf()) &&
+           CreateSolidBrush(theme_.surface, brush_surface_.GetAddressOf()) &&
+           CreateSolidBrush(theme_.border, brush_border_.GetAddressOf()) &&
+           CreateSolidBrush(theme_.text_primary, brush_primary_text_.GetAddressOf()) &&
+           CreateSolidBrush(theme_.text_secondary, brush_secondary_text_.GetAddressOf()) &&
+           CreateSolidBrush(theme_.accent, brush_accent_.GetAddressOf()) &&
+           CreateSolidBrush(theme_.accent_soft, brush_accent_soft_.GetAddressOf()) &&
+           CreateSolidBrush(theme_.on_accent, brush_on_accent_.GetAddressOf()) &&
+           CreateSolidBrush(theme_.success, brush_success_.GetAddressOf());
+}
+
+bool D2DRenderer::CreateSolidBrush(const Color& color, ID2D1SolidColorBrush** brush) {
+    if (!d2d_context_) {
+        return false;
+    }
+
+    HRESULT hr = d2d_context_->CreateSolidColorBrush(ToColorF(color), brush);
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+    return true;
+}
+
+bool D2DRenderer::Resize(UINT width, UINT height, float dpi) {
+    if (!initialized_ || !swap_chain_ || !d2d_context_) {
+        return false;
+    }
+
+    if (width == 0 || height == 0) {
+        return true;
+    }
+
+    if (dpi <= 0.0f) {
+        dpi = 96.0f;
+    }
+
+    if (width == width_ && height == height_ && dpi == dpi_) {
+        return true;
+    }
+
+    ReleaseTarget();
+
+    HRESULT hr = swap_chain_->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    width_ = width;
+    height_ = height;
+    dpi_ = dpi;
+
+    return CreateTargetBitmap();
+}
+
+bool D2DRenderer::Render() {
+    if (!initialized_ || !d2d_context_ || !target_bitmap_) {
+        return false;
+    }
+
+    d2d_context_->BeginDraw();
+    d2d_context_->SetTransform(D2D1::Matrix3x2F::Identity());
+    d2d_context_->SetDpi(dpi_, dpi_);
+    DrawScene();
+
+    HRESULT hr = d2d_context_->EndDraw();
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        if (hr == D2DERR_RECREATE_TARGET) {
+            ReleaseTarget();
+            (void)CreateTargetBitmap();
+        }
+        return false;
+    }
+
+    hr = swap_chain_->Present(1, 0);
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    return true;
+}
+
+void D2DRenderer::DrawScene() noexcept {
+    if (!d2d_context_) {
+        return;
+    }
+
+    d2d_context_->Clear(ToColorF(theme_.window_bg));
+
+    const D2D1_SIZE_F window_size = d2d_context_->GetSize();
+    const float card_width = std::min(640.0f, std::max(360.0f, window_size.width - 96.0f));
+    const float card_height = 300.0f;
+    const float left = (window_size.width - card_width) * 0.5f;
+    const float top = (window_size.height - card_height) * 0.5f;
+    const float right = left + card_width;
+
+    const D2D1_RECT_F card = D2D1::RectF(left, top, right, top + card_height);
+    d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(card, 16.0f, 16.0f),
+                                       brush_surface_.Get());
+    d2d_context_->DrawRoundedRectangle(D2D1::RoundedRect(card, 16.0f, 16.0f),
+                                       brush_border_.Get(),
+                                       1.0f);
+
+    const D2D1_RECT_F logo = D2D1::RectF(left + 32.0f, top + 32.0f, left + 78.0f, top + 78.0f);
+    d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(logo, 12.0f, 12.0f),
+                                       brush_accent_.Get());
+
+    const D2D1_RECT_F glyph =
+        D2D1::RectF(logo.left + 13.0f, logo.top + 14.0f, logo.right - 13.0f, logo.bottom - 14.0f);
+    d2d_context_->DrawRoundedRectangle(D2D1::RoundedRect(glyph, 2.0f, 2.0f),
+                                       brush_on_accent_.Get(),
+                                       1.3f);
+    d2d_context_->DrawLine(D2D1::Point2F(glyph.left, glyph.top + 9.0f),
+                           D2D1::Point2F(glyph.right, glyph.top + 9.0f),
+                           brush_on_accent_.Get(),
+                           1.0f);
+    d2d_context_->FillEllipse(D2D1::Ellipse(D2D1::Point2F(glyph.right - 3.5f, glyph.top + 4.5f),
+                                            1.1f,
+                                            1.1f),
+                              brush_on_accent_.Get());
+
+    const D2D1_RECT_F title_rect =
+        D2D1::RectF(left + 98.0f, top + 24.0f, right - 32.0f, top + 72.0f);
+    const D2D1_RECT_F subtitle_rect =
+        D2D1::RectF(left + 98.0f, top + 70.0f, right - 32.0f, top + 94.0f);
+    const D2D1_RECT_F meta_rect =
+        D2D1::RectF(left + 98.0f, top + 98.0f, right - 32.0f, top + 118.0f);
+
+    constexpr std::wstring_view title = L"CppUI";
+    constexpr std::wstring_view subtitle = L"Phase 0 - Direct2D bootstrap";
+    constexpr std::wstring_view meta =
+        L"Signal Teal tokens  /  D3D11  /  DXGI flip-model  /  DirectWrite";
+
+    d2d_context_->DrawTextW(title.data(),
+                            static_cast<UINT32>(title.size()),
+                            title_format_.Get(),
+                            title_rect,
+                            brush_primary_text_.Get(),
+                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    d2d_context_->DrawTextW(subtitle.data(),
+                            static_cast<UINT32>(subtitle.size()),
+                            subtitle_format_.Get(),
+                            subtitle_rect,
+                            brush_secondary_text_.Get(),
+                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    d2d_context_->DrawTextW(meta.data(),
+                            static_cast<UINT32>(meta.size()),
+                            meta_format_.Get(),
+                            meta_rect,
+                            brush_secondary_text_.Get(),
+                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
+
+    d2d_context_->DrawLine(D2D1::Point2F(left + 32.0f, top + 158.0f),
+                           D2D1::Point2F(right - 32.0f, top + 158.0f),
+                           brush_border_.Get(),
+                           1.0f);
+
+    const D2D1_RECT_F pill =
+        D2D1::RectF(left + 32.0f, top + 190.0f, left + 140.0f, top + 218.0f);
+    d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(pill, 14.0f, 14.0f),
+                                       brush_accent_soft_.Get());
+    const D2D1_RECT_F pill_text =
+        D2D1::RectF(pill.left + 12.0f, pill.top, pill.right - 8.0f, pill.bottom);
+    constexpr std::wstring_view pill_label = L"PHASE 0";
+    d2d_context_->DrawTextW(pill_label.data(),
+                            static_cast<UINT32>(pill_label.size()),
+                            pill_format_.Get(),
+                            pill_text,
+                            brush_accent_.Get(),
+                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
+
+    const D2D1_ELLIPSE status_dot =
+        D2D1::Ellipse(D2D1::Point2F(left + 158.0f, top + 204.0f), 3.5f, 3.5f);
+    d2d_context_->FillEllipse(status_dot, brush_success_.Get());
+
+    const D2D1_RECT_F status_rect =
+        D2D1::RectF(left + 168.0f, top + 190.0f, right - 92.0f, top + 218.0f);
+    constexpr std::wstring_view status = L"Renderer online";
+    d2d_context_->DrawTextW(status.data(),
+                            static_cast<UINT32>(status.size()),
+                            meta_format_.Get(),
+                            status_rect,
+                            brush_secondary_text_.Get(),
+                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
+
+    const D2D1_RECT_F version_rect =
+        D2D1::RectF(right - 84.0f, top + 190.0f, right - 32.0f, top + 218.0f);
+    constexpr std::wstring_view version = L"v0.1.0";
+    d2d_context_->DrawTextW(version.data(),
+                            static_cast<UINT32>(version.size()),
+                            version_format_.Get(),
+                            version_rect,
+                            brush_secondary_text_.Get(),
+                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
+
+    const D2D1_RECT_F footer_rect =
+        D2D1::RectF(left + 32.0f, top + 244.0f, right - 32.0f, top + 268.0f);
+    constexpr std::wstring_view footer = L"Retained-mode UI and custom chrome are coming in the next phases.";
+    d2d_context_->DrawTextW(footer.data(),
+                            static_cast<UINT32>(footer.size()),
+                            meta_format_.Get(),
+                            footer_rect,
+                            brush_secondary_text_.Get(),
+                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
+}
+
+void D2DRenderer::ReleaseTarget() noexcept {
+    if (d2d_context_) {
+        d2d_context_->SetTarget(nullptr);
+    }
+    target_bitmap_.Reset();
+}
+
+void D2DRenderer::ReleaseDeviceResources() noexcept {
+    ReleaseTarget();
+    brush_window_.Reset();
+    brush_surface_.Reset();
+    brush_border_.Reset();
+    brush_primary_text_.Reset();
+    brush_secondary_text_.Reset();
+    brush_accent_.Reset();
+    brush_accent_soft_.Reset();
+    brush_on_accent_.Reset();
+    brush_success_.Reset();
+    version_format_.Reset();
+    pill_format_.Reset();
+    meta_format_.Reset();
+    subtitle_format_.Reset();
+    title_format_.Reset();
+    write_factory_.Reset();
+    d2d_context_.Reset();
+    d2d_device_.Reset();
+    d2d_factory_.Reset();
+    swap_chain_.Reset();
+    d3d_context_.Reset();
+    d3d_device_.Reset();
+}
+
+void D2DRenderer::Shutdown() noexcept {
+    ReleaseDeviceResources();
+    initialized_ = false;
+    hwnd_ = nullptr;
+    width_ = 0;
+    height_ = 0;
+    dpi_ = 96.0f;
+}
+
+}  // namespace cppui

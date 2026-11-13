@@ -1,0 +1,1077 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CppUI — Control Gallery</title>
+<script>
+  (() => {
+    const hash = window.location.hash.slice(1);
+    if (hash.split('/').includes('dark')) document.documentElement.dataset.theme = 'dark';
+  })();
+</script>
+<link rel="stylesheet" href="controls-gallery.css">
+</head>
+<body>
+<svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="i-moon" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="M16.6 12.1A7 7 0 0 1 7.9 3.4a7 7 0 1 0 8.7 8.7Z"/></g></symbol>
+  <symbol id="i-sun" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"><circle cx="10" cy="10" r="3.1"/><path d="M10 2.2v1.45M10 16.35v1.45M2.2 10h1.45M16.35 10h1.45M4.5 4.5l1.03 1.03M14.47 14.47l1.03 1.03M15.5 4.5l-1.03 1.03M5.53 14.47 4.5 15.5"/></g></symbol>
+  <symbol id="i-settings" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="10" cy="10" r="2.6"/><path d="M8.5 2.9h3l.4 1.4c.35.14.68.31 1 .53l1.4-.48 1.5 2.6-1.06 1c.02.18.04.36.04.55s-.02.37-.04.55l1.06 1-1.5 2.6-1.4-.48c-.32.22-.65.39-1 .53l-.4 1.4h-3l-.4-1.4a5 5 0 0 1-1-.53l-1.4.48-1.5-2.6 1.06-1a4.4 4.4 0 0 1 0-1.1l-1.06-1 1.5-2.6 1.4.48c.32-.22.65-.39 1-.53l.4-1.4Z" stroke-linejoin="round"/></g></symbol>
+  <symbol id="i-minimize" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"><path d="M5 10h10"/></g></symbol>
+  <symbol id="i-maximize" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.1"><rect x="5.2" y="5.2" width="9.6" height="9.6" rx="0.5"/></g></symbol>
+  <symbol id="i-close" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"><path d="m5.4 5.4 9.2 9.2m0-9.2-9.2 9.2"/></g></symbol>
+  <symbol id="i-search" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"><circle cx="8.8" cy="8.8" r="4.8"/><path d="m12.4 12.4 3.3 3.3"/></g></symbol>
+  <symbol id="i-undo" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="m7.2 5.5-3 3 3 3"/><path d="M4.5 8.5h6.2a4.2 4.2 0 0 1 4.2 4.2v1"/></g></symbol>
+  <symbol id="i-redo" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="m12.8 5.5 3 3-3 3"/><path d="M15.5 8.5H9.3a4.2 4.2 0 0 0-4.2 4.2v1"/></g></symbol>
+  <symbol id="i-save" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"><path d="M4 3.5h10.1L17 6.4v10.1H4V3.5Z"/><path d="M7 3.5v4.1h6V3.5M7 16.5v-4.4h6v4.4"/></g></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="m5.5 7.8 4.5 4.4 4.5-4.4"/></g></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="m12 5.5-4.4 4.5L12 14.5"/></g></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5.5 4.4 4.5L8 14.5"/></g></symbol>
+  <symbol id="i-check" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4.3 10.2 3.5 3.4 7.9-7.6"/></g></symbol>
+  <symbol id="i-minus" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M5 10h10"/></g></symbol>
+  <symbol id="i-plus" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M10 5v10M5 10h10"/></g></symbol>
+  <symbol id="i-calendar" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="13" height="11.5" rx="1.7"/><path d="M6.5 3.5v3M13.5 3.5v3M3.5 8.5h13"/></g></symbol>
+  <symbol id="i-eye" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 10s2.7-4.3 7.2-4.3 7.2 4.3 7.2 4.3-2.7 4.3-7.2 4.3S2.8 10 2.8 10Z"/><circle cx="10" cy="10" r="1.8"/></g></symbol>
+  <symbol id="i-info" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="10" cy="10" r="6.8"/><path d="M10 9.2v4M10 6.6v.2"/></g></symbol>
+  <symbol id="i-alert" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10 3.1 7 12.2H3L10 3.1Z"/><path d="M10 8.2v3.1M10 13.4v.2"/></g></symbol>
+  <symbol id="i-image" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><rect x="3" y="4" width="14" height="12" rx="1.7"/><circle cx="7.1" cy="7.9" r="1.1"/><path d="m4.2 14 4-3.5 2.5 2 2-1.5 3.1 3"/></g></symbol>
+  <symbol id="i-folder" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"><path d="M3.2 5.4h5l1.4 1.6h7.2v7.8H3.2V5.4Z"/></g></symbol>
+  <symbol id="i-file" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"><path d="M5 3.2h6.5l3.5 3.5v10.1H5V3.2Z"/><path d="M11.5 3.4v3.4H15"/></g></symbol>
+  <symbol id="i-code" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="m7.2 6-4 4 4 4M12.8 6l4 4-4 4"/></g></symbol>
+  <symbol id="i-package" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"><path d="m10 3 6 3.2v7.6L10 17l-6-3.2V6.2L10 3Z"/><path d="m4.2 6.5 5.8 3 5.8-3M10 9.5V17"/></g></symbol>
+  <symbol id="i-clock" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="10" cy="10" r="6.8"/><path d="M10 6.2v4.1l2.7 1.5"/></g></symbol>
+  <symbol id="i-play" viewBox="0 0 20 20"><path d="M7.3 5.2 14.4 10l-7.1 4.8V5.2Z" fill="currentColor"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"><rect x="7" y="6.8" width="8.7" height="9.2" rx="1.1"/><path d="M12.6 6.6V4.2H4.3v9.2h2.6"/></g></symbol>
+  <symbol id="i-trash" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.1h11M8 3.7h4M6.2 6.2l.7 10.1h6.2l.7-10.1M8.4 9v4.3M11.6 9v4.3"/></g></symbol>
+  <symbol id="i-edit" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m4.1 14.5.7-3.1 8-8 2.8 2.8-8 8-3.5.3Z"/><path d="m11.6 4.8 2.8 2.8"/></g></symbol>
+  <symbol id="i-external" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M10.2 5H5v10h10v-5.2M11.2 4.4h4.4v4.4M15.4 4.6l-5.1 5.1"/></g></symbol>
+  <symbol id="i-columns" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.25"><rect x="3.5" y="4.5" width="13" height="11" rx="1.3"/><path d="M8.2 4.7v10.6M11.8 4.7v10.6"/></g></symbol>
+  <symbol id="i-filter" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5h13l-5.1 5.1v4.4l-2.8 1.2v-5.6L3.5 5Z"/></g></symbol>
+  <symbol id="i-grid" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.25"><rect x="3.3" y="3.3" width="5.5" height="5.5" rx="1"/><rect x="11.2" y="3.3" width="5.5" height="5.5" rx="1"/><rect x="3.3" y="11.2" width="5.5" height="5.5" rx="1"/><rect x="11.2" y="11.2" width="5.5" height="5.5" rx="1"/></g></symbol>
+  <symbol id="i-list" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"><path d="M5 5.2h10M5 10h10M5 14.8h7"/><circle cx="3" cy="5.2" r="0.7" fill="currentColor" stroke="none"/><circle cx="3" cy="10" r="0.7" fill="currentColor" stroke="none"/><circle cx="3" cy="14.8" r="0.7" fill="currentColor" stroke="none"/></g></symbol>
+  <symbol id="i-layers" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10 3.2 7 3.5-7 3.6-7-3.6 7-3.5Z"/><path d="m3.5 10 6.5 3.3 6.5-3.3M3.5 13.2l6.5 3.3 6.5-3.3"/></g></symbol>
+  <symbol id="i-sliders" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M3 6h5M12 6h5M3 14h8M15 14h2"/><circle cx="10" cy="6" r="2"/><circle cx="13" cy="14" r="2"/></g></symbol>
+  <symbol id="i-database" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.25"><ellipse cx="10" cy="5.4" rx="6" ry="2.4"/><path d="M4 5.4v9.2c0 1.3 2.7 2.4 6 2.4s6-1.1 6-2.4V5.4M4 10c0 1.3 2.7 2.4 6 2.4s6-1.1 6-2.4"/></g></symbol>
+  <symbol id="i-more" viewBox="0 0 20 20"><g fill="currentColor"><circle cx="5" cy="10" r="1.2"/><circle cx="10" cy="10" r="1.2"/><circle cx="15" cy="10" r="1.2"/></g></symbol>
+  <symbol id="i-window" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.25"><rect x="3" y="4" width="14" height="12" rx="1.7"/><path d="M3.2 7.4h13.6"/></g></symbol>
+</svg>
+
+<main class="stage">
+  <section class="gallery-window" aria-label="Галерея контролов CppUI">
+    <header class="titlebar">
+      <div class="titlebar-left">
+        <svg class="app-mark" viewBox="0 0 24 24" aria-hidden="true">
+          <defs>
+            <linearGradient id="brandBlue" x1="2" y1="1" x2="22" y2="23" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#5BC8B3"/>
+              <stop offset="0.52" stop-color="#0A8975"/>
+              <stop offset="1" stop-color="#006354"/>
+            </linearGradient>
+          </defs>
+          <rect x="1" y="1" width="22" height="22" rx="6.5" fill="url(#brandBlue)"/>
+          <rect x="5.5" y="6.1" width="13" height="11.8" rx="2.7" fill="none" stroke="#fff" stroke-width="1.25" opacity="0.96"/>
+          <path d="M5.7 9.4h12.6" stroke="#fff" stroke-width="1.25" opacity="0.8"/>
+          <circle cx="8.1" cy="7.8" r="0.75" fill="#fff"/>
+          <circle cx="10.5" cy="7.8" r="0.75" fill="#fff" opacity="0.6"/>
+        </svg>
+        <span class="window-title">CppUI Gallery</span>
+        <span class="preview-badge">Controls</span>
+      </div>
+      <div class="titlebar-right">
+        <div class="title-actions">
+          <button class="icon-action" type="button" data-toggle-theme aria-label="Переключить тему" title="Переключить тему">
+            <svg class="icon-moon" aria-hidden="true"><use href="#i-moon"/></svg>
+            <svg class="icon-sun" aria-hidden="true"><use href="#i-sun"/></svg>
+          </button>
+          <button class="icon-action" type="button" aria-label="Настройки галереи" title="Настройки галереи">
+            <svg aria-hidden="true"><use href="#i-settings"/></svg>
+          </button>
+        </div>
+        <div class="title-sep"></div>
+        <div class="caption-group">
+          <button class="caption" type="button" aria-label="Свернуть" title="Свернуть"><svg aria-hidden="true"><use href="#i-minimize"/></svg></button>
+          <button class="caption" type="button" aria-label="Развернуть" title="Развернуть"><svg aria-hidden="true"><use href="#i-maximize"/></svg></button>
+          <button class="caption close" type="button" aria-label="Закрыть" title="Закрыть"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+        </div>
+      </div>
+    </header>
+
+    <div class="menubar">
+      <div class="menu-group" aria-label="Главное меню">
+        <button class="menu-item" type="button">Файл</button>
+        <button class="menu-item" type="button">Правка</button>
+        <button class="menu-item" type="button">Вид</button>
+        <button class="menu-item" type="button">Справка</button>
+      </div>
+      <div class="menu-tools">
+        <button class="tool-button" type="button" aria-label="Отменить"><svg aria-hidden="true"><use href="#i-undo"/></svg></button>
+        <button class="tool-button" type="button" aria-label="Повторить"><svg aria-hidden="true"><use href="#i-redo"/></svg></button>
+        <button class="tool-button" type="button" aria-label="Сохранить"><svg aria-hidden="true"><use href="#i-save"/></svg></button>
+        <span class="menubar-divider"></span>
+        <span class="menubar-note">BarManager</span>
+      </div>
+    </div>
+
+    <div class="app-body">
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <div class="sidebar-eyebrow">Галерея</div>
+          <label class="sidebar-search">
+            <svg aria-hidden="true"><use href="#i-search"/></svg>
+            <input type="search" placeholder="Поиск контрола" aria-label="Поиск контрола">
+          </label>
+        </div>
+
+        <nav class="nav-group" aria-label="Разделы галереи">
+          <div class="nav-label">Категории</div>
+          <button class="nav-item is-active" type="button" data-page="input" aria-current="page">
+            <svg aria-hidden="true"><use href="#i-sliders"/></svg>
+            <span class="nav-title">Ввод и действия</span>
+          </button>
+          <button class="nav-item" type="button" data-page="selection">
+            <svg aria-hidden="true"><use href="#i-list"/></svg>
+            <span class="nav-title">Выбор и списки</span>
+          </button>
+          <button class="nav-item" type="button" data-page="data">
+            <svg aria-hidden="true"><use href="#i-grid"/></svg>
+            <span class="nav-title">Данные</span>
+          </button>
+          <button class="nav-item" type="button" data-page="workspace">
+            <svg aria-hidden="true"><use href="#i-window"/></svg>
+            <span class="nav-title">Рабочее место</span>
+          </button>
+          <button class="nav-item" type="button" data-page="layout">
+            <svg aria-hidden="true"><use href="#i-layers"/></svg>
+            <span class="nav-title">Макет и оверлеи</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-note">
+          <div class="note-eyebrow">Visual preview</div>
+          <p>Один визуальный язык для всех контролов. Не все элементы входят в M0 — волны отмечены на карточках.</p>
+          <div class="wave-legend" aria-label="Волны">
+            <span class="wave-chip">M0</span>
+            <span class="wave-chip">v0.1</span>
+            <span class="wave-chip">v0.2</span>
+            <span class="wave-chip">v0.3</span>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="page-head">
+          <div>
+            <div class="eyebrow">
+              Gallery
+              <span class="eyebrow-dot"></span>
+              <span id="pageIndex">01</span>
+              <span class="eyebrow-dot"></span>
+              <span id="pageKicker">Foundation</span>
+            </div>
+            <h1 id="pageTitle">Ввод и действия</h1>
+            <p class="page-sub" id="pageSubtitle">Кнопки, поля ввода, выбор и индикаторы — базовый набор формы.</p>
+          </div>
+          <div class="head-side">
+            <span class="page-count" id="pageCount">01 / 05</span>
+            <button class="theme-pill" type="button" data-toggle-theme>
+              <svg class="icon-moon" aria-hidden="true"><use href="#i-moon"/></svg>
+              <svg class="icon-sun" aria-hidden="true"><use href="#i-sun"/></svg>
+              <span class="js-theme-label">Светлая тема</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="pages">
+          <!-- 01 · INPUT & ACTIONS -->
+          <section class="page is-active" data-page="input" aria-label="Ввод и действия">
+            <div class="cards cards--inputs">
+              <article class="card card--buttons">
+                <div class="card-head">
+                  <div class="card-title-line">
+                    <h2>Кнопки</h2>
+                    <span class="wave-badge">M0</span>
+                  </div>
+                  <p class="card-sub">Действия, варианты и клавиатурный фокус.</p>
+                </div>
+                <div class="card-body">
+                  <div class="button-row">
+                    <button class="btn btn-primary" type="button">Сохранить</button>
+                    <button class="btn btn-secondary" type="button">Отмена</button>
+                    <button class="btn btn-ghost" type="button">Сбросить</button>
+                    <button class="btn btn-danger" type="button">Удалить</button>
+                  </div>
+                  <div class="button-row">
+                    <button class="icon-btn" type="button" aria-label="Параметры"><svg aria-hidden="true"><use href="#i-settings"/></svg></button>
+                    <button class="btn btn-secondary" type="button">Параметры <svg aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+                    <div class="split-btn">
+                      <button class="split-main" type="button">Экспорт <svg aria-hidden="true"><use href="#i-external"/></svg></button>
+                      <button class="split-toggle" type="button" aria-label="Другие варианты экспорта"><svg aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+                    </div>
+                  </div>
+                  <div class="button-row">
+                    <button class="btn btn-secondary is-focused" type="button">В фокусе</button>
+                    <button class="btn btn-secondary" type="button" disabled>Недоступно</button>
+                    <span class="button-note">focus · disabled</span>
+                  </div>
+                  <div class="button-state-row">
+                    <div class="state-cell"><span class="state-caption">hover</span><button class="btn btn-secondary is-hovered" type="button">Hover</button></div>
+                    <div class="state-cell"><span class="state-caption">pressed</span><button class="btn btn-secondary is-pressed" type="button">Pressed</button></div>
+                  </div>
+                  <div class="card-foot">
+                    <span>высота 32 DIP</span>
+                    <span class="badge">icon · dropdown · split</span>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card card--selection">
+                <div class="card-head">
+                  <div class="card-title-line">
+                    <h2>Выбор</h2>
+                    <span class="wave-badge">v0.1</span>
+                  </div>
+                  <p class="card-sub">CheckBox, RadioButton, ToggleSwitch, Slider.</p>
+                </div>
+                <div class="card-body">
+                  <div class="selection-grid">
+                    <div class="selection-block">
+                      <div class="selection-label">CheckBox</div>
+                      <div class="checkbox-line"><span class="checkbox is-checked"><svg aria-hidden="true"><use href="#i-check"/></svg></span> Автосохранение</div>
+                      <div class="checkbox-line"><span class="checkbox"></span> Показывать сетку</div>
+                      <div class="checkbox-line"><span class="checkbox is-indeterminate"></span> Частично выбрано</div>
+                      <div class="checkbox-line"><span class="checkbox is-disabled"></span> <span class="muted">Недоступно</span></div>
+                    </div>
+                    <div class="selection-block">
+                      <div class="selection-label">RadioButton</div>
+                      <div class="radio-line is-selected"><span class="radio is-selected"></span> Светлая</div>
+                      <div class="radio-line"><span class="radio"></span> Тёмная</div>
+                      <div class="radio-line"><span class="radio"></span> Системная</div>
+                    </div>
+                  </div>
+                  <div class="divider"></div>
+                  <div class="switch-line"><span>Анимации</span><span class="switch is-on" aria-hidden="true"></span></div>
+                  <div class="switch-line"><span>Уведомления</span><span class="switch" aria-hidden="true"></span></div>
+                  <div class="switch-line"><span class="muted">Сетка</span><span class="switch is-disabled" aria-hidden="true"></span></div>
+                  <div class="slider-row">
+                    <div class="slider-head"><span>Прозрачность</span><span class="value">68%</span></div>
+                    <div class="slider-track"><div class="slider-fill"></div><div class="slider-thumb"></div></div>
+                  </div>
+                  <div class="card-foot"><span>Space / arrows</span><span class="badge">v0.1</span></div>
+                </div>
+              </article>
+
+              <article class="card card--feedback">
+                <div class="card-head">
+                  <div class="card-title-line">
+                    <h2>Индикаторы</h2>
+                    <span class="wave-badge">v0.1</span>
+                  </div>
+                  <p class="card-sub">ProgressBar, Loader, Validation, InfoBar.</p>
+                </div>
+                <div class="card-body">
+                  <div class="progress-block">
+                    <div class="progress-head"><span>Сборка проекта</span><span><strong>68%</strong></span></div>
+                    <div class="progress-track"><div class="progress-fill" style="width: 68%"></div></div>
+                  </div>
+                  <div class="loader-line">
+                    <span class="spinner" aria-hidden="true"></span>
+                    <span>Загрузка данных...</span>
+                    <span class="loader-meta">12 сек</span>
+                  </div>
+                  <div class="loader-line">
+                    <span class="spinner spinner--small" aria-hidden="true"></span>
+                    <span>Автосохранение</span>
+                    <span class="loader-meta">только что</span>
+                  </div>
+                  <div class="progress-block">
+                    <div class="progress-head"><span>Индексация</span><span>в процессе</span></div>
+                    <div class="progress-track"><div class="progress-fill is-indeterminate"></div></div>
+                  </div>
+                  <div class="validation-demo">
+                    <div class="field-label"><span>Имя проекта</span><span class="optional">обязательно</span></div>
+                    <div class="input-wrap is-invalid">
+                      <input type="text" value="Cpp UI" aria-label="Имя проекта" aria-invalid="true">
+                    </div>
+                    <div class="field-error"><svg aria-hidden="true"><use href="#i-alert"/></svg> Допустимы только буквы, цифры и дефис.</div>
+                  </div>
+                  <div class="info-bar info-bar--success">
+                    <svg aria-hidden="true"><use href="#i-check"/></svg>
+                    Изменения сохранены.
+                  </div>
+                </div>
+              </article>
+
+              <article class="card card--wide card--inputs">
+                <div class="card-head">
+                  <div class="card-title-line">
+                    <h2>Поля ввода</h2>
+                    <span class="wave-badge">v0.1 — v0.2</span>
+                  </div>
+                  <p class="card-sub">Label, TextEdit, Search, Password, SpinEdit, MaskedEdit, MemoEdit.</p>
+                </div>
+                <div class="card-body">
+                  <div class="form-grid">
+                    <div class="field">
+                      <div class="field-label"><span>Название проекта</span><span class="optional">обязательно</span></div>
+                      <div class="input-wrap"><input type="text" value="CppUI Gallery" aria-label="Название проекта"></div>
+                    </div>
+                    <div class="field">
+                      <div class="field-label"><span>Поиск</span><span class="optional">SearchEdit</span></div>
+                      <div class="input-wrap is-focused">
+                        <svg aria-hidden="true"><use href="#i-search"/></svg>
+                        <input type="search" placeholder="Найти контрол" aria-label="Поиск">
+                      </div>
+                    </div>
+                    <div class="field">
+                      <div class="field-label"><span>Пароль</span><span class="optional">PasswordEdit</span></div>
+                      <div class="input-wrap">
+                        <input type="password" value="framework2026" aria-label="Пароль">
+                        <svg aria-hidden="true"><use href="#i-eye"/></svg>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <div class="field-label"><span>Ширина окна</span><span class="optional">SpinEdit</span></div>
+                      <div class="input-wrap">
+                        <input type="text" value="1120" aria-label="Ширина окна">
+                        <span class="field-suffix">DIP</span>
+                        <div class="stepper">
+                          <button type="button" aria-label="Увеличить"><svg aria-hidden="true"><use href="#i-plus"/></svg></button>
+                          <button type="button" aria-label="Уменьшить"><svg aria-hidden="true"><use href="#i-minus"/></svg></button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <div class="field-label"><span>Телефон</span><span class="optional">MaskedEdit</span></div>
+                      <div class="input-wrap">
+                        <input type="text" value="+7 (999) 123-45-67" aria-label="Телефон">
+                      </div>
+                    </div>
+                    <div class="field">
+                      <div class="field-label"><span>E-mail</span><span class="optional">TextEdit</span></div>
+                      <div class="input-wrap">
+                        <input type="text" value="team@cppui.dev" aria-label="E-mail">
+                      </div>
+                    </div>
+                    <div class="field memo-field">
+                      <div class="field-label"><span>Описание</span><span class="optional">MemoEdit · 0 / 500</span></div>
+                      <div class="textarea-wrap">
+                        <textarea aria-label="Описание">Лёгкий UI-фреймворк для Windows: нативная отрисовка, кастомный заголовок и светлая/тёмная тема.</textarea>
+                        <div class="textarea-meta">84 / 500</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-foot">
+                  <span>Label · 10–17 DIP</span>
+                  <a class="link-label" href="#">Документация <svg aria-hidden="true"><use href="#i-external"/></svg></a>
+                </div>
+              </article>
+
+              <article class="card card--misc">
+                <div class="card-head">
+                  <div class="card-title-line">
+                    <h2>Подписи и изображения</h2>
+                    <span class="wave-badge">v0.1</span>
+                  </div>
+                  <p class="card-sub">Label, LinkLabel, Image, InfoBar.</p>
+                </div>
+                <div class="card-body">
+                  <div class="type-sample">
+                    <div class="t-heading">Заголовок раздела</div>
+                    <div class="t-body">Основной текст интерфейса. Он держит ритм и не спорит с акцентом.</div>
+                    <div class="t-caption">Вспомогательная подпись · 9 DIP</div>
+                    <a class="link-label" href="#">Открыть документацию <svg aria-hidden="true"><use href="#i-external"/></svg></a>
+                  </div>
+                  <div class="image-row">
+                    <div class="image-tile" aria-hidden="true"><svg><use href="#i-window"/></svg></div>
+                    <div class="image-caption"><strong>Image / PictureBox</strong>82 × 54 DIP · градиент и глиф</div>
+                  </div>
+                  <div class="info-bar info-bar--warning">
+                    <svg aria-hidden="true"><use href="#i-info"/></svg>
+                    Некоторые настройки требуют перезапуска.
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <!-- 02 · SELECTION & LISTS -->
+          <section class="page" data-page="selection" aria-label="Выбор и списки">
+            <div class="cards cards--three">
+              <article class="card card--combo">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>ComboBox</h2><span class="wave-badge">v0.2</span></div>
+                  <p class="card-sub">Одиночный выбор и открытый popup.</p>
+                </div>
+                <div class="card-body">
+                  <div class="field">
+                    <div class="field-label"><span>Приоритет</span><span class="optional">5 вариантов</span></div>
+                    <button class="select-control is-open" type="button">Высокий <svg aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+                  </div>
+                  <div class="popup-panel">
+                    <div class="combo-option">Низкий</div>
+                    <div class="combo-option">Средний</div>
+                    <div class="combo-option is-selected">Высокий <svg aria-hidden="true"><use href="#i-check"/></svg></div>
+                    <div class="combo-option">Критический</div>
+                    <div class="combo-option">Блокер</div>
+                  </div>
+                  <div class="card-foot"><span>Popup align · start</span><span class="badge">Keyboard</span></div>
+                </div>
+              </article>
+
+              <article class="card card--checked-combo">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>CheckedComboBox</h2><span class="wave-badge">v0.2</span></div>
+                  <p class="card-sub">Множественный выбор с итоговой сводкой.</p>
+                </div>
+                <div class="card-body">
+                  <div class="field">
+                    <div class="field-label"><span>Метки</span><span class="optional">2 из 6</span></div>
+                    <button class="select-control is-open" type="button">
+                      <span class="chip-row"><span class="chip chip--accent">UI</span><span class="chip chip--accent">Data</span></span>
+                      <svg aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                    </button>
+                  </div>
+                  <div class="popup-panel">
+                    <div class="combo-option is-selected"><span class="checkbox-line"><span class="checkbox is-checked"><svg aria-hidden="true"><use href="#i-check"/></svg></span> UI</span></div>
+                    <div class="combo-option is-selected"><span class="checkbox-line"><span class="checkbox is-checked"><svg aria-hidden="true"><use href="#i-check"/></svg></span> Data</span></div>
+                    <div class="combo-option"><span class="checkbox-line"><span class="checkbox"></span> Docs</span></div>
+                    <div class="combo-option"><span class="checkbox-line"><span class="checkbox"></span> Testing</span></div>
+                    <div class="combo-option"><span class="checkbox-line"><span class="checkbox"></span> Release</span></div>
+                    <div class="combo-option"><span class="checkbox-line"><span class="checkbox"></span> Infra</span></div>
+                  </div>
+                  <div class="select-summary">Выбрано 2 из 6</div>
+                </div>
+              </article>
+
+              <article class="card card--date">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>DateEdit · Calendar</h2><span class="wave-badge">v0.2</span></div>
+                  <p class="card-sub">Поле даты и раскрытый календарь.</p>
+                </div>
+                <div class="card-body">
+                  <div class="field">
+                    <div class="field-label"><span>Дата релиза</span><span class="optional">ru-RU</span></div>
+                    <button class="select-control" type="button"><span>14.11.2026</span><svg aria-hidden="true"><use href="#i-calendar"/></svg></button>
+                  </div>
+                  <div class="calendar">
+                    <div class="calendar-head">
+                      <span>Ноябрь 2026</span>
+                      <span class="calendar-nav"><svg aria-hidden="true"><use href="#i-chevron-left"/></svg><svg aria-hidden="true"><use href="#i-chevron-right"/></svg></span>
+                    </div>
+                    <div class="calendar-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+                    <div class="calendar-grid">
+                      <span class="calendar-day is-muted">26</span><span class="calendar-day is-muted">27</span><span class="calendar-day is-muted">28</span><span class="calendar-day is-muted">29</span><span class="calendar-day is-muted">30</span><span class="calendar-day is-muted">31</span><span class="calendar-day">1</span>
+                      <span class="calendar-day">2</span><span class="calendar-day">3</span><span class="calendar-day">4</span><span class="calendar-day">5</span><span class="calendar-day">6</span><span class="calendar-day">7</span><span class="calendar-day">8</span>
+                      <span class="calendar-day">9</span><span class="calendar-day">10</span><span class="calendar-day">11</span><span class="calendar-day">12</span><span class="calendar-day">13</span><span class="calendar-day is-selected">14</span><span class="calendar-day">15</span>
+                      <span class="calendar-day">16</span><span class="calendar-day">17</span><span class="calendar-day">18</span><span class="calendar-day">19</span><span class="calendar-day">20</span><span class="calendar-day">21</span><span class="calendar-day">22</span>
+                      <span class="calendar-day">23</span><span class="calendar-day">24</span><span class="calendar-day">25</span><span class="calendar-day">26</span><span class="calendar-day">27</span><span class="calendar-day">28</span><span class="calendar-day">29</span>
+                      <span class="calendar-day">30</span><span class="calendar-day is-muted">1</span><span class="calendar-day is-muted">2</span><span class="calendar-day is-muted">3</span><span class="calendar-day is-muted">4</span><span class="calendar-day is-muted">5</span><span class="calendar-day is-muted">6</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card card--listbox">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>ListBox</h2><span class="wave-badge">v0.2</span></div>
+                  <p class="card-sub">Простой список с одиночным выбором.</p>
+                </div>
+                <div class="card-body">
+                  <div class="list-wrap">
+                    <div class="list-surface">
+                      <div class="list-scroll">
+                        <div class="list-row is-selected"><svg class="file-glyph" aria-hidden="true"><use href="#i-file"/></svg><span>form.cpp</span><span class="row-meta">2.4 KB</span></div>
+                        <div class="list-row"><svg class="file-glyph" aria-hidden="true"><use href="#i-file"/></svg><span>theme.cpp</span><span class="row-meta">1.8 KB</span></div>
+                        <div class="list-row"><svg class="file-glyph" aria-hidden="true"><use href="#i-file"/></svg><span>widgets.cpp</span><span class="row-meta">3.1 KB</span></div>
+                        <div class="list-row"><svg class="file-glyph" aria-hidden="true"><use href="#i-file"/></svg><span>layout.cpp</span><span class="row-meta">2.7 KB</span></div>
+                        <div class="list-row"><svg class="file-glyph" aria-hidden="true"><use href="#i-file"/></svg><span>renderer.cpp</span><span class="row-meta">4.2 KB</span></div>
+                        <div class="list-row"><svg class="file-glyph" aria-hidden="true"><use href="#i-file"/></svg><span>main.cpp</span><span class="row-meta">0.9 KB</span></div>
+                      </div>
+                      <div class="list-footer"><span>6 элементов</span><span>Single select</span></div>
+                    </div>
+                  </div>
+                  <div class="card-foot"><span>ScrollViewer внутри</span><span class="badge">Keyboard</span></div>
+                </div>
+              </article>
+
+              <article class="card card--checked-listbox">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>CheckedListBox</h2><span class="wave-badge">v0.2</span></div>
+                  <p class="card-sub">Список с независимыми чекбоксами.</p>
+                </div>
+                <div class="card-body">
+                  <div class="list-surface">
+                    <div class="list-scroll">
+                      <div class="list-row"><span class="checkbox-line"><span class="checkbox is-checked"><svg aria-hidden="true"><use href="#i-check"/></svg></span> Animations</span><span class="row-meta accent">UI</span></div>
+                      <div class="list-row"><span class="checkbox-line"><span class="checkbox"></span> Reduced motion</span><span class="row-meta">UI</span></div>
+                      <div class="list-row"><span class="checkbox-line"><span class="checkbox is-checked"><svg aria-hidden="true"><use href="#i-check"/></svg></span> Snap Layouts</span><span class="row-meta accent">Shell</span></div>
+                      <div class="list-row"><span class="checkbox-line"><span class="checkbox"></span> Diagnostics</span><span class="row-meta">Debug</span></div>
+                      <div class="list-row"><span class="checkbox-line"><span class="checkbox is-checked"><svg aria-hidden="true"><use href="#i-check"/></svg></span> Auto-save</span><span class="row-meta">Shell</span></div>
+                      <div class="list-row"><span class="checkbox-line"><span class="checkbox"></span> Telemetry</span><span class="row-meta">Privacy</span></div>
+                    </div>
+                    <div class="list-footer"><span>3 из 6 выбрано</span><span>Checkable items</span></div>
+                  </div>
+                  <div class="card-foot"><span>Shared item model</span><span class="badge">Tab</span></div>
+                </div>
+              </article>
+
+              <article class="card card--listview">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>ListView</h2><span class="wave-badge">v0.2</span></div>
+                  <p class="card-sub">Список с иконками и вторичной информацией.</p>
+                </div>
+                <div class="card-body">
+                  <div class="list-surface">
+                    <div class="listview-row is-selected">
+                      <span class="listview-icon"><svg aria-hidden="true"><use href="#i-window"/></svg></span>
+                      <span class="listview-copy"><span class="listview-title">MainWindow.cpp</span><span class="listview-meta">Изменён 2 минуты назад</span></span>
+                      <span class="listview-side">12 KB</span>
+                    </div>
+                    <div class="listview-row">
+                      <span class="listview-icon"><svg aria-hidden="true"><use href="#i-code"/></svg></span>
+                      <span class="listview-copy"><span class="listview-title">theme_tokens.cpp</span><span class="listview-meta">Изменён 18 минут назад</span></span>
+                      <span class="listview-side">8 KB</span>
+                    </div>
+                    <div class="listview-row">
+                      <span class="listview-icon"><svg aria-hidden="true"><use href="#i-package"/></svg></span>
+                      <span class="listview-copy"><span class="listview-title">gallery_sample</span><span class="listview-meta">Собран 1 час назад</span></span>
+                      <span class="listview-side">24 KB</span>
+                    </div>
+                    <div class="listview-row">
+                      <span class="listview-icon"><svg aria-hidden="true"><use href="#i-grid"/></svg></span>
+                      <span class="listview-copy"><span class="listview-title">controls_gallery.cpp</span><span class="listview-meta">Изменён 3 часа назад</span></span>
+                      <span class="listview-side">17 KB</span>
+                    </div>
+                    <div class="list-footer"><span>4 элемента</span><span>Details view</span></div>
+                  </div>
+                  <div class="card-foot"><span>Иконка + две строки</span><span class="badge">v0.2</span></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <!-- 03 · DATA -->
+          <section class="page" data-page="data" aria-label="Данные">
+            <div class="cards cards--two">
+              <article class="card card--tree">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>TreeList</h2><span class="wave-badge">v0.3</span></div>
+                  <p class="card-sub">Иерархия с колонками и keyboard selection.</p>
+                </div>
+                <div class="card-body">
+                  <div class="table-surface tree-table">
+                    <div class="table-row table-head"><span>Проект</span><span>Тип</span><span>Статус</span></div>
+                    <div class="table-row"><span class="tree-cell"><svg class="tree-chevron" aria-hidden="true"><use href="#i-chevron-down"/></svg><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg><span class="tree-name cell-strong">src</span></span><span>folder</span><span><span class="badge">5 items</span></span></div>
+                    <div class="table-row"><span class="tree-cell"><span class="tree-indent"></span><span class="tree-indent"></span><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg><span class="tree-name">core</span></span><span>folder</span><span class="tertiary">—</span></div>
+                    <div class="table-row"><span class="tree-cell"><span class="tree-indent"></span><span class="tree-indent"></span><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg><span class="tree-name">render</span></span><span>folder</span><span class="tertiary">—</span></div>
+                    <div class="table-row is-selected"><span class="tree-cell"><span class="tree-indent"></span><span class="tree-indent"></span><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg><span class="tree-name cell-strong">widgets</span></span><span>folder</span><span><span class="badge badge--accent">Selected</span></span></div>
+                    <div class="table-row"><span class="tree-cell"><span class="tree-indent"></span><span class="tree-indent"></span><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg><span class="tree-name">platform</span></span><span>folder</span><span class="tertiary">—</span></div>
+                    <div class="table-row"><span class="tree-cell"><span class="tree-indent"></span><span class="tree-indent"></span><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg><span class="tree-name">app</span></span><span>folder</span><span class="tertiary">—</span></div>
+                    <div class="table-row"><span class="tree-cell"><svg class="tree-chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg><span class="tree-name">docs</span></span><span>folder</span><span class="tertiary">—</span></div>
+                    <div class="table-row"><span class="tree-cell"><span class="tree-indent"></span><span class="tree-indent"></span><svg class="file-icon" aria-hidden="true"><use href="#i-file"/></svg><span class="tree-name">README.md</span></span><span>file</span><span><span class="badge badge--warning">Modified</span></span></div>
+                  </div>
+                  <div class="table-footer"><span>8 из 128 узлов</span><span>expand / collapse</span></div>
+                </div>
+              </article>
+
+              <article class="card card--grid">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>GridView</h2><span class="wave-badge">v0.3</span></div>
+                  <p class="card-sub">Таблица с сортировкой, фильтрацией и виртуализацией.</p>
+                </div>
+                <div class="card-body">
+                  <div class="table-surface">
+                    <div class="table-toolbar">
+                      <span class="toolbar-search"><svg aria-hidden="true"><use href="#i-search"/></svg><span>Search builds</span></span>
+                      <span class="table-toolbar-actions">
+                        <button class="tool-button" type="button" aria-label="Фильтр"><svg aria-hidden="true"><use href="#i-filter"/></svg></button>
+                        <button class="tool-button" type="button" aria-label="Колонки"><svg aria-hidden="true"><use href="#i-columns"/></svg></button>
+                      </span>
+                    </div>
+                    <div class="table-row table-head build-table"><span>Build</span><span>Status</span><span>Branch</span><span>Duration</span></div>
+                    <div class="table-row table-row--data build-table"><span class="cell-strong">#2481</span><span><span class="badge badge--success"><span class="status-dot"></span>Success</span></span><span class="cell-mono">main</span><span>1m 24s</span></div>
+                    <div class="table-row table-row--data build-table"><span class="cell-strong">#2480</span><span><span class="badge badge--success"><span class="status-dot"></span>Success</span></span><span class="cell-mono">feat/ui</span><span>1m 31s</span></div>
+                    <div class="table-row table-row--data build-table"><span class="cell-strong">#2479</span><span><span class="badge badge--warning"><span class="status-dot"></span>Warning</span></span><span class="cell-mono">fix/dpi</span><span>2m 05s</span></div>
+                    <div class="table-row table-row--data build-table"><span class="cell-strong">#2478</span><span><span class="badge badge--accent"><span class="status-dot"></span>Running</span></span><span class="cell-mono">main</span><span>—</span></div>
+                    <div class="table-row table-row--data build-table"><span class="cell-strong">#2477</span><span><span class="badge badge--danger"><span class="status-dot"></span>Failed</span></span><span class="cell-mono">release</span><span>0m 42s</span></div>
+                    <div class="table-row table-row--data build-table"><span class="cell-strong">#2476</span><span><span class="badge badge--success"><span class="status-dot"></span>Success</span></span><span class="cell-mono">feat/theme</span><span>1m 18s</span></div>
+                    <div class="table-row table-row--data build-table"><span class="cell-strong">#2475</span><span><span class="badge badge--danger"><span class="status-dot"></span>Failed</span></span><span class="cell-mono">fix/text</span><span>0m 56s</span></div>
+                    <div class="table-footer"><span>7 из 128 строк · virtualized</span><span>sorted by build ↓</span></div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card card--property">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>PropertyGrid</h2><span class="wave-badge">v0.3</span></div>
+                  <p class="card-sub">Редактор свойств через явные PropertyDescriptor.</p>
+                </div>
+                <div class="card-body">
+                  <div class="prop-object">
+                    <svg aria-hidden="true"><use href="#i-window"/></svg>
+                    <span><strong>MainWindow</strong> · Form</span>
+                    <svg class="prop-object-chevron" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                  </div>
+                  <div class="prop-grid">
+                    <div class="prop-category"><svg aria-hidden="true"><use href="#i-chevron-down"/></svg> Внешний вид</div>
+                    <div class="prop-row"><span class="prop-name">Theme</span><span class="prop-value"><span class="value-select">System <svg aria-hidden="true"><use href="#i-chevron-down"/></svg></span></span></div>
+                    <div class="prop-row"><span class="prop-name">Accent</span><span class="prop-value"><span class="color-swatch"></span> Blue</span></div>
+                    <div class="prop-row"><span class="prop-name">Corner radius</span><span class="prop-value">14 DIP</span></div>
+                    <div class="prop-row"><span class="prop-name">Opacity</span><span class="prop-value">100%</span></div>
+                    <div class="prop-category"><svg aria-hidden="true"><use href="#i-chevron-down"/></svg> Поведение</div>
+                    <div class="prop-row"><span class="prop-name">Resizable</span><span class="prop-value"><span class="prop-check is-checked"><svg aria-hidden="true"><use href="#i-check"/></svg></span></span></div>
+                    <div class="prop-row"><span class="prop-name">Status bar</span><span class="prop-value"><span class="prop-check is-checked"><svg aria-hidden="true"><use href="#i-check"/></svg></span></span></div>
+                    <div class="prop-row"><span class="prop-name">Show title</span><span class="prop-value"><span class="prop-check is-checked"><svg aria-hidden="true"><use href="#i-check"/></svg></span></span></div>
+                    <div class="prop-row"><span class="prop-name">Min width</span><span class="prop-value">720 DIP</span></div>
+                  </div>
+                  <div class="card-foot"><span>Descriptor-based · no reflection</span><span class="badge">Editors</span></div>
+                </div>
+              </article>
+
+              <article class="card card--vertical">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>VerticalGrid</h2><span class="wave-badge">v0.3</span></div>
+                  <p class="card-sub">Запись в вертикальном представлении.</p>
+                </div>
+                <div class="card-body">
+                  <div class="vertical-grid">
+                    <div class="v-row"><span class="v-name">Build</span><span class="v-value"><strong>#2481</strong><span class="badge badge--success"><span class="status-dot"></span>Success</span></span></div>
+                    <div class="v-row"><span class="v-name">Branch</span><span class="v-value"><span class="mono">main</span></span></div>
+                    <div class="v-row"><span class="v-name">Commit</span><span class="v-value"><span class="mono">a7f3c92</span><svg aria-hidden="true"><use href="#i-external"/></svg></span></div>
+                    <div class="v-row"><span class="v-name">Started</span><span class="v-value">14:32</span></div>
+                    <div class="v-row"><span class="v-name">Duration</span><span class="v-value">1m 24s</span></div>
+                    <div class="v-row"><span class="v-name">Artifacts</span><span class="v-value">3 files <svg aria-hidden="true"><use href="#i-package"/></svg></span></div>
+                    <div class="v-row"><span class="v-name">Host</span><span class="v-value"><span class="mono">win11-x64</span></span></div>
+                    <div class="v-row"><span class="v-name">OS</span><span class="v-value">Windows 11</span></div>
+                  </div>
+                  <div class="info-bar">
+                    <svg aria-hidden="true"><use href="#i-info"/></svg>
+                    VerticalGrid — отдельный контрол, решение о статусе открыто.
+                  </div>
+                  <div class="card-foot"><span>Record view · 8 fields</span><span class="badge">v0.3 · TBD</span></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <!-- 04 · DATA WORKSPACE -->
+          <section class="page" data-page="workspace" aria-label="Рабочее место">
+            <div class="workspace">
+              <div class="ws-toolbar">
+                <div class="ws-crumbs">
+                  <span>builds</span>
+                  <span class="ws-crumb-sep">/</span>
+                  <strong>main</strong>
+                  <span class="ws-live"><span class="status-dot"></span> live</span>
+                </div>
+                <div class="ws-toolbar-spacer"></div>
+                <div class="ws-density" role="group" aria-label="Плотность рабочей области">
+                  <span>Плотность</span>
+                  <button class="density-option" type="button" data-density="compact" title="Компактная">S</button>
+                  <button class="density-option is-active" type="button" data-density="cozy" title="Обычная">M</button>
+                  <button class="density-option" type="button" data-density="comfortable" title="Свободная">L</button>
+                </div>
+                <label class="ws-search">
+                  <svg aria-hidden="true"><use href="#i-search"/></svg>
+                  <input type="search" placeholder="Поиск сборок..." aria-label="Поиск сборок">
+                </label>
+                <div class="ws-filters" role="group" aria-label="Фильтр сборок">
+                  <button class="ws-filter is-active" type="button">All</button>
+                  <button class="ws-filter" type="button">Running <span>1</span></button>
+                  <button class="ws-filter" type="button">Failed <span>1</span></button>
+                </div>
+                <button class="icon-btn ws-icon-btn" type="button" aria-label="Колонки"><svg aria-hidden="true"><use href="#i-columns"/></svg></button>
+                <button class="btn btn-primary ws-new" type="button"><svg aria-hidden="true"><use href="#i-plus"/></svg>New build</button>
+              </div>
+
+              <div class="ws-body">
+                <aside class="ws-pane ws-tree-pane">
+                  <div class="ws-pane-head">
+                    <span>Проводник</span>
+                    <button class="ws-mini-btn" type="button" aria-label="Обновить"><svg aria-hidden="true"><use href="#i-undo"/></svg></button>
+                  </div>
+                  <label class="ws-pane-search">
+                    <svg aria-hidden="true"><use href="#i-search"/></svg>
+                    <input type="search" placeholder="Найти сборку" aria-label="Найти сборку">
+                  </label>
+                  <div class="ws-tree">
+                    <div class="ws-tree-row ws-tree-root"><svg class="tree-chevron" aria-hidden="true"><use href="#i-chevron-down"/></svg><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg><span>CppUI</span><span class="ws-tree-count">48</span></div>
+                    <div class="ws-tree-row is-selected"><span class="ws-indent"></span><span class="ws-indent"></span><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg><span>src</span><span class="ws-tree-count">12</span></div>
+                    <div class="ws-tree-row"><span class="ws-indent"></span><span class="ws-indent"></span><span class="ws-indent"></span><svg class="tree-chevron" aria-hidden="true"><use href="#i-chevron-down"/></svg><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg><span>widgets</span><span class="ws-tree-count">6</span></div>
+                    <div class="ws-tree-row"><span class="ws-indent"></span><span class="ws-indent"></span><span class="ws-indent"></span><span class="ws-indent"></span><svg class="file-icon" aria-hidden="true"><use href="#i-file"/></svg><span>button.cpp</span><span class="ws-changed-dot"></span></div>
+                    <div class="ws-tree-row"><span class="ws-indent"></span><span class="ws-indent"></span><span class="ws-indent"></span><span class="ws-indent"></span><svg class="file-icon" aria-hidden="true"><use href="#i-file"/></svg><span>grid_view.cpp</span></div>
+                    <div class="ws-tree-row"><span class="ws-indent"></span><span class="ws-indent"></span><span class="ws-indent"></span><svg class="tree-chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg><span>render</span><span class="ws-tree-count">8</span></div>
+                    <div class="ws-tree-row"><span class="ws-indent"></span><span class="ws-indent"></span><svg class="tree-chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg><span>docs</span><span class="ws-tree-count">9</span></div>
+                    <div class="ws-tree-row"><span class="ws-indent"></span><span class="ws-indent"></span><svg class="file-icon" aria-hidden="true"><use href="#i-file"/></svg><span>CMakeLists.txt</span></div>
+                  </div>
+                  <div class="ws-pane-foot"><span>48 builds</span><button class="ws-link" type="button">Показать все</button></div>
+                </aside>
+
+                <section class="ws-center">
+                  <div class="ws-grid-toolbar">
+                    <span class="ws-grid-title">Build history</span>
+                    <span class="badge badge--accent">1 live</span>
+                    <span class="ws-toolbar-spacer"></span>
+                    <span class="ws-grid-meta">3 новых · 14 показано</span>
+                    <button class="ws-mini-btn" type="button" aria-label="Обновить"><svg aria-hidden="true"><use href="#i-undo"/></svg></button>
+                    <button class="ws-mini-btn" type="button" aria-label="Настройки таблицы"><svg aria-hidden="true"><use href="#i-columns"/></svg></button>
+                  </div>
+                  <div class="ws-table-wrap">
+                    <div class="ws-table">
+                      <div class="ws-table-head">
+                        <span></span><span>Build</span><span>Status</span><span>Branch</span><span class="ws-right">Duration</span><span class="ws-right">Age</span>
+                      </div>
+                      <div class="ws-table-row ws-row-running ws-row-new">
+                        <span class="ws-select"><span class="checkbox"></span></span>
+                        <span class="ws-build">#2493</span>
+                        <span class="ws-cell ws-status-cell"><span class="badge badge--accent"><span class="spinner spinner--tiny"></span>Running</span></span>
+                        <span class="ws-cell cell-branch">feat/workspace</span>
+                        <span class="ws-cell ws-right"><span class="ws-row-progress"><span style="width:42%"></span></span><span class="ws-duration">42%</span></span>
+                        <span class="ws-cell ws-right ws-age">now</span>
+                      </div>
+                      <div class="ws-table-row is-selected">
+                        <span class="ws-select"><span class="checkbox is-checked"><svg aria-hidden="true"><use href="#i-check"/></svg></span></span>
+                        <span class="ws-build">#2492</span>
+                        <span class="ws-cell ws-status-cell"><span class="badge badge--success"><span class="status-dot"></span>Success</span></span>
+                        <span class="ws-cell cell-branch">main</span>
+                        <span class="ws-cell ws-right ws-duration">1m 24s</span>
+                        <span class="ws-cell ws-right ws-age">now</span>
+                      </div>
+                      <div class="ws-table-row ws-row-warning">
+                        <span class="ws-select"><span class="checkbox"></span></span>
+                        <span class="ws-build">#2491</span>
+                        <span class="ws-cell ws-status-cell">
+                          <button class="ws-cell-editor is-editing" type="button" aria-label="Изменить статус сборки" aria-expanded="false"><span class="ws-editor-label">Warning</span><svg aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+                        </span>
+                        <span class="ws-cell cell-branch is-changed">fix/density <span class="ws-changed-dot"></span></span>
+                        <span class="ws-cell ws-right ws-duration">2m 05s</span>
+                        <span class="ws-cell ws-right ws-age">18m</span>
+                      </div>
+                      <div class="ws-table-row ws-row-failed">
+                        <span class="ws-select"><span class="checkbox"></span></span>
+                        <span class="ws-build">#2490 <span class="ws-error-mark"><svg aria-hidden="true"><use href="#i-alert"/></svg></span></span>
+                        <span class="ws-cell ws-status-cell"><span class="badge badge--danger"><span class="status-dot"></span>Failed</span></span>
+                        <span class="ws-cell cell-branch">release</span>
+                        <span class="ws-cell ws-right ws-duration">0m 42s</span>
+                        <span class="ws-cell ws-right ws-age">32m</span>
+                      </div>
+                      <div class="ws-table-row">
+                        <span class="ws-select"><span class="checkbox"></span></span>
+                        <span class="ws-build">#2489</span>
+                        <span class="ws-cell ws-status-cell"><span class="badge badge--success"><span class="status-dot"></span>Success</span></span>
+                        <span class="ws-cell cell-branch">feat/theme <span class="ws-new-dot" title="Новая сборка"></span></span>
+                        <span class="ws-cell ws-right ws-duration">1m 18s</span>
+                        <span class="ws-cell ws-right ws-age">1h</span>
+                      </div>
+                      <div class="ws-table-row">
+                        <span class="ws-select"><span class="checkbox"></span></span>
+                        <span class="ws-build">#2488</span>
+                        <span class="ws-cell ws-status-cell"><span class="badge"><span class="spinner spinner--tiny"></span>Queued</span></span>
+                        <span class="ws-cell cell-branch">docs/preview</span>
+                        <span class="ws-cell ws-right ws-duration">—</span>
+                        <span class="ws-cell ws-right ws-age">2h</span>
+                      </div>
+                      <div class="ws-table-row">
+                        <span class="ws-select"><span class="checkbox"></span></span>
+                        <span class="ws-build">#2487</span>
+                        <span class="ws-cell ws-status-cell"><span class="badge badge--success"><span class="status-dot"></span>Success</span></span>
+                        <span class="ws-cell cell-branch">feat/grid</span>
+                        <span class="ws-cell ws-right ws-duration">1m 05s</span>
+                        <span class="ws-cell ws-right ws-age">2h</span>
+                      </div>
+                      <div class="ws-table-row">
+                        <span class="ws-select"><span class="checkbox"></span></span>
+                        <span class="ws-build">#2486</span>
+                        <span class="ws-cell ws-status-cell"><span class="badge badge--success"><span class="status-dot"></span>Success</span></span>
+                        <span class="ws-cell cell-branch">fix/teal</span>
+                        <span class="ws-cell ws-right ws-duration">1m 44s</span>
+                        <span class="ws-cell ws-right ws-age">3h</span>
+                      </div>
+                      <div class="ws-table-row">
+                        <span class="ws-select"><span class="checkbox"></span></span>
+                        <span class="ws-build">#2485</span>
+                        <span class="ws-cell ws-status-cell"><span class="badge badge--warning"><span class="status-dot"></span>Warning</span></span>
+                        <span class="ws-cell cell-branch">docs/preview</span>
+                        <span class="ws-cell ws-right ws-duration">2m 11s</span>
+                        <span class="ws-cell ws-right ws-age">3h</span>
+                      </div>
+                      <div class="ws-table-row ws-row-failed">
+                        <span class="ws-select"><span class="checkbox"></span></span>
+                        <span class="ws-build">#2484</span>
+                        <span class="ws-cell ws-status-cell"><span class="badge badge--danger"><span class="status-dot"></span>Failed</span></span>
+                        <span class="ws-cell cell-branch">release</span>
+                        <span class="ws-cell ws-right ws-duration">0m 38s</span>
+                        <span class="ws-cell ws-right ws-age">4h</span>
+                      </div>
+                      <div class="ws-table-row">
+                        <span class="ws-select"><span class="checkbox"></span></span>
+                        <span class="ws-build">#2483</span>
+                        <span class="ws-cell ws-status-cell"><span class="badge badge--success"><span class="status-dot"></span>Success</span></span>
+                        <span class="ws-cell cell-branch">main</span>
+                        <span class="ws-cell ws-right ws-duration">1m 12s</span>
+                        <span class="ws-cell ws-right ws-age">5h</span>
+                      </div>
+                      <div class="ws-table-row">
+                        <span class="ws-select"><span class="checkbox"></span></span>
+                        <span class="ws-build">#2482</span>
+                        <span class="ws-cell ws-status-cell"><span class="badge badge--success"><span class="status-dot"></span>Success</span></span>
+                        <span class="ws-cell cell-branch">feat/density</span>
+                        <span class="ws-cell ws-right ws-duration">1m 29s</span>
+                        <span class="ws-cell ws-right ws-age">6h</span>
+                      </div>
+                      <div class="ws-table-row">
+                        <span class="ws-select"><span class="checkbox"></span></span>
+                        <span class="ws-build">#2481</span>
+                        <span class="ws-cell ws-status-cell"><span class="badge"><span class="status-dot"></span>Cancelled</span></span>
+                        <span class="ws-cell cell-branch">chore/deps</span>
+                        <span class="ws-cell ws-right ws-duration">—</span>
+                        <span class="ws-cell ws-right ws-age">7h</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ws-grid-footer">
+                    <span><span class="ws-foot-dot"></span>3 новых · 1 изменённый</span>
+                    <span>14 из 48 строк · virtualized</span>
+                  </div>
+                </section>
+
+                <aside class="ws-inspector">
+                  <div class="ws-pane-head">
+                    <span>Инспектор</span>
+                    <button class="ws-mini-btn" type="button" aria-label="Закрыть панель"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+                  </div>
+                  <div class="ws-object">
+                    <span class="ws-object-icon"><svg aria-hidden="true"><use href="#i-package"/></svg></span>
+                    <span class="ws-object-copy"><strong>Build #2492</strong><span>main · a7f3c92</span></span>
+                    <span class="ws-right"><span class="badge badge--success"><span class="status-dot"></span>Success</span></span>
+                  </div>
+                  <div class="ws-props">
+                    <div class="ws-prop-cat"><svg aria-hidden="true"><use href="#i-chevron-down"/></svg> Сборка</div>
+                    <div class="ws-prop-row"><span>Branch</span><span class="ws-prop-value mono">main</span></div>
+                    <div class="ws-prop-row"><span>Commit</span><span class="ws-prop-value mono">a7f3c92</span></div>
+                    <div class="ws-prop-row"><span>Started</span><span class="ws-prop-value">14:32:08</span></div>
+                    <div class="ws-prop-row"><span>Duration</span><span class="ws-prop-value">1m 24s</span></div>
+                    <div class="ws-prop-cat"><svg aria-hidden="true"><use href="#i-chevron-down"/></svg> Результат</div>
+                    <div class="ws-prop-row"><span>Tests</span><span class="ws-prop-value">132 / 132</span></div>
+                    <div class="ws-prop-row"><span>Artifacts</span><span class="ws-prop-value">3 files <svg aria-hidden="true"><use href="#i-package"/></svg></span></div>
+                    <div class="ws-prop-row"><span>Agent</span><span class="ws-prop-value mono">win11-x64</span></div>
+                    <div class="ws-prop-row"><span>Warnings</span><span class="ws-prop-value"><span class="badge badge--warning">1</span></span></div>
+                  </div>
+                  <div class="ws-inspector-actions">
+                    <button class="btn btn-secondary ws-action" type="button">Открыть папку</button>
+                    <button class="btn btn-primary ws-action" type="button"><svg aria-hidden="true"><use href="#i-play"/></svg>Rerun</button>
+                  </div>
+                </aside>
+              </div>
+
+              <div class="ws-dock">
+                <div class="ws-dock-tabs" role="tablist" aria-label="Панель результатов">
+                  <span class="ws-dock-tab is-active" role="tab" aria-selected="true">Проблемы <span class="badge badge--danger">2</span></span>
+                  <span class="ws-dock-tab" role="tab" aria-selected="false">Изменения <span class="badge badge--warning">3</span></span>
+                  <span class="ws-dock-tab" role="tab" aria-selected="false">Вывод</span>
+                  <span class="ws-toolbar-spacer"></span>
+                  <button class="ws-dock-more" type="button" aria-label="Свернуть панель"><svg aria-hidden="true"><use href="#i-minus"/></svg></button>
+                </div>
+                <div class="ws-dock-content">
+                  <div class="ws-problem"><span class="ws-problem-icon error"><svg aria-hidden="true"><use href="#i-alert"/></svg></span><span class="ws-problem-text"><strong>layout.cpp:184</strong> — unknown property <span class="mono">corner_radius</span> in Form</span><span class="badge badge--danger">error</span></div>
+                  <div class="ws-problem"><span class="ws-problem-icon warning"><svg aria-hidden="true"><use href="#i-info"/></svg></span><span class="ws-problem-text"><strong>grid_view.cpp:92</strong> — unused parameter <span class="mono">rowData</span></span><span class="badge badge--warning">warning</span></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 05 · LAYOUT & OVERLAYS -->
+          <section class="page" data-page="layout" aria-label="Макет и оверлеи">
+            <div class="cards cards--three">
+              <article class="card card--tabs">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>TabControl</h2><span class="wave-badge">v0.2</span></div>
+                  <p class="card-sub">Страницы с keyboard navigation.</p>
+                </div>
+                <div class="card-body">
+                  <div class="tabs-demo">
+                    <div class="tab-strip" role="tablist" aria-label="Настройки">
+                      <span class="tab is-active" role="tab" aria-selected="true">Основное</span>
+                      <span class="tab" role="tab" aria-selected="false">Дополнительно</span>
+                      <span class="tab" role="tab" aria-selected="false">О программе</span>
+                    </div>
+                    <div class="tab-panel">
+                      <div class="field">
+                        <div class="field-label"><span>Тема</span><span class="optional">System</span></div>
+                        <div class="input-wrap"><input type="text" value="Следует за Windows" aria-label="Тема"></div>
+                      </div>
+                      <div class="field">
+                        <div class="field-label"><span>Плотность</span><span class="optional">Comfortable</span></div>
+                        <div class="input-wrap"><input type="text" value="Комфортная" aria-label="Плотность"></div>
+                      </div>
+                      <div class="field">
+                        <div class="field-label"><span>Язык</span><span class="optional">ru-RU</span></div>
+                        <div class="input-wrap"><input type="text" value="Русский" aria-label="Язык"></div>
+                      </div>
+                      <div class="tab-actions">
+                        <button class="btn btn-secondary" type="button">Изменить</button>
+                        <span class="badge">Focus · стрелки</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-foot"><span>Tab strip · 30 DIP</span><span>Active underline</span></div>
+                </div>
+              </article>
+
+              <article class="card card--groups">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>GroupPanel / Panel</h2><span class="wave-badge">v0.1</span></div>
+                  <p class="card-sub">Контейнер с заголовком и действиями.</p>
+                </div>
+                <div class="card-body">
+                  <div class="group-panel">
+                    <div class="group-head">
+                      <svg aria-hidden="true"><use href="#i-settings"/></svg>
+                      Параметры сборки
+                      <span class="group-action"><svg aria-hidden="true"><use href="#i-more"/></svg></span>
+                    </div>
+                    <div class="group-body">
+                      <div class="checkbox-line"><span class="checkbox is-checked"><svg aria-hidden="true"><use href="#i-check"/></svg></span> Оптимизация</div>
+                      <div class="checkbox-line"><span class="checkbox is-checked"><svg aria-hidden="true"><use href="#i-check"/></svg></span> Отладочные символы</div>
+                      <div class="field">
+                        <div class="field-label"><span>Конфигурация</span></div>
+                        <div class="input-wrap"><input type="text" value="Release · x64" aria-label="Конфигурация"></div>
+                      </div>
+                      <button class="btn btn-secondary" type="button">Дополнительно <svg aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+                    </div>
+                  </div>
+                  <div class="info-bar">
+                    <svg aria-hidden="true"><use href="#i-info"/></svg>
+                    Панель — база для групп, карточек и секций формы.
+                  </div>
+                </div>
+              </article>
+
+              <article class="card card--split">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>SplitContainer</h2><span class="wave-badge">v0.2</span></div>
+                  <p class="card-sub">Две панели с перетаскиваемым разделителем.</p>
+                </div>
+                <div class="card-body">
+                  <div class="split-demo">
+                    <div class="split-pane">
+                      <div class="split-pane-head"><svg aria-hidden="true"><use href="#i-folder"/></svg> Проект</div>
+                      <div class="list-scroll">
+                        <div class="list-row"><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg> src</div>
+                        <div class="list-row"><svg class="folder-icon" aria-hidden="true"><use href="#i-folder"/></svg> docs</div>
+                        <div class="list-row"><svg class="file-glyph" aria-hidden="true"><use href="#i-file"/></svg> README.md</div>
+                      </div>
+                    </div>
+                    <div class="split-handle" aria-hidden="true"></div>
+                    <div class="split-pane">
+                      <div class="split-pane-head"><svg aria-hidden="true"><use href="#i-sliders"/></svg> Свойства</div>
+                      <div class="group-body">
+                        <div class="field-label"><span>Файл</span></div>
+                        <div class="input-wrap"><input type="text" value="src/widgets" aria-label="Файл"></div>
+                        <div class="field-label"><span>Размер</span></div>
+                        <div class="input-wrap"><input type="text" value="128 KB" aria-label="Размер"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card card--popup">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>PopupMenu &amp; ToolTip</h2><span class="wave-badge">v0.1</span></div>
+                  <p class="card-sub">Контекстное меню и подсказка над действием.</p>
+                </div>
+                <div class="card-body">
+                  <div class="overlay-demo">
+                    <div class="overlay-files">
+                      <div class="overlay-file-row is-hovered"><svg aria-hidden="true"><use href="#i-folder"/></svg> src</div>
+                      <div class="overlay-file-row"><svg aria-hidden="true"><use href="#i-file"/></svg> form.cpp</div>
+                      <div class="overlay-file-row"><svg aria-hidden="true"><use href="#i-file"/></svg> theme.cpp</div>
+                      <div class="overlay-file-row"><svg aria-hidden="true"><use href="#i-file"/></svg> README.md</div>
+                    </div>
+                    <div class="tooltip-bubble">Сохранить · Ctrl+S</div>
+                    <div class="context-menu">
+                      <div class="context-line"><svg aria-hidden="true"><use href="#i-plus"/></svg><span>Создать</span><span class="shortcut">Ctrl+N</span></div>
+                      <div class="context-line"><svg aria-hidden="true"><use href="#i-folder"/></svg><span>Открыть</span><span class="shortcut">Enter</span></div>
+                      <div class="context-line is-hovered"><svg aria-hidden="true"><use href="#i-edit"/></svg><span>Переименовать</span><span class="shortcut">F2</span></div>
+                      <div class="context-sep"></div>
+                      <div class="context-line"><svg aria-hidden="true"><use href="#i-copy"/></svg><span>Копировать</span><span class="shortcut">Ctrl+C</span></div>
+                      <div class="context-line is-danger"><svg aria-hidden="true"><use href="#i-trash"/></svg><span>Удалить</span><span class="shortcut">Del</span></div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card card--dialog">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>Dialog / MessageBox</h2><span class="wave-badge">v0.1</span></div>
+                  <p class="card-sub">Модальное окно с owner и focus return.</p>
+                </div>
+                <div class="card-body">
+                  <div class="dialog-demo">
+                    <div class="dialog-ghost" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+                    <div class="dialog-scrim"></div>
+                    <div class="dialog-box" role="dialog" aria-label="Удалить элемент">
+                      <div class="dialog-titlebar">
+                        <span class="dialog-logo"></span><strong>Подтверждение</strong>
+                        <span class="dialog-x"><svg aria-hidden="true"><use href="#i-close"/></svg></span>
+                      </div>
+                      <div class="dialog-content">
+                        <p class="dialog-message">Удалить выбранный элемент?</p>
+                        <p class="dialog-sub">Действие нельзя отменить. Файл будет перемещён в корзину проекта.</p>
+                        <div class="dialog-actions">
+                          <button class="btn btn-secondary" type="button">Отмена</button>
+                          <button class="btn btn-danger" type="button">Удалить</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card card--busy">
+                <div class="card-head">
+                  <div class="card-title-line"><h2>BusyOverlay</h2><span class="wave-badge">v0.1</span></div>
+                  <p class="card-sub">Блокирующая операция с прогрессом.</p>
+                </div>
+                <div class="card-body">
+                  <div class="busy-demo">
+                    <div class="busy-background" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                    <div class="busy-scrim"></div>
+                    <div class="busy-card" role="status" aria-live="polite">
+                      <span class="spinner" aria-hidden="true"></span>
+                      <span class="busy-title">Сохранение...</span>
+                      <span class="busy-sub">Применяем настройки формы</span>
+                    </div>
+                  </div>
+                  <div class="card-foot"><span>Блокирует ввод · Esc по политике</span><span class="badge">Focus trap</span></div>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <footer class="statusbar">
+      <div class="status-group">
+        <span class="status-dot"></span>
+        <span>Готово</span>
+        <span class="status-sep"></span>
+        <span>Визуальный концепт</span>
+      </div>
+      <div class="status-group">
+        <span class="status-strong">CppUI 0.1.0</span>
+        <span class="status-sep"></span>
+        <span>Control preview</span>
+        <span class="status-sep"></span>
+        <span>100%</span>
+      </div>
+    </footer>
+  </section>
+</main>
+
+<script src="controls-gallery.js"></script>
+</body>
+</html>
