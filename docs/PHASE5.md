@@ -9,6 +9,12 @@
   размеры 900×580 … 1120×720, Light/Dark и Compact/Cozy/Comfortable.
 - Проверка target size: после `Resize` D2D target в DIP должен совпадать
   с ожидаемым размером (защита от stale-target бага Phase 4).
+- Visual regression:
+  - `D2DRenderer::RenderAndCapture` читает backbuffer через D3D11 staging и
+    кодирует PNG через WIC (`windowscodecs`);
+  - baselines: `tests/baselines/phase5-{light-cozy,dark-cozy,light-compact}.png`;
+  - `cppui.visual` сравнивает текущие PNG с допуском 8/255 и 2% пикселей;
+  - при точном совпадении SHA-256 — быстрый проход.
 - `cppui_bootstrap --benchmark` и CTest `cppui.benchmark`:
   - 120 кадров с UI;
   - layout 500 итераций;
@@ -39,7 +45,8 @@
 | Density switch + layout + frame | **8.33 ms** |
 | Target size | **1000×640 DIP** |
 
-Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest: 4/4 в Debug и Release.
+Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest: **5/5** в Debug и
+Release; visual regression проходит за ~1.5 s при точном PNG-совпадении.
 
 ## Cold start / idle / memory
 
@@ -58,21 +65,22 @@ Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest: 4/4 в Debug и Releas
 - [x] theme switch без перезапуска;
 - [x] Tab/Shift+Tab, Space/Enter и focus;
 - [x] unit/integration-тесты;
+- [x] visual snapshots Light/Dark/Compact с допуском;
 - [x] benchmark и performance-замеры;
 - [x] CI workflow добавлен.
 
 Ещё не закрыто:
 
 - [ ] clean-machine build на отдельной машине;
+- [ ] публичный top-level `Form` API (сейчас Win32Window + FormPanel в demo);
 - [ ] реальная матрица 100/125/150/200% на двух мониторах;
 - [ ] Snap Layouts / Alt+Space / Alt+F4 / taskbar auto-hide;
-- [ ] визуальные snapshots с допуском;
 - [ ] flicker/input-to-photon замеры;
 - [ ] memory budget 60 MB;
 - [ ] подтверждение CI на удалённом runner.
 
 ## Следующий шаг
 
-M0 closure: visual regression с WIC/D2D, реальная multi-monitor/DPI-матрица,
+M0 closure: реальная multi-monitor/DPI-матрица, flicker/input-to-photon,
 снижение памяти и cold start, финальный прогон CI и проверка оставшихся
 критериев Technical Preview.

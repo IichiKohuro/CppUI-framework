@@ -37,6 +37,9 @@ public:
     [[nodiscard]] bool Initialize(HWND hwnd, const ThemeTokens& theme);
     [[nodiscard]] bool Resize(UINT width, UINT height, float dpi);
     [[nodiscard]] bool Render(const ChromeState& chrome = {}, Widget* content = nullptr);
+    [[nodiscard]] bool RenderAndCapture(const ChromeState& chrome,
+                                        Widget* content,
+                                        std::wstring_view png_path);
     [[nodiscard]] bool SetTheme(const ThemeTokens& theme);
     void SetDensity(DensityMode density) noexcept { density_ = density; }
     [[nodiscard]] Size TargetSizeDip() const noexcept;
@@ -75,6 +78,11 @@ private:
     bool CreateSolidBrush(const Color& color, ID2D1SolidColorBrush** brush);
     [[nodiscard]] IDWriteTextFormat* TextFormatForRole(FontRole role) const noexcept;
     [[nodiscard]] ID2D1SolidColorBrush* BrushFor(const Color& color);
+
+    [[nodiscard]] bool RenderInternal(const ChromeState& chrome,
+                                      Widget* content,
+                                      std::wstring_view capture_path);
+    [[nodiscard]] bool SaveTargetPng(std::wstring_view png_path);
 
     void ReleaseTarget() noexcept;
     void ReleaseDeviceResources() noexcept;

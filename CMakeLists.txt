@@ -70,6 +70,7 @@ target_link_libraries(cppui
         gdi32
         ole32
         advapi32
+        windowscodecs
 )
 cppui_configure_warnings(cppui)
 
@@ -108,5 +109,18 @@ if(CPPUI_BUILD_TESTS)
 
         add_test(NAME cppui.benchmark COMMAND cppui_bootstrap --benchmark)
         set_tests_properties(cppui.benchmark PROPERTIES LABELS "perf" TIMEOUT 120)
+
+        add_test(
+            NAME cppui.visual
+            COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+                    -File "${CMAKE_CURRENT_SOURCE_DIR}/tests/visual_test.ps1"
+                    -Exe "$<TARGET_FILE:cppui_bootstrap>"
+                    -Baseline "${CMAKE_CURRENT_SOURCE_DIR}/tests/baselines"
+        )
+        set_tests_properties(cppui.visual PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+            LABELS "visual"
+            TIMEOUT 120
+        )
     endif()
 endif()

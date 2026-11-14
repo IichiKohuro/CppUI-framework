@@ -34,6 +34,7 @@
 - `cppui.render_smoke`: hidden window, DPI matrix 96/120/144/192, Light/Dark, density S/M/L, target-size invariants, device recreation;
 - `cppui.ui`: Widget layout, hit testing, click, focus, Space activation, disabled button, compact/cozy Button metrics, FormPanel/StatusBar layout and compact status height;
 - `cppui.benchmark`: frame/layout/resize/theme/density timings, target DIP size, CPU time;
+- `cppui.visual`: WIC PNG capture Light/Dark/Compact, baselines в `tests/baselines`, допуск 8/255 и 2% пикселей;
 - создание hidden window и message loop;
 - `WM_NCHITTEST`: caption, min/max/close, resize-border, client;
 - custom maximize/restore, minimize, close и close-hover;
@@ -88,8 +89,8 @@ RTL/BiDi — не входит в v0.1; добавить в матрицу, ко
 Для контрола — критерии в [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md). Для релиза:
 
 - [ ] Все заявленные контролы/сценарии реализованы.
-- [ ] Unit- и integration-тесты зелёные.
-- [ ] Visual snapshots обновлены и просмотрены.
+- [x] Unit- и integration-тесты зелёные.
+- [x] Visual snapshots обновлены и просмотрены.
 - [ ] Ручная матрица chrome/DPI пройдена.
 - [ ] Проверены Compact / Cozy / Comfortable в data-layout.
 - [ ] Нет известных P0/P1.
@@ -118,7 +119,7 @@ Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resiz
 | Idle CPU, 8 s | **0.000 ms** | target pass |
 | Working set | **64.4 MB** | hard 60 MB — **P2 open** |
 
-Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest 4/4 в Debug и Release. Не измерены input-to-photon и flicker; memory budget превышен. Snap-flyout, mixed-DPI и 100/150/200% на реальных мониторах остаются в ручной матрице.
+Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest **5/5** в Debug и Release; visual regression проходит exact-SHA за ~1.5 s. Не измерены input-to-photon и flicker; memory budget превышен. Snap-flyout, mixed-DPI и 100/150/200% на реальных мониторах остаются в ручной матрице.
 
 | Метрика | Target | Hard threshold |
 |---|---:|---:|
@@ -184,12 +185,12 @@ Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest 4/4 в Debug и Release
 - Windows 2022 runner, MSVC x64.
 - Debug и Release.
 - Configure/Build через CMake presets.
-- CTest, включая DPI matrix и benchmark.
+- CTest, включая DPI matrix, benchmark и visual regression.
 - Artifacts с `cppui-benchmark.txt`.
 - Warnings as errors для собственного кода.
 - Сборка sample.
 
-Ещё не подтверждено на удалённом runner. Visual snapshots, `clang-format --dry-run --Werror`, ASan и кеширование CMake/Ninja остаются следующими шагами. CI не может полноценно проверить Snap Layouts, multi-monitor DPI и реальный WARP; эти пункты остаются в ручной матрице.
+Ещё не подтверждено на удалённом runner. `clang-format --dry-run --Werror`, ASan и кеширование CMake/Ninja остаются следующими шагами. Visual snapshots входят в CTest, но на CI ещё не проверялись. CI не может полноценно проверить Snap Layouts, multi-monitor DPI и реальный WARP; эти пункты остаются в ручной матрице.
 
 ## 8. Статический анализ и стиль
 
@@ -221,7 +222,7 @@ Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest 4/4 в Debug и Release
 - [ ] RDP/WARP smoke пройден.
 - [ ] Нет новых P0/P1.
 - [ ] Performance-замеры в допустимых пределах.
-- [ ] Visual snapshots приняты.
+- [x] Visual snapshots приняты.
 - [ ] README, API docs и примеры обновлены.
 - [ ] Версия и changelog зафиксированы.
 - [ ] Сборка воспроизводится с чистой машины.

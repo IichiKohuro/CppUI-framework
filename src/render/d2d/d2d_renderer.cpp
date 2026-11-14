@@ -3,10 +3,12 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <string>
 #include <string_view>
 #include <utility>
 
 #include <d2d1helper.h>
+#include <wincodec.h>
 
 #include <cppui/ui/widget.hpp>
 
@@ -731,6 +733,18 @@ bool D2DRenderer::Resize(UINT width, UINT height, float dpi) {
 }
 
 bool D2DRenderer::Render(const ChromeState& chrome, Widget* content) {
+    return RenderInternal(chrome, content, {});
+}
+
+bool D2DRenderer::RenderAndCapture(const ChromeState& chrome,
+                                   Widget* content,
+                                   std::wstring_view png_path) {
+    return RenderInternal(chrome, content, png_path);
+}
+
+bool D2DRenderer::RenderInternal(const ChromeState& chrome,
+                                 Widget* content,
+                                 std::wstring_view capture_path) {
     if (!initialized_ || !d2d_context_ || !swap_chain_) {
         return false;
     }
@@ -761,6 +775,11 @@ bool D2DRenderer::Render(const ChromeState& chrome, Widget* content) {
         } else if (IsDeviceLost(hr)) {
             (void)RecreateDevice();
         }
+        return false;
+    }
+
+    if (!capture_path.empty() && !SaveTargetPng(capture_path)) {
+        TraceHresult(L"SaveTargetPng", last_error_);
         return false;
     }
 
@@ -1024,6 +1043,134 @@ void D2DRenderer::DrawScene(const ChromeState& chrome, Widget* content) noexcept
         content->paint(*this);
     }
 }
+bool D2DRenderer::SaveTargetPng(std::wstring_view png_path) {
+    if (!swap_chain_ || !d3d_device_ || !d3d_context_) {
+        return false;
+    }
+
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> back_buffer;
+    HRESULT hr = swap_chain_->GetBuffer(0, IID_PPV_ARGS(back_buffer.GetAddressOf()));
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    D3D11_TEXTURE2D_DESC description{};
+    back_buffer->GetDesc(&description);
+    description.Usage = D3D11_USAGE_STAGING;
+    description.BindFlags = 0;
+    description.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    description.MiscFlags = 0;
+
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> staging;
+    hr = d3d_device_->CreateTexture2D(&description, nullptr, staging.GetAddressOf());
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    d3d_context_->CopyResource(staging.Get(), back_buffer.Get());
+
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    hr = d3d_context_->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped);
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    struct UnmapGuard {
+        ID3D11DeviceContext* context;
+        ID3D11Texture2D* texture;
+        ~UnmapGuard() { context->Unmap(texture, 0); }
+    } guard{d3d_context_.Get(), staging.Get()};
+    (void)guard;
+
+    Microsoft::WRL::ComPtr<IWICImagingFactory> wic;
+    hr = CoCreateInstance(CLSID_WICImagingFactory,
+                          nullptr,
+                          CLSCTX_INPROC_SERVER,
+                          IID_PPV_ARGS(wic.GetAddressOf()));
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    const std::wstring path(png_path);
+    Microsoft::WRL::ComPtr<IWICStream> stream;
+    hr = wic->CreateStream(stream.GetAddressOf());
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+    hr = stream->InitializeFromFilename(path.c_str(), GENERIC_WRITE);
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    Microsoft::WRL::ComPtr<IWICBitmapEncoder> encoder;
+    hr = wic->CreateEncoder(GUID_ContainerFormatPng, nullptr, encoder.GetAddressOf());
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+    hr = encoder->Initialize(stream.Get(), WICBitmapEncoderNoCache);
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    Microsoft::WRL::ComPtr<IWICBitmapFrameEncode> frame;
+    hr = encoder->CreateNewFrame(frame.GetAddressOf(), nullptr);
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+    hr = frame->Initialize(nullptr);
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    frame->SetSize(description.Width, description.Height);
+    WICPixelFormatGUID format = GUID_WICPixelFormat32bppBGRA;
+    hr = frame->SetPixelFormat(&format);
+    if (FAILED(hr) || format != GUID_WICPixelFormat32bppBGRA) {
+        last_error_ = FAILED(hr) ? hr : E_FAIL;
+        return false;
+    }
+
+    // D2D ignores alpha on this target; make the PNG opaque.
+    auto* pixels = static_cast<BYTE*>(mapped.pData);
+    for (UINT y = 0; y < description.Height; ++y) {
+        BYTE* row = pixels + static_cast<size_t>(y) * mapped.RowPitch;
+        for (UINT x = 0; x < description.Width; ++x) {
+            row[x * 4 + 3] = 255;
+        }
+    }
+
+    hr = frame->WritePixels(description.Height,
+                            mapped.RowPitch,
+                            mapped.RowPitch * description.Height,
+                            static_cast<BYTE*>(mapped.pData));
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+
+    hr = frame->Commit();
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+    hr = encoder->Commit();
+    if (FAILED(hr)) {
+        last_error_ = hr;
+        return false;
+    }
+    return true;
+}
+
 void D2DRenderer::ReleaseTarget() noexcept {
     if (d2d_context_) {
         d2d_context_->SetTarget(nullptr);

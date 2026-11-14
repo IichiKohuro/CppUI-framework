@@ -32,7 +32,11 @@ constexpr int kMinHeightDip = 580;
 
 class BootstrapApp final {
 public:
-    int Run(HINSTANCE instance, int show_command, bool self_test, bool benchmark);
+    int Run(HINSTANCE instance,
+            int show_command,
+            bool self_test,
+            bool benchmark,
+            bool capture_visual);
 
 private:
     void BuildUi();
@@ -49,6 +53,7 @@ private:
     void StopRenderer();
     int RunSelfTest(cppui::Win32Window& window);
     int RunBenchmark(cppui::Win32Window& window);
+    int RunVisualCapture(cppui::Win32Window& window);
 
     void OnPaint();
     void OnResize(std::uint32_t width, std::uint32_t height, float dpi);
@@ -76,7 +81,11 @@ private:
     int paint_failures_{0};
 };
 
-int BootstrapApp::Run(HINSTANCE instance, int show_command, bool self_test, bool benchmark) {
+int BootstrapApp::Run(HINSTANCE instance,
+                      int show_command,
+                      bool self_test,
+                      bool benchmark,
+                      bool capture_visual) {
     cppui::Win32Window window(instance,
                               kWindowTitle,
                               kInitialWidthDip,
@@ -133,6 +142,9 @@ int BootstrapApp::Run(HINSTANCE instance, int show_command, bool self_test, bool
     }
     if (benchmark) {
         return RunBenchmark(window);
+    }
+    if (capture_visual) {
+        return RunVisualCapture(window);
     }
 
     window.Show(show_command);
@@ -843,6 +855,58 @@ int BootstrapApp::RunBenchmark(cppui::Win32Window& window) {
     return 0;
 }
 
+int BootstrapApp::RunVisualCapture(cppui::Win32Window& window) {
+    (void)CreateDirectoryW(L"visual-output", nullptr);
+
+    const auto capture = [this](cppui::ThemeMode theme,
+                                cppui::DensityMode density,
+                                const wchar_t* path) {
+        SetThemeMode(theme);
+        SetDensityMode(density);
+        if (theme_label_ != nullptr) {
+            SetStatusText(theme_label_->text());
+        }
+        if (!renderer_.Resize(1250, 800, 120.0f)) {
+            return false;
+        }
+        LayoutUiForSize(1000.0f, 640.0f);
+
+        const cppui::ChromeState chrome{
+            true,
+            false,
+            cppui::ChromeButton::none,
+            cppui::ChromeButton::none,
+            theme,
+        };
+        return renderer_.RenderAndCapture(chrome, ui_.root(), path);
+    };
+
+    if (!capture(cppui::ThemeMode::light,
+                 cppui::DensityMode::cozy,
+                 L"visual-output/phase5-light-cozy.png")) {
+        OutputDebugStringW(L"CppUI visual: light capture failed.\n");
+        return 2;
+    }
+    if (!capture(cppui::ThemeMode::dark,
+                 cppui::DensityMode::cozy,
+                 L"visual-output/phase5-dark-cozy.png")) {
+        OutputDebugStringW(L"CppUI visual: dark capture failed.\n");
+        return 3;
+    }
+    if (!capture(cppui::ThemeMode::light,
+                 cppui::DensityMode::compact,
+                 L"visual-output/phase5-light-compact.png")) {
+        OutputDebugStringW(L"CppUI visual: compact capture failed.\n");
+        return 4;
+    }
+
+    renderer_.Shutdown();
+    renderer_ready_ = false;
+    window_ = nullptr;
+    window.Destroy();
+    return 0;
+}
+
 void BootstrapApp::StopRenderer() {
     renderer_ready_ = false;
     OutputDebugStringW(L"CppUI: renderer stopped after unrecoverable failure.\n");
@@ -861,9 +925,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
     const std::wstring_view command_line = GetCommandLineW();
     const bool self_test = command_line.find(L"--self-test") != std::wstring_view::npos;
     const bool benchmark = command_line.find(L"--benchmark") != std::wstring_view::npos;
+    const bool capture_visual = command_line.find(L"--capture-visual") != std::wstring_view::npos;
 
     BootstrapApp app;
-    const int result = app.Run(instance, show_command, self_test, benchmark);
+    const int result = app.Run(instance, show_command, self_test, benchmark, capture_visual);
 
     CoUninitialize();
     return result;

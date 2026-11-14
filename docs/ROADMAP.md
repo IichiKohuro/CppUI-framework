@@ -53,7 +53,7 @@
 - [ ] Нет мерцания при resize; idle CPU близок к нулю. Idle CPU измерен (≈0%), flicker ещё нет.
 - [x] Тема переключается без перезапуска.
 - [x] Tab/Shift+Tab, Enter/Space работают; focus заметен.
-- [ ] Есть базовые unit- и visual-тесты, CI зелёный. Unit/integration и CI workflow есть; visual snapshots и удалённый CI ещё нет.
+- [ ] Есть базовые unit- и visual-тесты, CI зелёный. Unit/integration, WIC visual snapshots и CI workflow есть; удалённый CI ещё не подтверждён.
 - [x] Performance-замеры зафиксированы в [QUALITY.md](QUALITY.md); memory budget превышен.
 
 ### Чего в M0 нет

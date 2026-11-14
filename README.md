@@ -46,13 +46,14 @@
 
 ## Hardening (Phase 5)
 
-- CTest **4/4** в Debug и Release: theme, UI, DPI matrix, benchmark.
+- CTest **5/5** в Debug и Release: theme, UI, DPI matrix, benchmark, visual regression.
 - Simulated DPI matrix **96 / 120 / 144 / 192** с Light/Dark и S/M/L.
+- Visual snapshots Light/Dark/Compact в `tests/baselines`, сравнение через WIC/D2D.
 - Release benchmark: **120 FPS** (VSync), **1.95 ms CPU/кадр**, layout **0.122 ms**.
 - Cold start **177 ms**, idle CPU **≈0%**, working set **64.4 MB** (P2: выше 60 MB).
 - GitHub Actions workflow для Debug/Release и benchmark artifacts.
 
-M0 closure ещё не объявлен: реальная multi-monitor матрица, visual snapshots, flicker и memory budget. Подробности — в [docs/PHASE5.md](docs/PHASE5.md).
+M0 closure ещё не объявлен: реальная multi-monitor матрица, flicker/input-to-photon, memory budget, clean-machine и подтверждение CI на runner. Подробности — в [docs/PHASE5.md](docs/PHASE5.md).
 
 ## Визуальный концепт
 
@@ -88,8 +89,8 @@ M0 closure ещё не объявлен: реальная multi-monitor матр
 - [x] Добавлены Light/Dark/System, переключатель темы в шапке и интерактивное demo.
 - [x] Добавлен `DensityMode` Compact/Cozy/Comfortable для компактных Button.
 - [x] Добавлены Form-preview, `FormPanel`, `StatusBar` и действие сброса в titlebar.
-- [x] Добавлены simulated DPI matrix 96–192, benchmark и GitHub Actions workflow.
-- [ ] Закрыт M0: реальная multi-monitor матрица, visual snapshots, flicker и memory budget.
+- [x] Добавлены simulated DPI matrix 96–192, benchmark, visual regression и GitHub Actions workflow.
+- [ ] Закрыт M0: реальная multi-monitor матрица, flicker/input-to-photon, memory budget, clean-machine.
 
 ## Сборка
 
@@ -128,11 +129,13 @@ Pop-Location
 
 `--self-test` проходит четыре комбинации DPI/density/theme; `--benchmark`
 пишет frame/layout/resize/theme/density-метрики в `cppui-benchmark.txt`.
-В живом окне `F5` принудительно пересоздаёт render device, а `Esc` закрывает его. Кастомный chrome проверяется вручную: min/max/close, resize и drag title bar.
+`--capture-visual` пишет Light/Dark/Compact PNG в `visual-output/`; CTest
+`cppui.visual` сравнивает их с `tests/baselines/`. В живом окне `F5`
+принудительно пересоздаёт render device, а `Esc` закрывает его. Кастомный chrome проверяется вручную: min/max/close, resize и drag title bar.
 
 ## Ближайший шаг
 
-M0 closure: visual regression через WIC/D2D, реальная 100–200% / mixed-DPI / multi-monitor матрица, flicker/input-to-photon, снижение memory и cold start, подтверждение CI на runner.
+M0 closure: реальная 100–200% / mixed-DPI / multi-monitor матрица, flicker/input-to-photon, снижение memory и cold start, подтверждение CI на runner.
 
 ## Лицензия
 

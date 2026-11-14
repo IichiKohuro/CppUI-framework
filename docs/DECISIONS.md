@@ -50,6 +50,7 @@
 | D-031 | Phase 3.1: theme-switch в шапке + `DensityMode` | Accepted | Три сегмента Light/Dark/System рисуются в chrome слева от системных кнопок, отделены вертикальной линией; сегмент возвращает `HTCLIENT`. `DensityMode` compact/cozy/comfortable передаётся через `Painter`, Button использует метрики; остальные контролы — Phase 4 |
 | D-032 | Phase 4: `FormPanel` + `StatusBar` + titlebar action сброса | Accepted | FormPanel закрепляет status bar снизу; StatusBar использует density; действие reset приходит через `chrome_action`. Demo проверяет Form-preview. Перед layout renderer сверяет target с клиентом, иначе stale-target даёт обрезку и расхождение hit/paint |
 | D-033 | Phase 5: DPI matrix + benchmark + CI | Accepted | `render_smoke` проверяет 96/120/144/192 DPI, Light/Dark, S/M/L и target DIP size; `--benchmark`/CTest фиксирует frame/layout/resize/theme/density; GitHub Actions запускает Debug/Release. Memory 64.4 MB остаётся P2 |
+| D-034 | Visual regression через WIC и backbuffer capture | Accepted | `RenderAndCapture` копирует D3D backbuffer в staging texture и кодирует PNG через WIC; `cppui.visual` сравнивает Light/Dark/Compact baselines с допуском 8/255 и 2% пикселей. Baselines лежат в `tests/baselines` |
 
 ## 3. Предложенные решения
 

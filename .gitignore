@@ -22,3 +22,4 @@ desktop.ini
 *.tmp
 *.bak
 cppui-benchmark.txt
+visual-output/
