@@ -81,13 +81,13 @@ CppUI — компактный нативный UI-фреймворк для Win
 | **0. Bootstrap ✅** | 1–2 дня | Toolchain, git, CMake-пресеты, пустое окно, дизайн-токены | Сборка с нуля одной командой; окно открывается |
 | **1. Platform + render ✅** | 3–4 дня | Win32-цикл, DXGI/D2D/DWrite, resize, DPI, device loss, WARP | Пустое окно resize без мерцания; idle CPU около нуля |
 | **2. Custom chrome ✅** | 5–7 дней | `WM_NCCALCSIZE`, `WM_NCHITTEST`, drag, системные кнопки, Snap Layouts, DWM dark/corners | Chrome проходит ручную матрицу на Win11, 100–200% DPI |
-| **3. Widget core + Button + theme ✅** | 4–5 дней | Дерево виджетов, layout, focus, Button, токены, Light/Dark/System | Демо с кнопками и переключением темы |
-| **4. Preview demo** | 3–4 дня | Экран формы, дополнительные действия, статус-бар, базовая документация | Демо соответствует заявленному объёму M0 |
+| **3. Widget core + Button + theme ✅** | 4–5 дней | Дерево виджетов, layout, focus, Button, токены, Light/Dark/System; density-метрики и компактные Button | Демо с кнопками, переключателем темы в шапке и density S/M/L |
+| **4. Preview demo** | 3–4 дня | Экран формы, дополнительные действия, статус-бар, базовая документация; общий `DensityMode` для всех контролов | Демо соответствует заявленному объёму M0 |
 | **5. Hardening** | 4–5 дней | Unit/visual tests, CI, профилирование, исправление P0/P1 | Technical Preview готов |
 
 **Итого:** 20–27 рабочих дней, примерно **5–6 календарных недель** с буфером.
 
-Phase 0 закрыта 14.11.2026: git, CMake, токены Signal Teal, Win32-окно и D3D11/DXGI/D2D/DWrite baseline. Phase 1: `Win32Window`, resize/DPI callbacks, WARP, device-loss recovery и render smoke test. Phase 2: кастомный chrome, системные кнопки, hit testing, maximize/restore и DWM. Phase 3: retained-mode `Widget`/layout, `StackPanel`/`CardPanel`/`Label`/`Button`, `UiHost`, Light/Dark/System и UI-тест. Детали — в [PHASE0](docs/PHASE0.md), [PHASE1](docs/PHASE1.md), [PHASE2](docs/PHASE2.md), [PHASE3](docs/PHASE3.md). Следующая — Phase 4, `Form`-preview.
+Phase 0 закрыта 14.11.2026: git, CMake, токены Signal Teal, Win32-окно и D3D11/DXGI/D2D/DWrite baseline. Phase 1: `Win32Window`, resize/DPI callbacks, WARP, device-loss recovery и render smoke test. Phase 2: кастомный chrome, системные кнопки, hit testing, maximize/restore и DWM. Phase 3: retained-mode `Widget`/layout, `StackPanel`/`CardPanel`/`Label`/`Button`, `UiHost`, Light/Dark/System, переключатель темы в шапке и начальный `DensityMode` (compact/cozy/comfortable) для Button. Детали — в [PHASE0](docs/PHASE0.md), [PHASE1](docs/PHASE1.md), [PHASE2](docs/PHASE2.md), [PHASE3](docs/PHASE3.md). Следующая — Phase 4, `Form`-preview и общий density для всех контролов.
 
 ### Критерии выхода M0
 
@@ -154,7 +154,7 @@ Phase 0 закрыта 14.11.2026: git, CMake, токены Signal Teal, Win32-�
 6. Полнота `BarManager`: menu bar, toolbar, status bar, shortcuts.
 7. Тайминг UIA и уровень поддержки high contrast.
 8. Дистрибуция: source-only, статическая библиотека или DLL после 1.0.
-9. Когда делать `DensityMode` глобальным для всех контролов.
+9. Когда делать `DensityMode` глобальным для всех контролов; в Phase 3 уже есть метрики и компактный Button, остальные контролы подключаются в Phase 4.
 10. Оставаться ли на Segoe UI или добавить IBM Plex/Golos как font-профиль.
 
 Решения и их статус ведутся в [docs/DECISIONS.md](docs/DECISIONS.md).

@@ -38,6 +38,7 @@ public:
     [[nodiscard]] bool Resize(UINT width, UINT height, float dpi);
     [[nodiscard]] bool Render(const ChromeState& chrome = {}, Widget* content = nullptr);
     [[nodiscard]] bool SetTheme(const ThemeTokens& theme);
+    void SetDensity(DensityMode density) noexcept { density_ = density; }
     // Rebuilds the D3D device, swap chain, D2D device context and all resources.
     // Called after DEVICE_REMOVED/RESET and exposed for the render smoke test.
     [[nodiscard]] bool RecreateDevice();
@@ -48,6 +49,7 @@ public:
     [[nodiscard]] HRESULT LastError() const noexcept { return last_error_; }
 
     [[nodiscard]] const ThemeTokens& theme() const noexcept override;
+    [[nodiscard]] DensityMode density() const noexcept override { return density_; }
     [[nodiscard]] Size measure_text(std::wstring_view text, FontRole role) const override;
     void fill_rect(const Rect& rect, const Color& color) override;
     void fill_rounded_rect(const Rect& rect, float radius, const Color& color) override;
@@ -84,6 +86,7 @@ private:
     float dpi_{96.0f};
     bool initialized_{false};
     bool using_warp_{false};
+    DensityMode density_{DensityMode::cozy};
     HRESULT last_error_{S_OK};
 
     Microsoft::WRL::ComPtr<ID3D11Device> d3d_device_;

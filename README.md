@@ -2,7 +2,7 @@
 
 **CppUI** — рабочее название лёгкого UI-фреймворка для Windows на C++20. Цель — быстрый и предсказуемый десктопный toolkit с кастомным окном, аппаратной отрисовкой, аккуратными темами и API, которое не заставляет писать инфраструктуру заново в каждом приложении.
 
-> Статус: **Phase 3 завершена**. Есть retained-mode `Widget`/layout/`Button`, кастомный chrome и Light/Dark/System. Следующая — сборка полноценного `Form`-preview.
+> Статус: **Phase 3 завершена**. Есть retained-mode `Widget`/layout/`Button`, кастомный chrome с переключателем темы в шапке, Light/Dark/System и compact-режим controls. Следующая — полноценный `Form`-preview.
 > Дата: 14.11.2026.
 
 ## Ключевые решения
@@ -38,7 +38,9 @@
 
 ![Phase 3 retained-mode UI](docs/images/phase3-bootstrap.png)
 
-Это уже не статичная карточка: интерфейс собран из retained-mode `Widget`-дерева. Работают `StackPanel`, `CardPanel`, `Label` и `Button`, hover/pressed/focus, клики, `Tab`/`Shift+Tab`, `Space`/`Enter` и переключение **Light / Dark / System**. Тёмная тема: [phase3-dark.png](docs/images/phase3-dark.png). Подробности — в [docs/PHASE3.md](docs/PHASE3.md).
+Это уже не статичная карточка: интерфейс собран из retained-mode `Widget`-дерева. Работают `StackPanel`, `CardPanel`, `Label` и `Button`, hover/pressed/focus, клики, `Tab`/`Shift+Tab`, `Space`/`Enter`. Переключатель **Light / Dark / System** находится в шапке окна слева от системных кнопок, за вертикальным разделителем. В контенте есть density-переключатель **S / M / L**: компактный режим уменьшает высоту, padding и radius кнопок.
+
+Тёмная тема: [phase3-dark.png](docs/images/phase3-dark.png). Компактные контролы: [phase3-density-compact.png](docs/images/phase3-density-compact.png). Подробности — в [docs/PHASE3.md](docs/PHASE3.md).
 
 ## Визуальный концепт
 
@@ -71,7 +73,8 @@
 - [x] Добавлены device-loss recovery и render smoke test; idle CPU ≈ 0%.
 - [x] Добавлен кастомный chrome: title bar, системные кнопки, hit testing, maximize/restore.
 - [x] Добавлены retained-mode `Widget`, `StackPanel`, `CardPanel`, `Label`, `Button`.
-- [x] Добавлены Light/Dark/System и интерактивное demo с focus/click/keyboard.
+- [x] Добавлены Light/Dark/System, переключатель темы в шапке и интерактивное demo.
+- [x] Добавлен `DensityMode` Compact/Cozy/Comfortable для компактных Button.
 - [ ] Появился полноценный `Form`-preview со status bar и набором контролов.
 
 ## Сборка
@@ -104,7 +107,7 @@ $env:CPPUI_FORCE_WARP = '1'
 
 ## Ближайший шаг
 
-Phase 4: `Form`-preview с content host, status bar, дополнительными titlebar actions и более полным набором контролов на базе готового retained-mode ядра.
+Phase 4: `Form`-preview с content host, status bar, дополнительными titlebar actions и общим `DensityMode` для всех контролов на базе готового retained-mode ядра.
 
 ## Лицензия
 

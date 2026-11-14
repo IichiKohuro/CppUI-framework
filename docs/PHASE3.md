@@ -5,10 +5,15 @@
 
 ![Phase 3 retained-mode UI](images/phase3-bootstrap.png)
 
-Тёмная тема: [phase3-dark.png](images/phase3-dark.png)
+Тёмная тема: [phase3-dark.png](images/phase3-dark.png). Компактный режим:
+[phase3-density-compact.png](images/phase3-density-compact.png).
 
 ## Что добавлено
 
+- Переключатель темы в шапке: Light / Dark / System тремя сегментами с иконками,
+  слева от minimize/maximize/close и за вертикальным разделителем.
+- `DensityMode::{compact, cozy, comfortable}` и метрики контролов; `Button`
+  меняет высоту, padding, radius и минимальную ширину. В демо есть S/M/L-переключатель.
 - Базовые типы: `Point`, `Size`, `Rect`, `Insets`.
 - `Painter` — абстрактный контракт отрисовки и измерения текста.
 - `Widget` — retained-mode база: `measure → arrange → paint`, hit testing, children, focus/hover/pressed.
@@ -24,6 +29,10 @@
   - focus по клику и `Tab`/`Shift+Tab`;
   - `Space`/`Enter` для focused Button;
   - mouse leave.
+- `DensityMode` и `DensityMetrics`:
+  - compact 28 DIP, cozy 34 DIP, comfortable 40 DIP;
+  - меняются padding, radius и минимальная ширина;
+  - все контролы получают режим через `Painter::density()`; пока его использует `Button`.
 - `ThemeMode::{light, dark, system}`:
   - системная тема через `AppsUseLightTheme`;
   - реакция на `WM_SETTINGCHANGE` / `WM_THEMECHANGED`;
@@ -40,6 +49,7 @@
 include/cppui/geometry.hpp
 include/cppui/theme/mode.hpp
 include/cppui/ui/painter.hpp
+include/cppui/ui/density.hpp
 include/cppui/ui/widget.hpp
 include/cppui/ui/widgets.hpp
 include/cppui/ui/host.hpp
@@ -62,9 +72,11 @@ tests/ui_tests.cpp
 | Light theme | OK |
 | Dark theme | OK |
 | System theme | OK (определяется как тёмная на текущей машине) |
+| Переключатель темы в шапке | Light/Dark/System переключаются, разделитель на месте |
 | Primary button click | счётчик увеличивается |
 | Disabled button | не получает hit/focus/click |
 | Focus ring | отображается на выбранной теме/кнопке |
+| Compact / Cozy / Comfortable | высота Button 28/34/40 DIP, UI перестраивается |
 | 125% DPI | координаты мыши и layout согласованы |
 | F5 device recreation | UI продолжает рисоваться |
 
@@ -75,12 +87,15 @@ tests/ui_tests.cpp
 - `Button` активируется и мышью, и клавиатурой; disabled исключён из focus order и hit testing.
 - `SetTheme` меняет brushes, не пересоздавая D3D/D2D device.
 - Системная тема перечитывается при изменении настроек Windows.
+- Шапка рисует theme-switch как часть chrome; попадание в сегмент возвращает `HTCLIENT`, нажатие обрабатывается до UI-контента. Системные кнопки остаются non-client.
+- Density — свойство painter-контекста, поэтому переключение не требует пересоздания контролов: достаточно `SetDensity` + `LayoutUi`.
 
 ## Ограничения
 
 - Пока только `StackPanel`, `CardPanel`, `Label`, `Button`.
+- `DensityMode` уже есть в API и применяется к Button; остальные контролы подключаются в Phase 4.
 - `Form`, status bar, дополнительные titlebar actions и полный gallery-preview — Phase 4.
-- Нет UIA/accessibility, high contrast, анимаций и dirty-region rendering: перерисовывается весь клиент.
+- Нет UIA/accessibility, high contrast, tooltips для иконок темы, анимаций и dirty-region rendering: перерисовывается весь клиент.
 - Текст не переносится; поддержка wrapping/multiline появится с TextEdit/MemoEdit.
 - Проверено на 125% DPI; 100/150/200% требуют отдельного прогона.
 - Публичный API widgets пока не стабилизирован.

@@ -32,7 +32,7 @@
 Тесты с окном, но без активного пользователя:
 
 - `cppui.render_smoke`: hidden window, initial frame, resize, device recreation, final frame;
-- `cppui.ui`: Widget layout, hit testing, click, focus, Space activation, disabled button;
+- `cppui.ui`: Widget layout, hit testing, click, focus, Space activation, disabled button, compact/cozy Button metrics;
 - создание hidden window и message loop;
 - `WM_NCHITTEST`: caption, min/max/close, resize-border, client;
 - custom maximize/restore, minimize, close и close-hover;
@@ -101,7 +101,7 @@ RTL/BiDi — не входит в v0.1; добавить в матрицу, ко
 
 Это стартовые цели, которые нужно подтвердить на реальном железе после Phase 1. Значения не являются обещанием для любой конфигурации.
 
-Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resize stress из пяти размеров не привёл к потере отзывчивости. Phase 2: hit testing и maximize/restore проверены на 125% DPI. Phase 3: UI-тест покрывает layout/hit-test/click/focus/Space/disabled; Light/Dark/System и mouse-coordinate mapping проверены вручную. 100/150/200%, Snap-flyout и frame-time бюджеты ещё требуют отдельного прогона.
+Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resize stress из пяти размеров не привёл к потере отзывчивости. Phase 2: hit testing и maximize/restore проверены на 125% DPI. Phase 3: UI-тест покрывает layout/hit-test/click/focus/Space/disabled и compact/cozy-метрики; Light/Dark/System, theme-switch в шапке, S/M/L и mouse-coordinate mapping проверены вручную. 100/150/200%, Snap-flyout и frame-time бюджеты ещё требуют отдельного прогона.
 
 | Метрика | Target | Hard threshold |
 |---|---:|---:|

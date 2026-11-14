@@ -190,8 +190,11 @@ bool Button::on_key_down(int key, bool shift) {
 
 Size Button::measure(Painter& painter, const Size& available) {
     (void)available;
+    const DensityMetrics metrics = density_metrics(painter.density());
     const Size text_size = painter.measure_text(text_, FontRole::label);
-    const Size desired{std::max(76.0f, text_size.width + 28.0f), 34.0f};
+    const Size desired{std::max(metrics.min_control_width,
+                                text_size.width + metrics.control_padding * 2.0f),
+                       metrics.control_height};
     set_desired_size(desired);
     return desired;
 }
@@ -202,6 +205,7 @@ void Button::arrange(const Rect& bounds) {
 
 void Button::paint(Painter& painter) const {
     const ThemeTokens& tokens = painter.theme();
+    const DensityMetrics metrics = density_metrics(painter.density());
 
     Color fill = tokens.surface;
     Color border = tokens.border;
@@ -231,9 +235,9 @@ void Button::paint(Painter& painter) const {
         }
     }
 
-    painter.fill_rounded_rect(bounds(), 7.0f, fill);
+    painter.fill_rounded_rect(bounds(), metrics.control_radius, fill);
     if (border.a > 0) {
-        painter.stroke_rounded_rect(bounds(), 7.0f, border, 1.0f);
+        painter.stroke_rounded_rect(bounds(), metrics.control_radius, border, 1.0f);
     }
 
     painter.draw_text(text_,
@@ -248,7 +252,10 @@ void Button::paint(Painter& painter) const {
                               bounds().y + 1.5f,
                               std::max(0.0f, bounds().width - 3.0f),
                               std::max(0.0f, bounds().height - 3.0f)};
-        painter.stroke_rounded_rect(focus_rect, 6.0f, tokens.accent, 1.5f);
+        painter.stroke_rounded_rect(focus_rect,
+                                    std::max(1.0f, metrics.control_radius - 1.0f),
+                                    tokens.accent,
+                                    1.5f);
     }
 }
 

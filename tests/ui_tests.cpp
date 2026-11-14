@@ -16,6 +16,9 @@ public:
         return cppui::light_theme();
     }
 
+    [[nodiscard]] cppui::DensityMode density() const noexcept override { return density_; }
+    void set_density(cppui::DensityMode density) noexcept { density_ = density; }
+
     [[nodiscard]] cppui::Size measure_text(std::wstring_view text,
                                            cppui::FontRole role) const override {
         const float size = role == cppui::FontRole::title ? 24.0f : 16.0f;
@@ -34,6 +37,9 @@ public:
                    const cppui::Color&,
                    cppui::TextAlign,
                    cppui::TextVAlign) override {}
+
+private:
+    cppui::DensityMode density_{cppui::DensityMode::cozy};
 };
 
 bool Expect(bool condition, std::string_view name) {
@@ -65,6 +71,12 @@ int main() {
 
     auto button = std::make_unique<cppui::Button>(L"Press", cppui::ButtonStyle::primary);
     button->set_on_click([&activations] { ++activations; });
+    const cppui::Size cozy_size = button->measure(painter, cppui::Size{400.0f, 300.0f});
+    painter.set_density(cppui::DensityMode::compact);
+    const cppui::Size compact_size = button->measure(painter, cppui::Size{400.0f, 300.0f});
+    painter.set_density(cppui::DensityMode::cozy);
+    passed &= Expect(cozy_size.height == 34.0f, "cozy button height");
+    passed &= Expect(compact_size.height == 28.0f, "compact button height");
     root->add_child(std::move(button));
 
     auto disabled = std::make_unique<cppui::Button>(L"Disabled", cppui::ButtonStyle::secondary);

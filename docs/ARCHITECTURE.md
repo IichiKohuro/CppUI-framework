@@ -264,6 +264,7 @@ CppUI-framework/
 ├─ include/cppui/theme/tokens.hpp
 ├─ include/cppui/theme/mode.hpp
 ├─ include/cppui/ui/painter.hpp
+├─ include/cppui/ui/density.hpp
 ├─ include/cppui/ui/widget.hpp
 ├─ include/cppui/ui/widgets.hpp
 ├─ include/cppui/ui/host.hpp

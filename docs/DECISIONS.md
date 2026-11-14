@@ -47,6 +47,7 @@
 | D-028 | Phase 1: **полное пересоздание D3D/DXGI/D2D-ресурсов** при device loss; отрисовка только по invalidation | Accepted | `DEVICE_REMOVED`/`RESET`/`HUNG` и ошибки target восстанавливаются без падения; idle CPU измерен около нуля. `Win32Window` остаётся внутренним слоем до custom chrome |
 | D-029 | Phase 2: custom chrome через **WS_OVERLAPPEDWINDOW + WM_NCCALCSIZE(0) + WM_NCHITTEST + D2D title bar** | Accepted | Сохраняются Snap/Alt+Tab/Alt+F4 и системные resize-коды; DWM даёт rounded corners/shadow; кнопки min/max/close рисуются D2D. Caption-кнопки не используют `SetCapture`, иначе mouse-up приходит клиентским сообщением и действие теряется |
 | D-030 | Phase 3: retained-mode `Widget` + абстрактный `Painter` + `UiHost`; темы Light/Dark/System | Accepted | `measure → arrange → paint`, DIP layout, DirectWrite measurement, focus/Tab/Space, `SetTheme` без пересоздания device. Пока реализованы `StackPanel`, `CardPanel`, `Label`, `Button` |
+| D-031 | Phase 3.1: theme-switch в шапке + `DensityMode` | Accepted | Три сегмента Light/Dark/System рисуются в chrome слева от системных кнопок, отделены вертикальной линией; сегмент возвращает `HTCLIENT`. `DensityMode` compact/cozy/comfortable передаётся через `Painter`, Button использует метрики; остальные контролы — Phase 4 |
 
 ## 3. Предложенные решения
 

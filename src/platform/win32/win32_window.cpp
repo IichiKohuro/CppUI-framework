@@ -146,7 +146,20 @@ ChromeState Win32Window::GetChromeState() const noexcept {
         hwnd_ != nullptr && IsZoomed(hwnd_) != FALSE,
         hovered_,
         pressed_,
+        theme_mode_,
+        theme_hovered_,
+        theme_pressed_,
     };
+}
+
+void Win32Window::SetThemeMode(ThemeMode mode) noexcept {
+    if (theme_mode_ == mode) {
+        return;
+    }
+    theme_mode_ = mode;
+    if (hwnd_ != nullptr) {
+        InvalidateRect(hwnd_, nullptr, FALSE);
+    }
 }
 
 ChromeButton Win32Window::ButtonAt(POINT screen_point) const noexcept {
@@ -183,6 +196,82 @@ ChromeButton Win32Window::ButtonAt(POINT screen_point) const noexcept {
         return ChromeButton::minimize;
     }
     return ChromeButton::none;
+}
+
+ChromeButton Win32Window::ThemeButtonAt(POINT screen_point) const noexcept {
+    if (hwnd_ == nullptr) {
+        return ChromeButton::none;
+    }
+
+    POINT client = screen_point;
+    if (ScreenToClient(hwnd_, &client) == FALSE) {
+        return ChromeButton::none;
+    }
+
+    RECT client_rect{};
+    if (GetClientRect(hwnd_, &client_rect) == FALSE) {
+        return ChromeButton::none;
+    }
+
+    const UINT dpi = WindowDpi(hwnd_);
+    const int button_width = DipToPixels(static_cast<int>(kCaptionButtonWidthDip), dpi);
+    const int option_width = DipToPixels(static_cast<int>(kThemeOptionWidthDip), dpi);
+    const int switch_height = DipToPixels(static_cast<int>(kThemeSwitcherHeightDip), dpi);
+    const int switch_gap = DipToPixels(static_cast<int>(kThemeSwitcherGapDip), dpi);
+    const int separator_gap = DipToPixels(static_cast<int>(kTitleButtonSeparatorDip), dpi);
+    const int title_height = DipToPixels(static_cast<int>(kTitleBarHeightDip), dpi);
+
+    const int separator_x = client_rect.right - button_width * 3 - separator_gap;
+    const int switch_right = separator_x - switch_gap;
+    const int switch_left = switch_right - option_width * 3;
+    const int switch_top = (title_height - switch_height) / 2;
+
+    if (client.x < switch_left || client.x >= switch_right || client.y < switch_top ||
+        client.y >= switch_top + switch_height) {
+        return ChromeButton::none;
+    }
+
+    const int index = (client.x - switch_left) / option_width;
+    switch (index) {
+        case 0:
+            return ChromeButton::theme_light;
+        case 1:
+            return ChromeButton::theme_dark;
+        case 2:
+            return ChromeButton::theme_system;
+        default:
+            return ChromeButton::none;
+    }
+}
+
+ThemeMode Win32Window::ThemeModeForButton(ChromeButton button) noexcept {
+    switch (button) {
+        case ChromeButton::theme_dark:
+            return ThemeMode::dark;
+        case ChromeButton::theme_system:
+            return ThemeMode::system;
+        case ChromeButton::theme_light:
+        default:
+            return ThemeMode::light;
+    }
+}
+
+void Win32Window::CompleteThemePress(POINT screen_point) noexcept {
+    if (theme_pressed_ == ChromeButton::none) {
+        return;
+    }
+
+    const ChromeButton current = ThemeButtonAt(screen_point);
+    const ChromeButton pressed = theme_pressed_;
+    theme_pressed_ = ChromeButton::none;
+    theme_hovered_ = current;
+
+    if (current == pressed && callbacks_.theme_selected != nullptr) {
+        callbacks_.theme_selected(ThemeModeForButton(pressed));
+    }
+    if (hwnd_ != nullptr) {
+        InvalidateRect(hwnd_, nullptr, FALSE);
+    }
 }
 
 ChromeButton Win32Window::ButtonFromHitCode(LRESULT hit_code) noexcept {
@@ -249,6 +338,10 @@ LRESULT Win32Window::HitTest(POINT screen_point) const noexcept {
         }
     }
 
+    if (ThemeButtonAt(screen_point) != ChromeButton::none) {
+        return HTCLIENT;
+    }
+
     switch (ButtonAt(screen_point)) {
         case ChromeButton::minimize:
             return HTMINBUTTON;
@@ -256,6 +349,9 @@ LRESULT Win32Window::HitTest(POINT screen_point) const noexcept {
             return HTMAXBUTTON;
         case ChromeButton::close:
             return HTCLOSE;
+        case ChromeButton::theme_light:
+        case ChromeButton::theme_dark:
+        case ChromeButton::theme_system:
         case ChromeButton::none:
             break;
     }
@@ -302,6 +398,9 @@ void Win32Window::PerformChromeAction(ChromeButton button) noexcept {
         case ChromeButton::close:
             PostMessageW(hwnd_, WM_CLOSE, 0, 0);
             break;
+        case ChromeButton::theme_light:
+        case ChromeButton::theme_dark:
+        case ChromeButton::theme_system:
         case ChromeButton::none:
             break;
     }
@@ -447,6 +546,10 @@ LRESULT Win32Window::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARA
             const POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
             const ChromeButton button = ButtonAt(point);
             SetHovered(button);
+            if (theme_hovered_ != ChromeButton::none) {
+                theme_hovered_ = ChromeButton::none;
+                InvalidateRect(hwnd, nullptr, FALSE);
+            }
             if (pressed_ != ChromeButton::none && button != pressed_) {
                 pressed_ = ChromeButton::none;
                 InvalidateRect(hwnd, nullptr, FALSE);
@@ -470,6 +573,15 @@ LRESULT Win32Window::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARA
                 InvalidateRect(hwnd, nullptr, FALSE);
             }
             SetHovered(ChromeButton::none);
+            {
+                POINT screen{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+                (void)ClientToScreen(hwnd, &screen);
+                const ChromeButton theme = ThemeButtonAt(screen);
+                if (theme != theme_hovered_) {
+                    theme_hovered_ = theme;
+                    InvalidateRect(hwnd, nullptr, FALSE);
+                }
+            }
             if (callbacks_.mouse_move != nullptr) {
                 callbacks_.mouse_move(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
             }
@@ -484,12 +596,27 @@ LRESULT Win32Window::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARA
 
         case WM_MOUSELEAVE:
             SetHovered(ChromeButton::none);
+            theme_hovered_ = ChromeButton::none;
+            theme_pressed_ = ChromeButton::none;
             if (callbacks_.mouse_leave != nullptr) {
                 callbacks_.mouse_leave();
             }
+            InvalidateRect(hwnd, nullptr, FALSE);
             return 0;
 
         case WM_LBUTTONDOWN:
+            {
+                POINT screen{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+                (void)ClientToScreen(hwnd, &screen);
+                const ChromeButton theme = ThemeButtonAt(screen);
+                if (theme != ChromeButton::none) {
+                    SetActive(true);
+                    theme_pressed_ = theme;
+                    theme_hovered_ = theme;
+                    InvalidateRect(hwnd, nullptr, FALSE);
+                    return 0;
+                }
+            }
             if (callbacks_.mouse_down != nullptr) {
                 callbacks_.mouse_down(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
             }
@@ -519,6 +646,12 @@ LRESULT Win32Window::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARA
             break;
 
         case WM_LBUTTONUP:
+            if (theme_pressed_ != ChromeButton::none) {
+                POINT screen{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+                (void)ClientToScreen(hwnd, &screen);
+                CompleteThemePress(screen);
+                return 0;
+            }
             if (pressed_ != ChromeButton::none) {
                 // Some input stacks still deliver the release as a client
                 // message; accept that path as a fallback.

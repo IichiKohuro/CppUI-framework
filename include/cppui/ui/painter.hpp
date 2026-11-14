@@ -4,6 +4,7 @@
 
 #include <cppui/geometry.hpp>
 #include <cppui/theme/tokens.hpp>
+#include <cppui/ui/density.hpp>
 
 namespace cppui {
 
@@ -34,6 +35,7 @@ public:
     virtual ~Painter() = default;
 
     [[nodiscard]] virtual const ThemeTokens& theme() const noexcept = 0;
+    [[nodiscard]] virtual DensityMode density() const noexcept = 0;
     [[nodiscard]] virtual Size measure_text(std::wstring_view text, FontRole role) const = 0;
 
     virtual void fill_rect(const Rect& rect, const Color& color) = 0;

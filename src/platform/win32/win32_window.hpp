@@ -25,6 +25,7 @@ public:
         std::function<void(int x, int y)> mouse_down;
         std::function<void(int x, int y)> mouse_up;
         std::function<void()> system_theme_changed;
+        std::function<void(ThemeMode mode)> theme_selected;
     };
 
     Win32Window(HINSTANCE instance,
@@ -50,6 +51,7 @@ public:
     [[nodiscard]] float Dpi() const noexcept { return dpi_; }
     [[nodiscard]] bool IsWindowMinimized() const noexcept;
     [[nodiscard]] ChromeState GetChromeState() const noexcept;
+    void SetThemeMode(ThemeMode mode) noexcept;
 
 private:
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
@@ -58,8 +60,11 @@ private:
     void NotifyResize(HWND hwnd, UINT width, UINT height) noexcept;
     [[nodiscard]] LRESULT HitTest(POINT screen_point) const noexcept;
     [[nodiscard]] ChromeButton ButtonAt(POINT screen_point) const noexcept;
+    [[nodiscard]] ChromeButton ThemeButtonAt(POINT screen_point) const noexcept;
     static ChromeButton ButtonFromHitCode(LRESULT hit_code) noexcept;
+    static ThemeMode ThemeModeForButton(ChromeButton button) noexcept;
     void CompleteChromePress(POINT screen_point) noexcept;
+    void CompleteThemePress(POINT screen_point) noexcept;
     void PerformChromeAction(ChromeButton button) noexcept;
     void SetActive(bool active) noexcept;
     void SetHovered(ChromeButton button) noexcept;
@@ -78,6 +83,9 @@ private:
     bool active_{false};
     ChromeButton hovered_{ChromeButton::none};
     ChromeButton pressed_{ChromeButton::none};
+    ThemeMode theme_mode_{ThemeMode::light};
+    ChromeButton theme_hovered_{ChromeButton::none};
+    ChromeButton theme_pressed_{ChromeButton::none};
 };
 
 }  // namespace cppui

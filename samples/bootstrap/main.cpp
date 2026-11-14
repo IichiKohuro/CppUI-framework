@@ -34,6 +34,7 @@ private:
     void LayoutUiForSize(float width, float height);
     void ApplyTheme();
     void SetThemeMode(cppui::ThemeMode mode);
+    void SetDensityMode(cppui::DensityMode mode);
     void CountClick();
     void StopRenderer();
     int RunSelfTest(cppui::Win32Window& window);
@@ -54,7 +55,9 @@ private:
     cppui::UiHost ui_;
     cppui::Label* click_label_{};
     cppui::Label* theme_label_{};
+    cppui::Label* density_label_{};
     cppui::ThemeMode theme_mode_{cppui::ThemeMode::light};
+    cppui::DensityMode density_mode_{cppui::DensityMode::cozy};
     float dpi_{96.0f};
     int click_count_{};
     bool renderer_ready_{false};
@@ -85,6 +88,7 @@ int BootstrapApp::Run(HINSTANCE instance, int show_command, bool self_test) {
             ApplyTheme();
         }
     };
+    callbacks.theme_selected = [this](cppui::ThemeMode mode) { SetThemeMode(mode); };
 
     if (!window.Create(callbacks)) {
         MessageBoxW(nullptr, L"Win32 window creation failed.", kErrorTitle, MB_OK | MB_ICONERROR);
@@ -142,21 +146,6 @@ void BootstrapApp::BuildUi() {
     auto content = std::make_unique<cppui::StackPanel>(cppui::Orientation::vertical, 10.0f);
     content->set_cross_align(cppui::CrossAlign::stretch);
 
-    content->add_child(std::make_unique<cppui::Label>(L"ТЕМА",
-                                                      cppui::FontRole::caption,
-                                                      cppui::LabelStyle::muted));
-    auto theme_row = std::make_unique<cppui::StackPanel>(cppui::Orientation::horizontal, 8.0f);
-    auto light_button = std::make_unique<cppui::Button>(L"Светлая", cppui::ButtonStyle::secondary);
-    light_button->set_on_click([this] { SetThemeMode(cppui::ThemeMode::light); });
-    theme_row->add_child(std::move(light_button));
-    auto dark_button = std::make_unique<cppui::Button>(L"Тёмная", cppui::ButtonStyle::secondary);
-    dark_button->set_on_click([this] { SetThemeMode(cppui::ThemeMode::dark); });
-    theme_row->add_child(std::move(dark_button));
-    auto system_button = std::make_unique<cppui::Button>(L"Системная", cppui::ButtonStyle::secondary);
-    system_button->set_on_click([this] { SetThemeMode(cppui::ThemeMode::system); });
-    theme_row->add_child(std::move(system_button));
-    content->add_child(std::move(theme_row));
-
     content->add_child(std::make_unique<cppui::Label>(L"КНОПКИ",
                                                       cppui::FontRole::caption,
                                                       cppui::LabelStyle::muted));
@@ -180,6 +169,29 @@ void BootstrapApp::BuildUi() {
                                                       cppui::LabelStyle::secondary);
     click_label_ = click_label.get();
     content->add_child(std::move(click_label));
+
+    content->add_child(std::make_unique<cppui::Label>(L"ПЛОТНОСТЬ",
+                                                      cppui::FontRole::caption,
+                                                      cppui::LabelStyle::muted));
+    auto density_row = std::make_unique<cppui::StackPanel>(cppui::Orientation::horizontal, 8.0f);
+    auto compact_button = std::make_unique<cppui::Button>(L"Компактно",
+                                                          cppui::ButtonStyle::secondary);
+    compact_button->set_on_click([this] { SetDensityMode(cppui::DensityMode::compact); });
+    density_row->add_child(std::move(compact_button));
+    auto cozy_button = std::make_unique<cppui::Button>(L"Обычно", cppui::ButtonStyle::secondary);
+    cozy_button->set_on_click([this] { SetDensityMode(cppui::DensityMode::cozy); });
+    density_row->add_child(std::move(cozy_button));
+    auto comfortable_button = std::make_unique<cppui::Button>(L"Свободно",
+                                                              cppui::ButtonStyle::secondary);
+    comfortable_button->set_on_click([this] { SetDensityMode(cppui::DensityMode::comfortable); });
+    density_row->add_child(std::move(comfortable_button));
+    content->add_child(std::move(density_row));
+
+    auto density_label = std::make_unique<cppui::Label>(L"Плотность: Обычная",
+                                                        cppui::FontRole::caption,
+                                                        cppui::LabelStyle::muted);
+    density_label_ = density_label.get();
+    content->add_child(std::move(density_label));
 
     auto theme_label = std::make_unique<cppui::Label>(L"Тема: Светлая",
                                                       cppui::FontRole::caption,
@@ -239,6 +251,10 @@ void BootstrapApp::ApplyTheme() {
         return;
     }
 
+    if (window_ != nullptr) {
+        window_->SetThemeMode(theme_mode_);
+    }
+
     if (theme_label_ != nullptr) {
         switch (theme_mode_) {
             case cppui::ThemeMode::light:
@@ -264,6 +280,31 @@ void BootstrapApp::ApplyTheme() {
 void BootstrapApp::SetThemeMode(cppui::ThemeMode mode) {
     theme_mode_ = mode;
     ApplyTheme();
+}
+
+void BootstrapApp::SetDensityMode(cppui::DensityMode mode) {
+    density_mode_ = mode;
+    renderer_.SetDensity(mode);
+
+    if (density_label_ != nullptr) {
+        switch (mode) {
+            case cppui::DensityMode::compact:
+                density_label_->set_text(L"Плотность: Компактная");
+                break;
+            case cppui::DensityMode::comfortable:
+                density_label_->set_text(L"Плотность: Свободная");
+                break;
+            case cppui::DensityMode::cozy:
+            default:
+                density_label_->set_text(L"Плотность: Обычная");
+                break;
+        }
+    }
+
+    LayoutUi();
+    if (window_ != nullptr) {
+        window_->Invalidate();
+    }
 }
 
 void BootstrapApp::CountClick() {
