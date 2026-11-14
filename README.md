@@ -2,7 +2,7 @@
 
 **CppUI** — рабочее название лёгкого UI-фреймворка для Windows на C++20. Цель — быстрый и предсказуемый десктопный toolkit с кастомным окном, аппаратной отрисовкой, аккуратными темами и API, которое не заставляет писать инфраструктуру заново в каждом приложении.
 
-> Статус: **Phase 4 завершена**. Есть Form-preview с `FormPanel`/`StatusBar`, sidebar, actions в titlebar, Light/Dark/System и compact-режим. Следующая — hardening M0.
+> Статус: **Phase 5 hardening pass завершён**. Есть Form-preview, DPI matrix 96–192, benchmark и CI workflow; M0 closure ещё открыт (multi-monitor, visual, memory).
 > Дата: 14.11.2026.
 
 ## Ключевые решения
@@ -11,7 +11,7 @@
 - **C++20**, MSVC 2022/2026, CMake, статическая библиотека. Ninja — основной путь для CI; Visual Studio generator используется локально на локализованной MSVC.
 - **Win32 + DWM** для окна и кастомного title bar; **D3D11 + DXGI flip-model + Direct2D/DirectWrite** для отрисовки.
 - **Retained-mode** дерево виджетов с layout-проходами `measure → arrange → paint`, без HTML/CSS-движка.
-- **Ноль сторонних runtime-зависимостей**: только Windows SDK. Catch2 используется только в тестах.
+- **Ноль сторонних runtime-зависимостей**: только Windows SDK. Тесты — собственные исполняемые файлы и CTest; внешний test framework не подключён.
 - **Визуальное направление Signal Teal** (выбрано после аудита `design_chats`), светлая/тёмная/системная тема через семантические дизайн-токены.
 - **Density S / M / L** и паттерны data-workspace с inline editing и row states зафиксированы в дизайне.
 - **Управляемая область**: сначала фундамент и форма, затем контролы волнами. Полный список контролов не входит в первый релиз.
@@ -26,6 +26,7 @@
 | [docs/PHASE2.md](docs/PHASE2.md) | Custom chrome: title bar, hit testing, maximize/restore, DWM |
 | [docs/PHASE3.md](docs/PHASE3.md) | Retained-mode core, Button, UiHost, Light/Dark/System |
 | [docs/PHASE4.md](docs/PHASE4.md) | Form preview, StatusBar, titlebar actions |
+| [docs/PHASE5.md](docs/PHASE5.md) | DPI matrix, benchmark, CI, hardening results |
 | [CONTROL_BACKLOG.md](CONTROL_BACKLOG.md) | Полный каталог контролов, недостающие элементы, зависимости и волны |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Релизы, ориентировочные сроки, критерии выхода |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архитектура, стек, окно, рендер, API и структура проекта |
@@ -42,6 +43,16 @@
 Экран собран как форма: sidebar с разделами, основная карточка настроек, `FormPanel`, закреплённый снизу `StatusBar` и дополнительное действие сброса в titlebar. Работают Light/Dark/System, density S/M/L, hover/pressed/focus, клики, Tab/Shift+Tab, Space/Enter и обновление статуса при каждом действии.
 
 Тёмная тема: [phase4-dark.png](docs/images/phase4-dark.png). Компактный режим: [phase4-compact.png](docs/images/phase4-compact.png). Подробности — в [docs/PHASE4.md](docs/PHASE4.md).
+
+## Hardening (Phase 5)
+
+- CTest **4/4** в Debug и Release: theme, UI, DPI matrix, benchmark.
+- Simulated DPI matrix **96 / 120 / 144 / 192** с Light/Dark и S/M/L.
+- Release benchmark: **120 FPS** (VSync), **1.95 ms CPU/кадр**, layout **0.122 ms**.
+- Cold start **177 ms**, idle CPU **≈0%**, working set **64.4 MB** (P2: выше 60 MB).
+- GitHub Actions workflow для Debug/Release и benchmark artifacts.
+
+M0 closure ещё не объявлен: реальная multi-monitor матрица, visual snapshots, flicker и memory budget. Подробности — в [docs/PHASE5.md](docs/PHASE5.md).
 
 ## Визуальный концепт
 
@@ -77,7 +88,8 @@
 - [x] Добавлены Light/Dark/System, переключатель темы в шапке и интерактивное demo.
 - [x] Добавлен `DensityMode` Compact/Cozy/Comfortable для компактных Button.
 - [x] Добавлены Form-preview, `FormPanel`, `StatusBar` и действие сброса в titlebar.
-- [ ] Проведён hardening M0: resize/DPI matrix, visual tests, performance budgets.
+- [x] Добавлены simulated DPI matrix 96–192, benchmark и GitHub Actions workflow.
+- [ ] Закрыт M0: реальная multi-monitor матрица, visual snapshots, flicker и memory budget.
 
 ## Сборка
 
@@ -105,11 +117,22 @@ $env:CPPUI_FORCE_WARP = '1'
 .\out\build\windows-vs2026-debug\Debug\cppui-bootstrap.exe --self-test
 ```
 
+Benchmark (Release):
+
+```powershell
+Push-Location .\out\build\windows-vs2026-release
+.\Release\cppui-bootstrap.exe --benchmark
+Get-Content cppui-benchmark.txt
+Pop-Location
+```
+
+`--self-test` проходит четыре комбинации DPI/density/theme; `--benchmark`
+пишет frame/layout/resize/theme/density-метрики в `cppui-benchmark.txt`.
 В живом окне `F5` принудительно пересоздаёт render device, а `Esc` закрывает его. Кастомный chrome проверяется вручную: min/max/close, resize и drag title bar.
 
 ## Ближайший шаг
 
-Phase 5: hardening M0 — полный resize/DPI matrix, visual regression, performance budgets, доработка публичного `Form` API и оставшиеся критерии Technical Preview.
+M0 closure: visual regression через WIC/D2D, реальная 100–200% / mixed-DPI / multi-monitor матрица, flicker/input-to-photon, снижение memory и cold start, подтверждение CI на runner.
 
 ## Лицензия
 

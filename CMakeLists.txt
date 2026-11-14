@@ -105,5 +105,8 @@ if(CPPUI_BUILD_TESTS)
     if(CPPUI_BUILD_SAMPLES)
         add_test(NAME cppui.render_smoke COMMAND cppui_bootstrap --self-test)
         set_tests_properties(cppui.render_smoke PROPERTIES LABELS "render")
+
+        add_test(NAME cppui.benchmark COMMAND cppui_bootstrap --benchmark)
+        set_tests_properties(cppui.benchmark PROPERTIES LABELS "perf" TIMEOUT 120)
     endif()
 endif()

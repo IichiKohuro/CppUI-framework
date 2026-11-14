@@ -532,6 +532,14 @@ const ThemeTokens& D2DRenderer::theme() const noexcept {
     return theme_;
 }
 
+Size D2DRenderer::TargetSizeDip() const noexcept {
+    if (!d2d_context_) {
+        return Size{};
+    }
+    const D2D1_SIZE_F size = d2d_context_->GetSize();
+    return Size{size.width, size.height};
+}
+
 IDWriteTextFormat* D2DRenderer::TextFormatForRole(FontRole role) const noexcept {
     switch (role) {
         case FontRole::caption:

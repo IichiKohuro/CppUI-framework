@@ -30,8 +30,9 @@
 
 **Вопрос, на который отвечает релиз:** можно ли сделать быструю, красивую и надёжную форму на Win32 + Direct2D, и удобен ли выбранный API?
 
-> Phase 4 добавляет Form-preview, `FormPanel`, `StatusBar` и titlebar action; полная
-> матрица DPI/multi-monitor, visual regression и performance budgets остаются в Phase 5.
+> Phase 4 добавляет Form-preview, `FormPanel`, `StatusBar` и titlebar action. Phase 5
+> добавляет simulated DPI matrix 96–192, benchmark, CI workflow и performance-замеры;
+> реальная multi-monitor матрица, visual regression, flicker и memory budget ещё открыты.
 
 ### Состав
 
@@ -49,11 +50,11 @@
 
 - [ ] Демо собирается с чистой машины по инструкции.
 - [ ] Chrome проходит матрицу: Win11, 100–200% DPI, два монитора, Snap Layouts, Alt+Space, Alt+F4.
-- [ ] Нет мерцания при resize; idle CPU близок к нулю.
-- [ ] Тема переключается без перезапуска.
-- [ ] Tab/Shift+Tab, Enter/Space работают; focus заметен.
-- [ ] Есть базовые unit- и visual-тесты, CI зелёный.
-- [ ] Performance-замеры зафиксированы в [QUALITY.md](QUALITY.md).
+- [ ] Нет мерцания при resize; idle CPU близок к нулю. Idle CPU измерен (≈0%), flicker ещё нет.
+- [x] Тема переключается без перезапуска.
+- [x] Tab/Shift+Tab, Enter/Space работают; focus заметен.
+- [ ] Есть базовые unit- и visual-тесты, CI зелёный. Unit/integration и CI workflow есть; visual snapshots и удалённый CI ещё нет.
+- [x] Performance-замеры зафиксированы в [QUALITY.md](QUALITY.md); memory budget превышен.
 
 ### Чего в M0 нет
 

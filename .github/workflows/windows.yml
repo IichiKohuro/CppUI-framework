@@ -1,0 +1,36 @@
+name: windows
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.configuration }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [debug, release]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake --preset windows-vs2022-${{ matrix.configuration }}
+
+      - name: Build
+        run: cmake --build --preset windows-vs2022-${{ matrix.configuration }}
+
+      - name: Test
+        run: ctest --preset windows-vs2022-${{ matrix.configuration }} --output-on-failure
+
+      - name: Upload benchmark
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-${{ matrix.configuration }}
+          path: out/build/windows-vs2022-${{ matrix.configuration }}/cppui-benchmark.txt
+          if-no-files-found: ignore

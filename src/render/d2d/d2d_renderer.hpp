@@ -39,6 +39,7 @@ public:
     [[nodiscard]] bool Render(const ChromeState& chrome = {}, Widget* content = nullptr);
     [[nodiscard]] bool SetTheme(const ThemeTokens& theme);
     void SetDensity(DensityMode density) noexcept { density_ = density; }
+    [[nodiscard]] Size TargetSizeDip() const noexcept;
     // Rebuilds the D3D device, swap chain, D2D device context and all resources.
     // Called after DEVICE_REMOVED/RESET and exposed for the render smoke test.
     [[nodiscard]] bool RecreateDevice();

@@ -31,8 +31,9 @@
 
 Тесты с окном, но без активного пользователя:
 
-- `cppui.render_smoke`: hidden window, initial frame, resize, device recreation, final frame;
+- `cppui.render_smoke`: hidden window, DPI matrix 96/120/144/192, Light/Dark, density S/M/L, target-size invariants, device recreation;
 - `cppui.ui`: Widget layout, hit testing, click, focus, Space activation, disabled button, compact/cozy Button metrics, FormPanel/StatusBar layout and compact status height;
+- `cppui.benchmark`: frame/layout/resize/theme/density timings, target DIP size, CPU time;
 - создание hidden window и message loop;
 - `WM_NCHITTEST`: caption, min/max/close, resize-border, client;
 - custom maximize/restore, minimize, close и close-hover;
@@ -101,7 +102,23 @@ RTL/BiDi — не входит в v0.1; добавить в матрицу, ко
 
 Это стартовые цели, которые нужно подтвердить на реальном железе после Phase 1. Значения не являются обещанием для любой конфигурации.
 
-Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resize stress из пяти размеров не привёл к потере отзывчивости. Phase 2: hit testing и maximize/restore проверены на 125% DPI. Phase 3: UI-тест покрывает layout/hit-test/click/focus/Space/disabled и compact/cozy-метрики; Light/Dark/System, theme-switch в шапке, S/M/L и mouse-coordinate mapping проверены вручную. Phase 4: проверены Form-preview, StatusBar, reset-action, обновление статусов и синхронизация render target после density; render target без sync обрезал нижнюю часть UI. 100/150/200%, Snap-flyout и frame-time бюджеты ещё требуют отдельного прогона.
+Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resize stress из пяти размеров не привёл к потере отзывчивости. Phase 2: hit testing и maximize/restore проверены на 125% DPI. Phase 3: UI-тест покрывает layout/hit-test/click/focus/Space/disabled и compact/cozy-метрики; Light/Dark/System, theme-switch в шапке, S/M/L и mouse-coordinate mapping проверены вручную. Phase 4: проверены Form-preview, StatusBar, reset-action, обновление статусов и синхронизация render target после density; render target без sync обрезал нижнюю часть UI. Phase 5: добавлены simulated DPI matrix 96–192, benchmark и CI workflow.
+
+### Phase 5 benchmark (Release, hidden window, 125% DPI, 22 logical cores)
+
+| Метрика | Значение | Статус |
+|---|---:|---|
+| Frame wall avg / p95 | **8.33 / 8.43 ms** (120 FPS VSync) | цель 60 FPS закрыта |
+| Frame CPU avg | **1.95 ms** | target <4 ms |
+| Layout avg | **0.122 ms** | target <0.3 ms |
+| Resize cycle avg frame | **7.90 ms** | hard <8 ms на границе |
+| Theme switch + frame | **7.98 ms** | hard ≤100 ms |
+| Density switch + frame | **8.33 ms** | — |
+| Cold start median | **177 ms** | target 150 miss, hard 250 pass |
+| Idle CPU, 8 s | **0.000 ms** | target pass |
+| Working set | **64.4 MB** | hard 60 MB — **P2 open** |
+
+Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest 4/4 в Debug и Release. Не измерены input-to-photon и flicker; memory budget превышен. Snap-flyout, mixed-DPI и 100/150/200% на реальных мониторах остаются в ручной матрице.
 
 | Метрика | Target | Hard threshold |
 |---|---:|---:|
@@ -114,8 +131,10 @@ Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resiz
 | Layout простой формы | < 0.3 ms | < 1 ms |
 | CPU-время кадра простой формы | < 4 ms | < 8 ms |
 | Аллокации в steady-state кадре | 0–минимум | без роста |
-| Память демо | < 40 MB | < 60 MB |
+| Память демо | < 40 MB | < 60 MB (measured 64.4 — P2 open) |
 | Переключение темы | 1 кадр | ≤ 100 ms |
+| Frame wall avg, Release | 60 FPS | 120 FPS measured |
+| Frame CPU avg, Release | < 4 ms | 1.95 ms measured |
 
 Дополнительно:
 
@@ -160,20 +179,17 @@ Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resiz
 
 ## 7. CI
 
-Планируется GitHub Actions (после инициализации репозитория):
+Добавлен `.github/workflows/windows.yml`:
 
-- Windows runner, MSVC x64.
+- Windows 2022 runner, MSVC x64.
 - Debug и Release.
 - Configure/Build через CMake presets.
-- Unit- и integration-тесты через CTest.
-- Visual snapshots с artifacts.
-- `clang-format --dry-run --Werror`.
+- CTest, включая DPI matrix и benchmark.
+- Artifacts с `cppui-benchmark.txt`.
 - Warnings as errors для собственного кода.
 - Сборка sample.
-- ASan job для Debug (MSVC).
-- Кеширование CMake/Ninja, если уместно.
 
-CI не может полноценно проверить Snap Layouts, multi-monitor DPI и реальный WARP; эти пункты остаются в ручной матрице.
+Ещё не подтверждено на удалённом runner. Visual snapshots, `clang-format --dry-run --Werror`, ASan и кеширование CMake/Ninja остаются следующими шагами. CI не может полноценно проверить Snap Layouts, multi-monitor DPI и реальный WARP; эти пункты остаются в ручной матрице.
 
 ## 8. Статический анализ и стиль
 

@@ -3,9 +3,14 @@
 #include <objbase.h>
 
 #include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <fstream>
 #include <memory>
+#include <numeric>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <cppui/theme/mode.hpp>
 #include <cppui/ui/form.hpp>
@@ -27,7 +32,7 @@ constexpr int kMinHeightDip = 580;
 
 class BootstrapApp final {
 public:
-    int Run(HINSTANCE instance, int show_command, bool self_test);
+    int Run(HINSTANCE instance, int show_command, bool self_test, bool benchmark);
 
 private:
     void BuildUi();
@@ -43,6 +48,7 @@ private:
     [[nodiscard]] const wchar_t* DensityName() const noexcept;
     void StopRenderer();
     int RunSelfTest(cppui::Win32Window& window);
+    int RunBenchmark(cppui::Win32Window& window);
 
     void OnPaint();
     void OnResize(std::uint32_t width, std::uint32_t height, float dpi);
@@ -70,7 +76,7 @@ private:
     int paint_failures_{0};
 };
 
-int BootstrapApp::Run(HINSTANCE instance, int show_command, bool self_test) {
+int BootstrapApp::Run(HINSTANCE instance, int show_command, bool self_test, bool benchmark) {
     cppui::Win32Window window(instance,
                               kWindowTitle,
                               kInitialWidthDip,
@@ -124,6 +130,9 @@ int BootstrapApp::Run(HINSTANCE instance, int show_command, bool self_test) {
 
     if (self_test) {
         return RunSelfTest(window);
+    }
+    if (benchmark) {
+        return RunBenchmark(window);
     }
 
     window.Show(show_command);
@@ -268,6 +277,8 @@ void BootstrapApp::LayoutUi() {
         return;
     }
 
+    // The swap-chain target can lag a Win32 client resize; re-sync before layout
+    // so DIP hit-testing and painted coordinates stay identical.
     const UINT client_width = static_cast<UINT>(std::max<LONG>(1, client.right - client.left));
     const UINT client_height = static_cast<UINT>(std::max<LONG>(1, client.bottom - client.top));
     if (!renderer_.Resize(client_width, client_height, dpi_)) {
@@ -575,16 +586,62 @@ int BootstrapApp::RunSelfTest(cppui::Win32Window& window) {
         return 2;
     }
 
-    if (!renderer_.Resize(800, 500, window.Dpi())) {
-        OutputDebugStringW(L"CppUI self-test: resize failed.\n");
-        return 3;
+    struct MatrixCase {
+        float width_dip;
+        float height_dip;
+        float dpi;
+        cppui::DensityMode density;
+        cppui::ThemeMode theme;
+    };
+
+    const MatrixCase cases[] = {
+        {1000.0f, 640.0f, 96.0f, cppui::DensityMode::cozy, cppui::ThemeMode::light},
+        {1000.0f, 640.0f, 120.0f, cppui::DensityMode::cozy, cppui::ThemeMode::dark},
+        {900.0f, 580.0f, 144.0f, cppui::DensityMode::compact, cppui::ThemeMode::light},
+        {1120.0f, 720.0f, 192.0f, cppui::DensityMode::comfortable, cppui::ThemeMode::dark},
+    };
+
+    int case_index = 0;
+    for (const MatrixCase& test_case : cases) {
+        const float scale = test_case.dpi / 96.0f;
+        const UINT width = static_cast<UINT>(std::lround(test_case.width_dip * scale));
+        const UINT height = static_cast<UINT>(std::lround(test_case.height_dip * scale));
+
+        if (!renderer_.SetTheme(cppui::resolve_theme(test_case.theme))) {
+            OutputDebugStringW(L"CppUI self-test: DPI matrix theme failed.\n");
+            return 10 + case_index;
+        }
+        renderer_.SetDensity(test_case.density);
+        if (!renderer_.Resize(width, height, test_case.dpi)) {
+            OutputDebugStringW(L"CppUI self-test: DPI matrix resize failed.\n");
+            return 10 + case_index;
+        }
+
+        LayoutUiForSize(test_case.width_dip, test_case.height_dip);
+        const cppui::Size target = renderer_.TargetSizeDip();
+        if (std::fabs(target.width - test_case.width_dip) > 1.5f ||
+            std::fabs(target.height - test_case.height_dip) > 1.5f) {
+            OutputDebugStringW(L"CppUI self-test: target DIP size mismatch.\n");
+            return 20 + case_index;
+        }
+
+        if (!renderer_.Render(chrome, ui_.root())) {
+            OutputDebugStringW(L"CppUI self-test: DPI matrix render failed.\n");
+            return 30 + case_index;
+        }
+        ++case_index;
     }
 
-    LayoutUiForSize(800.0f, 500.0f);
-    if (!renderer_.Render(chrome, ui_.root())) {
-        OutputDebugStringW(L"CppUI self-test: render after resize failed.\n");
-        return 4;
+    if (!renderer_.SetTheme(cppui::light_theme())) {
+        OutputDebugStringW(L"CppUI self-test: restore theme failed.\n");
+        return 40;
     }
+    renderer_.SetDensity(cppui::DensityMode::cozy);
+    if (!renderer_.Resize(1250, 800, 120.0f)) {
+        OutputDebugStringW(L"CppUI self-test: restore resize failed.\n");
+        return 40;
+    }
+    LayoutUiForSize(1000.0f, 640.0f);
 
     if (!renderer_.RecreateDevice()) {
         OutputDebugStringW(L"CppUI self-test: device recreation failed.\n");
@@ -600,7 +657,189 @@ int BootstrapApp::RunSelfTest(cppui::Win32Window& window) {
     renderer_ready_ = false;
     window_ = nullptr;
     window.Destroy();
-    OutputDebugStringW(L"CppUI self-test: passed.\n");
+    OutputDebugStringW(L"CppUI self-test: passed (4 DPI/density/theme cases).\n");
+    return 0;
+}
+
+int BootstrapApp::RunBenchmark(cppui::Win32Window& window) {
+    const cppui::ChromeState chrome{
+        true,
+        false,
+        cppui::ChromeButton::none,
+        cppui::ChromeButton::none,
+    };
+    using Clock = std::chrono::steady_clock;
+    const auto elapsed_ms = [](Clock::time_point start, Clock::time_point end) {
+        return std::chrono::duration<double, std::milli>(end - start).count();
+    };
+
+    if (!renderer_.Resize(1250, 800, 120.0f)) {
+        OutputDebugStringW(L"CppUI benchmark: initial resize failed.\n");
+        return 2;
+    }
+    LayoutUiForSize(1000.0f, 640.0f);
+
+    for (int warmup = 0; warmup < 10; ++warmup) {
+        if (!renderer_.Render(chrome, ui_.root())) {
+            OutputDebugStringW(L"CppUI benchmark: warmup render failed.\n");
+            return 3;
+        }
+    }
+
+    FILETIME creation_start{};
+    FILETIME exit_start{};
+    FILETIME cpu_kernel_start{};
+    FILETIME cpu_user_start{};
+    FILETIME creation_end{};
+    FILETIME exit_end{};
+    FILETIME cpu_kernel_end{};
+    FILETIME cpu_user_end{};
+    (void)GetProcessTimes(GetCurrentProcess(),
+                          &creation_start,
+                          &exit_start,
+                          &cpu_kernel_start,
+                          &cpu_user_start);
+
+    std::vector<double> frame_times;
+    frame_times.reserve(120);
+    for (int frame = 0; frame < 120; ++frame) {
+        const auto start = Clock::now();
+        if (!renderer_.Render(chrome, ui_.root())) {
+            OutputDebugStringW(L"CppUI benchmark: frame render failed.\n");
+            return 4;
+        }
+        frame_times.push_back(elapsed_ms(start, Clock::now()));
+    }
+
+    (void)GetProcessTimes(GetCurrentProcess(),
+                          &creation_end,
+                          &exit_end,
+                          &cpu_kernel_end,
+                          &cpu_user_end);
+
+    const auto filetime_ms = [](const FILETIME& time) {
+        ULARGE_INTEGER value{};
+        value.LowPart = time.dwLowDateTime;
+        value.HighPart = time.dwHighDateTime;
+        return static_cast<double>(value.QuadPart) / 10000.0;
+    };
+    const double cpu_ms_per_frame =
+        ((filetime_ms(cpu_kernel_end) + filetime_ms(cpu_user_end)) -
+         (filetime_ms(cpu_kernel_start) + filetime_ms(cpu_user_start))) /
+        static_cast<double>(frame_times.size());
+
+    const auto layout_start = Clock::now();
+    for (int iteration = 0; iteration < 500; ++iteration) {
+        LayoutUiForSize(1000.0f, 640.0f);
+    }
+    const double layout_avg_ms = elapsed_ms(layout_start, Clock::now()) / 500.0;
+
+    const struct ResizeCase {
+        float width_dip;
+        float height_dip;
+    } resize_cases[] = {
+        {900.0f, 580.0f},
+        {1000.0f, 640.0f},
+        {1120.0f, 720.0f},
+        {1280.0f, 800.0f},
+        {1600.0f, 900.0f},
+    };
+
+    double resize_total_ms = 0.0;
+    int resize_frames = 0;
+    for (const ResizeCase& resize_case : resize_cases) {
+        const UINT width = static_cast<UINT>(std::lround(resize_case.width_dip * 1.25f));
+        const UINT height = static_cast<UINT>(std::lround(resize_case.height_dip * 1.25f));
+        const auto start = Clock::now();
+        if (!renderer_.Resize(width, height, 120.0f)) {
+            OutputDebugStringW(L"CppUI benchmark: resize failed.\n");
+            return 5;
+        }
+        LayoutUiForSize(resize_case.width_dip, resize_case.height_dip);
+        for (int frame = 0; frame < 5; ++frame) {
+            if (!renderer_.Render(chrome, ui_.root())) {
+                OutputDebugStringW(L"CppUI benchmark: resize render failed.\n");
+                return 6;
+            }
+        }
+        resize_total_ms += elapsed_ms(start, Clock::now());
+        resize_frames += 5;
+    }
+    const double resize_avg_ms = resize_total_ms / static_cast<double>(resize_frames);
+
+    if (!renderer_.Resize(1250, 800, 120.0f)) {
+        OutputDebugStringW(L"CppUI benchmark: restore resize failed.\n");
+        return 7;
+    }
+    LayoutUiForSize(1000.0f, 640.0f);
+
+    const auto theme_start = Clock::now();
+    for (int iteration = 0; iteration < 60; ++iteration) {
+        const cppui::ThemeTokens& theme =
+            (iteration % 2 == 0) ? cppui::dark_theme() : cppui::light_theme();
+        if (!renderer_.SetTheme(theme) || !renderer_.Render(chrome, ui_.root())) {
+            OutputDebugStringW(L"CppUI benchmark: theme switch failed.\n");
+            return 8;
+        }
+    }
+    const double theme_avg_ms = elapsed_ms(theme_start, Clock::now()) / 60.0;
+
+    const auto density_start = Clock::now();
+    const cppui::DensityMode densities[] = {
+        cppui::DensityMode::compact,
+        cppui::DensityMode::cozy,
+        cppui::DensityMode::comfortable,
+    };
+    for (int iteration = 0; iteration < 30; ++iteration) {
+        renderer_.SetDensity(densities[iteration % 3]);
+        LayoutUiForSize(1000.0f, 640.0f);
+        if (!renderer_.Render(chrome, ui_.root())) {
+            OutputDebugStringW(L"CppUI benchmark: density switch failed.\n");
+            return 9;
+        }
+    }
+    const double density_avg_ms = elapsed_ms(density_start, Clock::now()) / 30.0;
+
+    if (!renderer_.SetTheme(cppui::light_theme())) {
+        OutputDebugStringW(L"CppUI benchmark: restore theme failed.\n");
+        return 10;
+    }
+    renderer_.SetDensity(cppui::DensityMode::cozy);
+
+    std::sort(frame_times.begin(), frame_times.end());
+    const double frame_total =
+        std::accumulate(frame_times.begin(), frame_times.end(), 0.0);
+    const double frame_avg_ms = frame_total / static_cast<double>(frame_times.size());
+    const size_t p95_index =
+        std::min(frame_times.size() - 1, static_cast<size_t>(frame_times.size() * 0.95));
+    const cppui::Size target = renderer_.TargetSizeDip();
+
+    std::ofstream output("cppui-benchmark.txt", std::ios::trunc);
+    if (!output) {
+        OutputDebugStringW(L"CppUI benchmark: output file failed.\n");
+        return 11;
+    }
+
+    output << "CppUI benchmark\n";
+#ifdef NDEBUG
+    output << "configuration=Release\n";
+#else
+    output << "configuration=Debug\n";
+#endif
+    output << "frame_avg_ms=" << frame_avg_ms << '\n';
+    output << "frame_p95_ms=" << frame_times[p95_index] << '\n';
+    output << "frame_cpu_avg_ms=" << cpu_ms_per_frame << '\n';
+    output << "frame_fps=" << (1000.0 / frame_avg_ms) << '\n';
+    output << "layout_avg_ms=" << layout_avg_ms << '\n';
+    output << "resize_avg_ms=" << resize_avg_ms << '\n';
+    output << "theme_switch_avg_ms=" << theme_avg_ms << '\n';
+    output << "density_switch_avg_ms=" << density_avg_ms << '\n';
+    output << "target_dip=" << target.width << 'x' << target.height << '\n';
+
+    renderer_.Shutdown();
+    renderer_ready_ = false;
+    window_ = nullptr;
+    window.Destroy();
     return 0;
 }
 
@@ -621,9 +860,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
 
     const std::wstring_view command_line = GetCommandLineW();
     const bool self_test = command_line.find(L"--self-test") != std::wstring_view::npos;
+    const bool benchmark = command_line.find(L"--benchmark") != std::wstring_view::npos;
 
     BootstrapApp app;
-    const int result = app.Run(instance, show_command, self_test);
+    const int result = app.Run(instance, show_command, self_test, benchmark);
 
     CoUninitialize();
     return result;
