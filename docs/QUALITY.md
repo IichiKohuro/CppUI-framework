@@ -33,6 +33,7 @@
 
 - `cppui.render_smoke`: hidden window, DPI matrix 96/120/144/192, Light/Dark, density S/M/L, target-size invariants, device recreation;
 - `cppui.ui`: Widget layout, hit testing, click, focus, Space activation, disabled button, compact/cozy Button metrics, FormPanel/StatusBar layout and compact status height;
+- `cppui.form`: public `Form` API Create/SetContent/theme/density callbacks/Show/Run/Close;
 - `cppui.benchmark`: frame/layout/resize/theme/density timings, target DIP size, CPU time;
 - `cppui.visual`: WIC PNG capture Light/Dark/Compact, baselines в `tests/baselines`, допуск 8/255 и 2% пикселей;
 - создание hidden window и message loop;
@@ -110,16 +111,16 @@ Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resiz
 | Метрика | Значение | Статус |
 |---|---:|---|
 | Frame wall avg / p95 | **8.33 / 8.43 ms** (120 FPS VSync) | цель 60 FPS закрыта |
-| Frame CPU avg | **1.95 ms** | target <4 ms |
-| Layout avg | **0.122 ms** | target <0.3 ms |
-| Resize cycle avg frame | **7.90 ms** | hard <8 ms на границе |
+| Frame CPU avg | **1.30 ms** | target <4 ms |
+| Layout avg | **0.119 ms** | target <0.3 ms |
+| Resize cycle avg frame | **7.61 ms** | hard <8 ms на границе |
 | Theme switch + frame | **7.98 ms** | hard ≤100 ms |
 | Density switch + frame | **8.33 ms** | — |
 | Cold start median | **177 ms** | target 150 miss, hard 250 pass |
 | Idle CPU, 8 s | **0.000 ms** | target pass |
 | Working set | **64.4 MB** | hard 60 MB — **P2 open** |
 
-Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest **5/5** в Debug и Release; visual regression проходит exact-SHA за ~1.5 s. Не измерены input-to-photon и flicker; memory budget превышен. Snap-flyout, mixed-DPI и 100/150/200% на реальных мониторах остаются в ручной матрице.
+Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest **6/6** в Debug и Release; visual regression проходит exact-SHA за ~1.5 s. FLIP_DISCARD + single-threaded D3D снизили frame CPU до ~1.30 ms. Не измерены input-to-photon и flicker; memory budget превышен. Snap-flyout, mixed-DPI и 100/150/200% на реальных мониторах остаются в ручной матрице.
 
 | Метрика | Target | Hard threshold |
 |---|---:|---:|
@@ -135,7 +136,7 @@ Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest **5/5** в Debug и Rel
 | Память демо | < 40 MB | < 60 MB (measured 64.4 — P2 open) |
 | Переключение темы | 1 кадр | ≤ 100 ms |
 | Frame wall avg, Release | 60 FPS | 120 FPS measured |
-| Frame CPU avg, Release | < 4 ms | 1.95 ms measured |
+| Frame CPU avg, Release | < 4 ms | 1.30 ms measured |
 
 Дополнительно:
 

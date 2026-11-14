@@ -41,6 +41,7 @@ add_library(cppui STATIC
     src/ui/widgets.cpp
     src/ui/form.cpp
     src/ui/host.cpp
+    src/form.cpp
 )
 add_library(cppui::cppui ALIAS cppui)
 
@@ -102,6 +103,13 @@ if(CPPUI_BUILD_TESTS)
     cppui_configure_warnings(cppui_ui_tests)
 
     add_test(NAME cppui.ui COMMAND cppui_ui_tests)
+
+    add_executable(cppui_form_tests tests/form_tests.cpp)
+    target_link_libraries(cppui_form_tests PRIVATE cppui::cppui)
+    cppui_configure_warnings(cppui_form_tests)
+
+    add_test(NAME cppui.form COMMAND cppui_form_tests)
+    set_tests_properties(cppui.form PROPERTIES TIMEOUT 30)
 
     if(CPPUI_BUILD_SAMPLES)
         add_test(NAME cppui.render_smoke COMMAND cppui_bootstrap --self-test)

@@ -38,15 +38,17 @@
 | Frame wall time, avg | **8.33 ms** |
 | Frame wall time, p95 | **8.43 ms** |
 | Frame rate | **120 FPS** (VSync) |
-| Frame CPU time, avg | **1.95 ms** |
-| Layout, avg | **0.122 ms** |
-| Resize cycle, avg frame | **7.90 ms** |
+| Frame CPU time, avg | **1.30 ms** |
+| Layout, avg | **0.119 ms** |
+| Resize cycle, avg frame | **7.61 ms** |
 | Theme switch + frame | **7.98 ms** |
 | Density switch + layout + frame | **8.33 ms** |
 | Target size | **1000×640 DIP** |
 
-Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest: **5/5** в Debug и
+Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest: **6/6** в Debug и
 Release; visual regression проходит за ~1.5 s при точном PNG-совпадении.
+`DXGI_SWAP_EFFECT_FLIP_DISCARD` и `D3D11_CREATE_DEVICE_SINGLETHREADED` снизили
+frame CPU с ~1.95 до ~1.30 ms.
 
 ## Cold start / idle / memory
 
@@ -65,6 +67,7 @@ Release; visual regression проходит за ~1.5 s при точном PNG-
 - [x] theme switch без перезапуска;
 - [x] Tab/Shift+Tab, Space/Enter и focus;
 - [x] unit/integration-тесты;
+- [x] публичный top-level `Form` API (`cppui.form` integration test);
 - [x] visual snapshots Light/Dark/Compact с допуском;
 - [x] benchmark и performance-замеры;
 - [x] CI workflow добавлен.
@@ -72,7 +75,6 @@ Release; visual regression проходит за ~1.5 s при точном PNG-
 Ещё не закрыто:
 
 - [ ] clean-machine build на отдельной машине;
-- [ ] публичный top-level `Form` API (сейчас Win32Window + FormPanel в demo);
 - [ ] реальная матрица 100/125/150/200% на двух мониторах;
 - [ ] Snap Layouts / Alt+Space / Alt+F4 / taskbar auto-hide;
 - [ ] flicker/input-to-photon замеры;

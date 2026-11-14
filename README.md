@@ -46,14 +46,15 @@
 
 ## Hardening (Phase 5)
 
-- CTest **5/5** в Debug и Release: theme, UI, DPI matrix, benchmark, visual regression.
+- CTest **6/6** в Debug и Release: theme, UI, Form, DPI matrix, benchmark, visual regression.
 - Simulated DPI matrix **96 / 120 / 144 / 192** с Light/Dark и S/M/L.
 - Visual snapshots Light/Dark/Compact в `tests/baselines`, сравнение через WIC/D2D.
-- Release benchmark: **120 FPS** (VSync), **1.95 ms CPU/кадр**, layout **0.122 ms**.
+- Публичный `Form` API с Create/SetContent/theme/density/status/Show/Run.
+- Release benchmark: **120 FPS** (VSync), **1.30 ms CPU/кадр**, layout **0.119 ms**.
 - Cold start **177 ms**, idle CPU **≈0%**, working set **64.4 MB** (P2: выше 60 MB).
 - GitHub Actions workflow для Debug/Release и benchmark artifacts.
 
-M0 closure ещё не объявлен: реальная multi-monitor матрица, flicker/input-to-photon, memory budget, clean-machine и подтверждение CI на runner. Подробности — в [docs/PHASE5.md](docs/PHASE5.md).
+M0 closure ещё не объявлен: реальная multi-monitor матрица, flicker/input-to-photon, memory budget, clean-machine и подтверждение CI на runner. `Form` API уже доступен в [include/cppui/form.hpp](include/cppui/form.hpp). Подробности — в [docs/PHASE5.md](docs/PHASE5.md).
 
 ## Визуальный концепт
 
@@ -90,6 +91,7 @@ M0 closure ещё не объявлен: реальная multi-monitor матр
 - [x] Добавлен `DensityMode` Compact/Cozy/Comfortable для компактных Button.
 - [x] Добавлены Form-preview, `FormPanel`, `StatusBar` и действие сброса в titlebar.
 - [x] Добавлены simulated DPI matrix 96–192, benchmark, visual regression и GitHub Actions workflow.
+- [x] Добавлен публичный top-level `Form` API и integration test.
 - [ ] Закрыт M0: реальная multi-monitor матрица, flicker/input-to-photon, memory budget, clean-machine.
 
 ## Сборка

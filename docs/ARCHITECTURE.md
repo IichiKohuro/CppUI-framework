@@ -267,8 +267,10 @@ CppUI-framework/
 ├─ include/cppui/ui/density.hpp
 ├─ include/cppui/ui/widget.hpp
 ├─ include/cppui/ui/widgets.hpp
+├─ include/cppui/form.hpp
 ├─ include/cppui/ui/form.hpp
 ├─ include/cppui/ui/host.hpp
+├─ src/form.cpp
 ├─ src/theme/theme.cpp
 ├─ src/theme/mode.cpp
 ├─ src/chrome/chrome_state.hpp
@@ -283,6 +285,7 @@ CppUI-framework/
 ├─ samples/bootstrap/main.cpp
 ├─ tests/theme_tests.cpp
 ├─ tests/ui_tests.cpp
+├─ tests/form_tests.cpp
 ├─ tests/visual_test.ps1
 ├─ tests/baselines/
 ├─ docs/PHASE1.md
