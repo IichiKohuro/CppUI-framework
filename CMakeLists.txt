@@ -34,8 +34,12 @@ endfunction()
 
 add_library(cppui STATIC
     src/theme/theme.cpp
+    src/theme/mode.cpp
     src/platform/win32/win32_window.cpp
     src/render/d2d/d2d_renderer.cpp
+    src/ui/widget.cpp
+    src/ui/widgets.cpp
+    src/ui/host.cpp
 )
 add_library(cppui::cppui ALIAS cppui)
 
@@ -64,6 +68,7 @@ target_link_libraries(cppui
         user32
         gdi32
         ole32
+        advapi32
 )
 cppui_configure_warnings(cppui)
 
@@ -89,6 +94,12 @@ if(CPPUI_BUILD_TESTS)
     cppui_configure_warnings(cppui_tests)
 
     add_test(NAME cppui.theme COMMAND cppui_tests)
+
+    add_executable(cppui_ui_tests tests/ui_tests.cpp)
+    target_link_libraries(cppui_ui_tests PRIVATE cppui::cppui)
+    cppui_configure_warnings(cppui_ui_tests)
+
+    add_test(NAME cppui.ui COMMAND cppui_ui_tests)
 
     if(CPPUI_BUILD_SAMPLES)
         add_test(NAME cppui.render_smoke COMMAND cppui_bootstrap --self-test)

@@ -470,7 +470,30 @@ LRESULT Win32Window::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARA
                 InvalidateRect(hwnd, nullptr, FALSE);
             }
             SetHovered(ChromeButton::none);
+            if (callbacks_.mouse_move != nullptr) {
+                callbacks_.mouse_move(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            }
+            {
+                TRACKMOUSEEVENT track{};
+                track.cbSize = sizeof(track);
+                track.dwFlags = TME_LEAVE;
+                track.hwndTrack = hwnd;
+                (void)TrackMouseEvent(&track);
+            }
             break;
+
+        case WM_MOUSELEAVE:
+            SetHovered(ChromeButton::none);
+            if (callbacks_.mouse_leave != nullptr) {
+                callbacks_.mouse_leave();
+            }
+            return 0;
+
+        case WM_LBUTTONDOWN:
+            if (callbacks_.mouse_down != nullptr) {
+                callbacks_.mouse_down(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            }
+            return 0;
 
         case WM_NCLBUTTONDOWN: {
             const ChromeButton button = ButtonFromHitCode(wparam);
@@ -504,7 +527,24 @@ LRESULT Win32Window::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARA
                 CompleteChromePress(screen);
                 return 0;
             }
+            if (callbacks_.mouse_up != nullptr) {
+                callbacks_.mouse_up(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+            }
+            return 0;
+
+        case WM_SETTINGCHANGE:
+            if (lparam != 0 &&
+                lstrcmpiW(reinterpret_cast<LPCWSTR>(lparam), L"ImmersiveColorSet") == 0 &&
+                callbacks_.system_theme_changed != nullptr) {
+                callbacks_.system_theme_changed();
+            }
             break;
+
+        case WM_THEMECHANGED:
+            if (callbacks_.system_theme_changed != nullptr) {
+                callbacks_.system_theme_changed();
+            }
+            return 0;
 
         case WM_CANCELMODE:
             if (pressed_ != ChromeButton::none) {

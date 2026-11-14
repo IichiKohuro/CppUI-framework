@@ -2,7 +2,7 @@
 
 **CppUI** — рабочее название лёгкого UI-фреймворка для Windows на C++20. Цель — быстрый и предсказуемый десктопный toolkit с кастомным окном, аппаратной отрисовкой, аккуратными темами и API, которое не заставляет писать инфраструктуру заново в каждом приложении.
 
-> Статус: **Phase 2 завершена**. Есть кастомный title bar с системными кнопками, hit testing, DWM corners и работающим maximize/restore. Retained-mode ядро ещё впереди.
+> Статус: **Phase 3 завершена**. Есть retained-mode `Widget`/layout/`Button`, кастомный chrome и Light/Dark/System. Следующая — сборка полноценного `Form`-preview.
 > Дата: 14.11.2026.
 
 ## Ключевые решения
@@ -24,6 +24,7 @@
 | [docs/PHASE0.md](docs/PHASE0.md) | Bootstrap: CMake, токены, первое окно |
 | [docs/PHASE1.md](docs/PHASE1.md) | Platform + render: device loss, WARP, idle CPU, smoke test |
 | [docs/PHASE2.md](docs/PHASE2.md) | Custom chrome: title bar, hit testing, maximize/restore, DWM |
+| [docs/PHASE3.md](docs/PHASE3.md) | Retained-mode core, Button, UiHost, Light/Dark/System |
 | [CONTROL_BACKLOG.md](CONTROL_BACKLOG.md) | Полный каталог контролов, недостающие элементы, зависимости и волны |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Релизы, ориентировочные сроки, критерии выхода |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архитектура, стек, окно, рендер, API и структура проекта |
@@ -33,11 +34,11 @@
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Журнал принятых и открытых решений |
 | [design/README.md](design/README.md) | Описание макетов, галереи контролов и скриншотов |
 
-## Phase 2: custom chrome
+## Phase 3: retained-mode UI
 
-![Phase 2 custom chrome](docs/images/phase2-bootstrap.png)
+![Phase 3 retained-mode UI](docs/images/phase3-bootstrap.png)
 
-Это реальный `cppui-bootstrap.exe`: кастомный title bar, собственные minimize/maximize/close, hover-состояния, resize и Snap Layouts через `HTMAXBUTTON`, DWM rounded corners и shadow. Win32-окно при этом остаётся обычным top-level окном с системными Snap/Alt+Tab/Alt+F4. Подробности, тесты и ограничения — в [docs/PHASE2.md](docs/PHASE2.md).
+Это уже не статичная карточка: интерфейс собран из retained-mode `Widget`-дерева. Работают `StackPanel`, `CardPanel`, `Label` и `Button`, hover/pressed/focus, клики, `Tab`/`Shift+Tab`, `Space`/`Enter` и переключение **Light / Dark / System**. Тёмная тема: [phase3-dark.png](docs/images/phase3-dark.png). Подробности — в [docs/PHASE3.md](docs/PHASE3.md).
 
 ## Визуальный концепт
 
@@ -69,7 +70,9 @@
 - [x] Выделен `Win32Window`, добавлены DPI/resize callbacks и WARP.
 - [x] Добавлены device-loss recovery и render smoke test; idle CPU ≈ 0%.
 - [x] Добавлен кастомный chrome: title bar, системные кнопки, hit testing, maximize/restore.
-- [ ] Появился retained-mode `Form` с кнопкой и переключением темы.
+- [x] Добавлены retained-mode `Widget`, `StackPanel`, `CardPanel`, `Label`, `Button`.
+- [x] Добавлены Light/Dark/System и интерактивное demo с focus/click/keyboard.
+- [ ] Появился полноценный `Form`-preview со status bar и набором контролов.
 
 ## Сборка
 
@@ -101,7 +104,7 @@ $env:CPPUI_FORCE_WARP = '1'
 
 ## Ближайший шаг
 
-Phase 3: retained-mode `Widget`/layout, `Form`, `Button` и переключение Light/Dark/System. Кастомный chrome уже работает как база.
+Phase 4: `Form`-preview с content host, status bar, дополнительными titlebar actions и более полным набором контролов на базе готового retained-mode ядра.
 
 ## Лицензия
 

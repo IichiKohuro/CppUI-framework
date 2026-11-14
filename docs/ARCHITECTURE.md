@@ -1,7 +1,7 @@
 # ARCHITECTURE — техническая архитектура CppUI
 
-> Статус: Draft · Phase 2 implemented · 14.11.2026.
-> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [ROADMAP.md](ROADMAP.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [QUALITY.md](QUALITY.md), [PHASE0.md](PHASE0.md), [PHASE1.md](PHASE1.md), [PHASE2.md](PHASE2.md).
+> Статус: Draft · Phase 3 implemented · 14.11.2026.
+> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [ROADMAP.md](ROADMAP.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [QUALITY.md](QUALITY.md), [PHASE0.md](PHASE0.md), [PHASE1.md](PHASE1.md), [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md).
 
 ## 1. Ограничения и цель
 
@@ -256,21 +256,33 @@ public:
 
 ## 10. Структура проекта
 
-Фактическая структура Phase 2:
+Фактическая структура Phase 3:
 
 ```text
 CppUI-framework/
+├─ include/cppui/geometry.hpp
 ├─ include/cppui/theme/tokens.hpp
+├─ include/cppui/theme/mode.hpp
+├─ include/cppui/ui/painter.hpp
+├─ include/cppui/ui/widget.hpp
+├─ include/cppui/ui/widgets.hpp
+├─ include/cppui/ui/host.hpp
 ├─ src/theme/theme.cpp
+├─ src/theme/mode.cpp
 ├─ src/chrome/chrome_state.hpp
 ├─ src/platform/win32/win32_window.hpp
 ├─ src/platform/win32/win32_window.cpp
 ├─ src/render/d2d/d2d_renderer.hpp
 ├─ src/render/d2d/d2d_renderer.cpp
+├─ src/ui/widget.cpp
+├─ src/ui/widgets.cpp
+├─ src/ui/host.cpp
 ├─ samples/bootstrap/main.cpp
 ├─ tests/theme_tests.cpp
+├─ tests/ui_tests.cpp
 ├─ docs/PHASE1.md
 ├─ docs/PHASE2.md
+├─ docs/PHASE3.md
 ├─ tools/build.ps1
 ├─ CMakeLists.txt
 └─ CMakePresets.json

@@ -46,6 +46,7 @@
 | D-027 | CI использует **CMake + Ninja**; локально на локализованной MSVC — **Visual Studio generator** | Accepted | CMake 4.3 + Ninja на русской MSVC пишут `/showIncludes`-префикс в неверной кодировке и теряют header-deps; VS generator даёт корректный incremental build. Оба пути используют один CMake-проект |
 | D-028 | Phase 1: **полное пересоздание D3D/DXGI/D2D-ресурсов** при device loss; отрисовка только по invalidation | Accepted | `DEVICE_REMOVED`/`RESET`/`HUNG` и ошибки target восстанавливаются без падения; idle CPU измерен около нуля. `Win32Window` остаётся внутренним слоем до custom chrome |
 | D-029 | Phase 2: custom chrome через **WS_OVERLAPPEDWINDOW + WM_NCCALCSIZE(0) + WM_NCHITTEST + D2D title bar** | Accepted | Сохраняются Snap/Alt+Tab/Alt+F4 и системные resize-коды; DWM даёт rounded corners/shadow; кнопки min/max/close рисуются D2D. Caption-кнопки не используют `SetCapture`, иначе mouse-up приходит клиентским сообщением и действие теряется |
+| D-030 | Phase 3: retained-mode `Widget` + абстрактный `Painter` + `UiHost`; темы Light/Dark/System | Accepted | `measure → arrange → paint`, DIP layout, DirectWrite measurement, focus/Tab/Space, `SetTheme` без пересоздания device. Пока реализованы `StackPanel`, `CardPanel`, `Label`, `Button` |
 
 ## 3. Предложенные решения
 

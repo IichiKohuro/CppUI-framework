@@ -1,10 +1,14 @@
 #include "render/d2d/d2d_renderer.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <string_view>
+#include <utility>
 
 #include <d2d1helper.h>
+
+#include <cppui/ui/widget.hpp>
 
 namespace cppui {
 namespace {
@@ -409,6 +413,61 @@ bool D2DRenderer::CreateTextFormats() {
         return false;
     }
 
+    if (!CreateTextFormat(write_factory_.Get(),
+                          L"Segoe UI",
+                          10.0f,
+                          DWRITE_FONT_WEIGHT_NORMAL,
+                          DWRITE_TEXT_ALIGNMENT_LEADING,
+                          DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+                          ui_caption_format_.GetAddressOf())) {
+        last_error_ = E_FAIL;
+        return false;
+    }
+
+    if (!CreateTextFormat(write_factory_.Get(),
+                          L"Segoe UI",
+                          13.0f,
+                          DWRITE_FONT_WEIGHT_NORMAL,
+                          DWRITE_TEXT_ALIGNMENT_LEADING,
+                          DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+                          ui_body_format_.GetAddressOf())) {
+        last_error_ = E_FAIL;
+        return false;
+    }
+
+    if (!CreateTextFormat(write_factory_.Get(),
+                          L"Segoe UI",
+                          12.0f,
+                          DWRITE_FONT_WEIGHT_SEMI_BOLD,
+                          DWRITE_TEXT_ALIGNMENT_LEADING,
+                          DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+                          ui_label_format_.GetAddressOf())) {
+        last_error_ = E_FAIL;
+        return false;
+    }
+
+    if (!CreateTextFormat(write_factory_.Get(),
+                          L"Segoe UI",
+                          20.0f,
+                          DWRITE_FONT_WEIGHT_SEMI_BOLD,
+                          DWRITE_TEXT_ALIGNMENT_LEADING,
+                          DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+                          ui_heading_format_.GetAddressOf())) {
+        last_error_ = E_FAIL;
+        return false;
+    }
+
+    if (!CreateTextFormat(write_factory_.Get(),
+                          L"Segoe UI",
+                          28.0f,
+                          DWRITE_FONT_WEIGHT_SEMI_BOLD,
+                          DWRITE_TEXT_ALIGNMENT_LEADING,
+                          DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+                          ui_title_format_.GetAddressOf())) {
+        last_error_ = E_FAIL;
+        return false;
+    }
+
     return true;
 }
 
@@ -439,6 +498,180 @@ bool D2DRenderer::CreateSolidBrush(const Color& color, ID2D1SolidColorBrush** br
         return false;
     }
     return true;
+}
+
+bool D2DRenderer::SetTheme(const ThemeTokens& theme) {
+    theme_ = theme;
+    if (!initialized_) {
+        return true;
+    }
+
+    dynamic_brushes_.clear();
+    brush_window_.Reset();
+    brush_surface_.Reset();
+    brush_surface_soft_.Reset();
+    brush_surface_hover_.Reset();
+    brush_border_.Reset();
+    brush_primary_text_.Reset();
+    brush_secondary_text_.Reset();
+    brush_accent_.Reset();
+    brush_accent_soft_.Reset();
+    brush_on_accent_.Reset();
+    brush_success_.Reset();
+    brush_close_hover_.Reset();
+    brush_on_close_.Reset();
+
+    if (!CreateBrushes()) {
+        initialized_ = false;
+        return false;
+    }
+    return true;
+}
+
+const ThemeTokens& D2DRenderer::theme() const noexcept {
+    return theme_;
+}
+
+IDWriteTextFormat* D2DRenderer::TextFormatForRole(FontRole role) const noexcept {
+    switch (role) {
+        case FontRole::caption:
+            return ui_caption_format_.Get();
+        case FontRole::body:
+            return ui_body_format_.Get();
+        case FontRole::label:
+            return ui_label_format_.Get();
+        case FontRole::heading:
+            return ui_heading_format_.Get();
+        case FontRole::title:
+            return ui_title_format_.Get();
+    }
+    return ui_body_format_.Get();
+}
+
+Size D2DRenderer::measure_text(std::wstring_view text, FontRole role) const {
+    IDWriteTextFormat* const format = TextFormatForRole(role);
+    if (!write_factory_ || format == nullptr) {
+        return Size{static_cast<float>(text.size()) * 7.0f, 16.0f};
+    }
+
+    format->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+    format->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+
+    Microsoft::WRL::ComPtr<IDWriteTextLayout> layout;
+    const HRESULT hr = write_factory_->CreateTextLayout(text.data(),
+                                                        static_cast<UINT32>(text.size()),
+                                                        format,
+                                                        10000.0f,
+                                                        2000.0f,
+                                                        layout.GetAddressOf());
+    if (FAILED(hr)) {
+        return Size{static_cast<float>(text.size()) * 7.0f, 16.0f};
+    }
+
+    DWRITE_TEXT_METRICS metrics{};
+    if (FAILED(layout->GetMetrics(&metrics))) {
+        return Size{static_cast<float>(text.size()) * 7.0f, 16.0f};
+    }
+
+    return Size{std::ceil(metrics.widthIncludingTrailingWhitespace), std::ceil(metrics.height)};
+}
+
+ID2D1SolidColorBrush* D2DRenderer::BrushFor(const Color& color) {
+    if (!d2d_context_) {
+        return nullptr;
+    }
+
+    const std::uint32_t key = (static_cast<std::uint32_t>(color.r) << 24) |
+                              (static_cast<std::uint32_t>(color.g) << 16) |
+                              (static_cast<std::uint32_t>(color.b) << 8) |
+                              static_cast<std::uint32_t>(color.a);
+    const auto existing = dynamic_brushes_.find(key);
+    if (existing != dynamic_brushes_.end()) {
+        return existing->second.Get();
+    }
+
+    Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush;
+    if (FAILED(d2d_context_->CreateSolidColorBrush(ToColorF(color), brush.GetAddressOf()))) {
+        return nullptr;
+    }
+
+    auto [iterator, inserted] = dynamic_brushes_.emplace(key, std::move(brush));
+    (void)inserted;
+    return iterator->second.Get();
+}
+
+void D2DRenderer::fill_rect(const Rect& rect, const Color& color) {
+    if (ID2D1SolidColorBrush* const brush = BrushFor(color)) {
+        d2d_context_->FillRectangle(D2D1::RectF(rect.x, rect.y, rect.right(), rect.bottom()), brush);
+    }
+}
+
+void D2DRenderer::fill_rounded_rect(const Rect& rect, float radius, const Color& color) {
+    if (ID2D1SolidColorBrush* const brush = BrushFor(color)) {
+        const D2D1_ROUNDED_RECT rounded{
+            D2D1::RectF(rect.x, rect.y, rect.right(), rect.bottom()), radius, radius};
+        d2d_context_->FillRoundedRectangle(rounded, brush);
+    }
+}
+
+void D2DRenderer::stroke_rounded_rect(const Rect& rect,
+                                      float radius,
+                                      const Color& color,
+                                      float width) {
+    if (ID2D1SolidColorBrush* const brush = BrushFor(color)) {
+        const D2D1_ROUNDED_RECT rounded{
+            D2D1::RectF(rect.x, rect.y, rect.right(), rect.bottom()), radius, radius};
+        d2d_context_->DrawRoundedRectangle(rounded, brush, width);
+    }
+}
+
+void D2DRenderer::draw_text(std::wstring_view text,
+                            const Rect& rect,
+                            FontRole role,
+                            const Color& color,
+                            TextAlign align,
+                            TextVAlign vertical) {
+    IDWriteTextFormat* const format = TextFormatForRole(role);
+    ID2D1SolidColorBrush* const brush = BrushFor(color);
+    if (format == nullptr || brush == nullptr) {
+        return;
+    }
+
+    DWRITE_TEXT_ALIGNMENT text_alignment = DWRITE_TEXT_ALIGNMENT_LEADING;
+    switch (align) {
+        case TextAlign::leading:
+            text_alignment = DWRITE_TEXT_ALIGNMENT_LEADING;
+            break;
+        case TextAlign::center:
+            text_alignment = DWRITE_TEXT_ALIGNMENT_CENTER;
+            break;
+        case TextAlign::trailing:
+            text_alignment = DWRITE_TEXT_ALIGNMENT_TRAILING;
+            break;
+    }
+
+    DWRITE_PARAGRAPH_ALIGNMENT paragraph_alignment = DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
+    switch (vertical) {
+        case TextVAlign::top:
+            paragraph_alignment = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+            break;
+        case TextVAlign::center:
+            paragraph_alignment = DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
+            break;
+        case TextVAlign::bottom:
+            paragraph_alignment = DWRITE_PARAGRAPH_ALIGNMENT_FAR;
+            break;
+    }
+
+    format->SetTextAlignment(text_alignment);
+    format->SetParagraphAlignment(paragraph_alignment);
+
+    d2d_context_->DrawTextW(text.data(),
+                            static_cast<UINT32>(text.size()),
+                            format,
+                            D2D1::RectF(rect.x, rect.y, rect.right(), rect.bottom()),
+                            brush,
+                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
 }
 
 bool D2DRenderer::Resize(UINT width, UINT height, float dpi) {
@@ -489,7 +722,7 @@ bool D2DRenderer::Resize(UINT width, UINT height, float dpi) {
     return true;
 }
 
-bool D2DRenderer::Render(const ChromeState& chrome) {
+bool D2DRenderer::Render(const ChromeState& chrome, Widget* content) {
     if (!initialized_ || !d2d_context_ || !swap_chain_) {
         return false;
     }
@@ -506,7 +739,7 @@ bool D2DRenderer::Render(const ChromeState& chrome) {
     d2d_context_->BeginDraw();
     d2d_context_->SetTransform(D2D1::Matrix3x2F::Identity());
     d2d_context_->SetDpi(dpi_, dpi_);
-    DrawScene(chrome);
+    DrawScene(chrome, content);
 
     HRESULT hr = d2d_context_->EndDraw();
     if (FAILED(hr)) {
@@ -536,7 +769,7 @@ bool D2DRenderer::Render(const ChromeState& chrome) {
     return true;
 }
 
-void D2DRenderer::DrawScene(const ChromeState& chrome) noexcept {
+void D2DRenderer::DrawScene(const ChromeState& chrome, Widget* content) noexcept {
     if (!d2d_context_) {
         return;
     }
@@ -549,7 +782,6 @@ void D2DRenderer::DrawScene(const ChromeState& chrome) noexcept {
         active ? brush_surface_.Get() : brush_surface_soft_.Get();
     ID2D1SolidColorBrush* primary_brush =
         active ? brush_primary_text_.Get() : brush_secondary_text_.Get();
-    ID2D1SolidColorBrush* secondary_brush = brush_secondary_text_.Get();
 
     const D2D1_RECT_F titlebar =
         D2D1::RectF(0.0f, 0.0f, window_size.width, kTitleBarHeightDip);
@@ -582,7 +814,7 @@ void D2DRenderer::DrawScene(const ChromeState& chrome) noexcept {
     const D2D1_RECT_F badge = D2D1::RectF(94.0f, 12.0f, 152.0f, 28.0f);
     d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(badge, 8.0f, 8.0f),
                                        brush_accent_soft_.Get());
-    constexpr std::wstring_view badge_label = L"PHASE 2";
+    constexpr std::wstring_view badge_label = L"PHASE 3";
     d2d_context_->DrawTextW(badge_label.data(),
                             static_cast<UINT32>(badge_label.size()),
                             badge_format_.Get(),
@@ -654,124 +886,10 @@ void D2DRenderer::DrawScene(const ChromeState& chrome) noexcept {
                            primary_brush,
                            1.0f);
 
-    const float content_top = kTitleBarHeightDip;
-    const float card_width = std::min(640.0f, std::max(360.0f, window_size.width - 96.0f));
-    const float card_height = 300.0f;
-    const float left = (window_size.width - card_width) * 0.5f;
-    const float content_height = std::max(1.0f, window_size.height - content_top);
-    const float top = content_top + std::max(24.0f, (content_height - card_height) * 0.5f);
-    const float right = left + card_width;
-
-    const D2D1_RECT_F card = D2D1::RectF(left, top, right, top + card_height);
-    d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(card, 16.0f, 16.0f),
-                                       brush_surface_.Get());
-    d2d_context_->DrawRoundedRectangle(D2D1::RoundedRect(card, 16.0f, 16.0f),
-                                       brush_border_.Get(),
-                                       1.0f);
-
-    const D2D1_RECT_F logo = D2D1::RectF(left + 32.0f, top + 32.0f, left + 78.0f, top + 78.0f);
-    d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(logo, 12.0f, 12.0f),
-                                       brush_accent_.Get());
-    const D2D1_RECT_F glyph =
-        D2D1::RectF(logo.left + 13.0f, logo.top + 14.0f, logo.right - 13.0f, logo.bottom - 14.0f);
-    d2d_context_->DrawRoundedRectangle(D2D1::RoundedRect(glyph, 2.0f, 2.0f),
-                                       brush_on_accent_.Get(),
-                                       1.3f);
-    d2d_context_->DrawLine(D2D1::Point2F(glyph.left, glyph.top + 9.0f),
-                           D2D1::Point2F(glyph.right, glyph.top + 9.0f),
-                           brush_on_accent_.Get(),
-                           1.0f);
-    d2d_context_->FillEllipse(D2D1::Ellipse(D2D1::Point2F(glyph.right - 3.5f, glyph.top + 4.5f),
-                                            1.1f,
-                                            1.1f),
-                              brush_on_accent_.Get());
-
-    const D2D1_RECT_F title_rect =
-        D2D1::RectF(left + 98.0f, top + 24.0f, right - 32.0f, top + 72.0f);
-    const D2D1_RECT_F subtitle_rect =
-        D2D1::RectF(left + 98.0f, top + 70.0f, right - 32.0f, top + 94.0f);
-    const D2D1_RECT_F meta_rect =
-        D2D1::RectF(left + 98.0f, top + 98.0f, right - 32.0f, top + 118.0f);
-
-    constexpr std::wstring_view title = L"CppUI";
-    constexpr std::wstring_view subtitle = L"Phase 2 - custom chrome";
-    constexpr std::wstring_view meta =
-        L"Signal Teal tokens  /  D3D11  /  DXGI flip-model  /  DirectWrite  /  DPI-aware";
-
-    d2d_context_->DrawTextW(title.data(),
-                            static_cast<UINT32>(title.size()),
-                            title_format_.Get(),
-                            title_rect,
-                            brush_primary_text_.Get(),
-                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
-    d2d_context_->DrawTextW(subtitle.data(),
-                            static_cast<UINT32>(subtitle.size()),
-                            subtitle_format_.Get(),
-                            subtitle_rect,
-                            secondary_brush,
-                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
-    d2d_context_->DrawTextW(meta.data(),
-                            static_cast<UINT32>(meta.size()),
-                            meta_format_.Get(),
-                            meta_rect,
-                            secondary_brush,
-                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
-
-    d2d_context_->DrawLine(D2D1::Point2F(left + 32.0f, top + 158.0f),
-                           D2D1::Point2F(right - 32.0f, top + 158.0f),
-                           brush_border_.Get(),
-                           1.0f);
-
-    const D2D1_RECT_F pill =
-        D2D1::RectF(left + 32.0f, top + 190.0f, left + 140.0f, top + 218.0f);
-    d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(pill, 14.0f, 14.0f),
-                                       brush_accent_soft_.Get());
-    const D2D1_RECT_F pill_text =
-        D2D1::RectF(pill.left + 12.0f, pill.top, pill.right - 8.0f, pill.bottom);
-    constexpr std::wstring_view pill_label = L"PHASE 2";
-    d2d_context_->DrawTextW(pill_label.data(),
-                            static_cast<UINT32>(pill_label.size()),
-                            pill_format_.Get(),
-                            pill_text,
-                            brush_accent_.Get(),
-                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
-
-    const D2D1_ELLIPSE status_dot =
-        D2D1::Ellipse(D2D1::Point2F(left + 158.0f, top + 204.0f), 3.5f, 3.5f);
-    d2d_context_->FillEllipse(status_dot, brush_success_.Get());
-
-    const D2D1_RECT_F status_rect =
-        D2D1::RectF(left + 168.0f, top + 190.0f, right - 92.0f, top + 218.0f);
-    const std::wstring_view status =
-        using_warp_ ? L"WARP renderer online" : L"Hardware renderer online";
-    d2d_context_->DrawTextW(status.data(),
-                            static_cast<UINT32>(status.size()),
-                            meta_format_.Get(),
-                            status_rect,
-                            secondary_brush,
-                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
-
-    const D2D1_RECT_F version_rect =
-        D2D1::RectF(right - 84.0f, top + 190.0f, right - 32.0f, top + 218.0f);
-    constexpr std::wstring_view version = L"v0.1.0";
-    d2d_context_->DrawTextW(version.data(),
-                            static_cast<UINT32>(version.size()),
-                            version_format_.Get(),
-                            version_rect,
-                            secondary_brush,
-                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
-
-    const D2D1_RECT_F footer_rect =
-        D2D1::RectF(left + 32.0f, top + 244.0f, right - 32.0f, top + 268.0f);
-    constexpr std::wstring_view footer = L"Custom chrome active. Retained-mode UI and controls are next.";
-    d2d_context_->DrawTextW(footer.data(),
-                            static_cast<UINT32>(footer.size()),
-                            meta_format_.Get(),
-                            footer_rect,
-                            secondary_brush,
-                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    if (content != nullptr) {
+        content->paint(*this);
+    }
 }
-
 void D2DRenderer::ReleaseTarget() noexcept {
     if (d2d_context_) {
         d2d_context_->SetTarget(nullptr);
@@ -794,6 +912,12 @@ void D2DRenderer::ReleaseDeviceResources() noexcept {
     brush_success_.Reset();
     brush_close_hover_.Reset();
     brush_on_close_.Reset();
+    dynamic_brushes_.clear();
+    ui_title_format_.Reset();
+    ui_heading_format_.Reset();
+    ui_label_format_.Reset();
+    ui_body_format_.Reset();
+    ui_caption_format_.Reset();
     badge_format_.Reset();
     caption_format_.Reset();
     version_format_.Reset();

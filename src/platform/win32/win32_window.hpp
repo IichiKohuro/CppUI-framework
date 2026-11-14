@@ -20,6 +20,11 @@ public:
         std::function<void(std::uint32_t width, std::uint32_t height, float dpi)> resized;
         std::function<void(float dpi)> dpi_changed;
         std::function<bool(WPARAM key)> key_down;
+        std::function<void(int x, int y)> mouse_move;
+        std::function<void()> mouse_leave;
+        std::function<void(int x, int y)> mouse_down;
+        std::function<void(int x, int y)> mouse_up;
+        std::function<void()> system_theme_changed;
     };
 
     Win32Window(HINSTANCE instance,
