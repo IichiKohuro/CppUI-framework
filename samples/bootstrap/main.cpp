@@ -611,8 +611,8 @@ int BootstrapApp::RunSelfTest(cppui::Win32Window& window) {
     const MatrixCase cases[] = {
         {1000.0f, 640.0f, 96.0f, cppui::DensityMode::cozy, cppui::ThemeMode::light},
         {1000.0f, 640.0f, 120.0f, cppui::DensityMode::cozy, cppui::ThemeMode::dark},
-        {900.0f, 580.0f, 144.0f, cppui::DensityMode::compact, cppui::ThemeMode::light},
-        {1120.0f, 720.0f, 192.0f, cppui::DensityMode::comfortable, cppui::ThemeMode::dark},
+        {900.0f, 580.0f, 150.0f, cppui::DensityMode::compact, cppui::ThemeMode::light},
+        {1120.0f, 720.0f, 200.0f, cppui::DensityMode::comfortable, cppui::ThemeMode::dark},
     };
 
     int case_index = 0;

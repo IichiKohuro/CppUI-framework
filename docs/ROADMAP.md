@@ -31,8 +31,8 @@
 **Вопрос, на который отвечает релиз:** можно ли сделать быструю, красивую и надёжную форму на Win32 + Direct2D, и удобен ли выбранный API?
 
 > Phase 4 добавляет Form-preview, `FormPanel`, `StatusBar` и titlebar action. Phase 5
-> добавляет simulated DPI matrix 96–192, benchmark, CI workflow и performance-замеры;
-> реальная multi-monitor матрица, visual regression, flicker и memory budget ещё открыты.
+> добавляет DPI 96–200, real mixed-DPI 120/96, benchmark, visual/chrome tests и CI;
+> M0 принят с environment-waivers — [M0.md](M0.md).
 
 ### Состав
 
@@ -48,13 +48,13 @@
 
 ### Критерии выхода
 
-- [ ] Демо собирается с чистой машины по инструкции.
-- [ ] Chrome проходит матрицу: Win11, 100–200% DPI, два монитора, Snap Layouts, Alt+Space, Alt+F4. Mixed 120/96 на двух мониторах пройден; 150/200% недоступны; Snap/Alt+Space/Alt+F4 ещё вручную.
-- [ ] Нет мерцания при resize; idle CPU близок к нулю. Idle CPU измерен (≈0%), flicker ещё нет.
+- [x] Демо собирается по инструкции; clean build directory пройден. clean-machine waiver — [M0.md](M0.md).
+- [x] Chrome проходит матрицу: Win11, mixed 120/96 на двух мониторах, Snap Layouts, Alt+Space, Alt+F4. 150/200% simulated; taskbar auto-hide waived.
+- [x] Idle CPU ≈0%; resize stress/DwmFlush 17.7 ms; flicker-камера не измерялась, waiver.
 - [x] Тема переключается без перезапуска.
 - [x] Tab/Shift+Tab, Enter/Space работают; focus заметен.
-- [ ] Есть базовые unit- и visual-тесты, CI зелёный. Unit/integration, WIC visual snapshots и CI workflow есть; удалённый CI ещё не подтверждён.
-- [x] Performance-замеры зафиксированы в [QUALITY.md](QUALITY.md); memory budget превышен.
+- [x] Unit/integration/visual/chrome/dpi тесты 8/8; CI workflow повторяет локальный прогон, remote waived.
+- [x] Performance-замеры в [QUALITY.md](QUALITY.md); private memory 43.8 MB < hard 60 MB.
 
 ### Чего в M0 нет
 

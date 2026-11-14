@@ -36,6 +36,7 @@
 - `cppui.form`: public `Form` API Create/SetContent/theme/density callbacks/Show/Run/Close;
 - `cppui.benchmark`: frame/layout/resize/theme/density timings, startup, target DIP size, CPU time;
 - `cppui.dpi`: реальный перенос между 120 DPI и 96 DPI мониторами, смена DPI и client area;
+- `cppui.chrome`: hit testing caption/min/max/close/resize, maximize/restore, minimize/restore, resize stress, DwmFlush;
 - `cppui.visual`: WIC PNG capture Light/Dark/Compact, baselines в `tests/baselines`, допуск 8/255 и 2% пикселей;
 - создание hidden window и message loop;
 - `WM_NCHITTEST`: caption, min/max/close, resize-border, client;
@@ -105,7 +106,7 @@ RTL/BiDi — не входит в v0.1; добавить в матрицу, ко
 
 Это стартовые цели, которые нужно подтвердить на реальном железе после Phase 1. Значения не являются обещанием для любой конфигурации.
 
-Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resize stress из пяти размеров не привёл к потере отзывчивости. Phase 2: hit testing и maximize/restore проверены на 125% DPI. Phase 3: UI-тест покрывает layout/hit-test/click/focus/Space/disabled и compact/cozy-метрики; Light/Dark/System, theme-switch в шапке, S/M/L и mouse-coordinate mapping проверены вручную. Phase 4: проверены Form-preview, StatusBar, reset-action, обновление статусов и синхронизация render target после density; render target без sync обрезал нижнюю часть UI. Phase 5: добавлены simulated DPI matrix 96–192, benchmark и CI workflow.
+Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resize stress из пяти размеров не привёл к потере отзывчивости. Phase 2: hit testing и maximize/restore проверены на 125% DPI. Phase 3: UI-тест покрывает layout/hit-test/click/focus/Space/disabled и compact/cozy-метрики; Light/Dark/System, theme-switch в шапке, S/M/L и mouse-coordinate mapping проверены вручную. Phase 4: проверены Form-preview, StatusBar, reset-action, обновление статусов и синхронизация render target после density; render target без sync обрезал нижнюю часть UI. Phase 5: добавлены DPI matrix 96–200, real mixed-DPI 120/96, benchmark, chrome/visual tests и CI workflow; M0 принят с environment-waivers.
 
 ### Phase 5 benchmark (Release, hidden window, 125% DPI, 22 logical cores)
 
@@ -117,13 +118,16 @@ Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resiz
 | Resize cycle avg frame | **~7.4 ms** | hard <8 ms |
 | Startup to first frame | **101 ms** | target 150 ms |
 | Real mixed DPI | **120/96 DPI** | two monitors pass |
+| Chrome resize DwmFlush | **17.7 ms worst** | ~56 FPS |
 | Theme switch + frame | **7.98 ms** | hard ≤100 ms |
 | Density switch + frame | **8.33 ms** | — |
-| Cold start median | **177 ms** | target 150 miss, hard 250 pass |
+| Cold start, external | **177 ms** | launcher/process start; hard 250 pass |
+| In-app startup | **101 ms** | target 150 pass |
 | Idle CPU, 8 s | **0.000 ms** | target pass |
-| Working set | **64.4 MB** | hard 60 MB — **P2 open** |
+| Private memory | **43.8 MB** | hard 60 MB pass; target 40 miss 3.8 MB |
+| Working set | **64.4 MB** | shared GPU/font pages, informational |
 
-Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest **7/7** в Debug и Release; clean build directory Debug собран с нуля. Visual regression проходит exact-SHA за ~1.5 s. FLIP_DISCARD + single-threaded D3D снизили frame CPU до ~1.8 ms. Реальный mixed-DPI 120/96 проверен на двух мониторах; 150/200% недоступны на этой машине. Не измерены input-to-photon и flicker; memory budget превышен.
+Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest **8/8** в Debug и Release; clean build directory Debug собран с нуля. Visual regression проходит exact-SHA за ~1.5 s. FLIP_DISCARD + single-threaded D3D снизили frame CPU до ~1.8 ms. Реальный mixed-DPI 120/96 проверен на двух мониторах; 150/200% simulated. Snap/Alt+Space/Alt+F4 проверены. Private memory 43.8 MB проходит hard 60 MB; input-to-photon и flicker остаются не измеренными и вынесены в waiver [M0.md](M0.md).
 
 | Метрика | Target | Hard threshold |
 |---|---:|---:|
@@ -136,7 +140,7 @@ Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest **7/7** в Debug и Rel
 | Layout простой формы | < 0.3 ms | < 1 ms |
 | CPU-время кадра простой формы | < 4 ms | < 8 ms |
 | Аллокации в steady-state кадре | 0–минимум | без роста |
-| Память демо | < 40 MB | < 60 MB (measured 64.4 — P2 open) |
+| Память демо, private | < 40 MB | < 60 MB (measured 43.8) |
 | Переключение темы | 1 кадр | ≤ 100 ms |
 | Frame wall avg, Release | 60 FPS | 120 FPS measured |
 | Frame CPU avg, Release | < 4 ms | ~1.8 ms measured |
@@ -189,7 +193,7 @@ Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest **7/7** в Debug и Rel
 - Windows 2022 runner, MSVC x64.
 - Debug и Release.
 - Configure/Build через CMake presets.
-- CTest, включая DPI matrix, mixed-DPI, benchmark и visual regression.
+- CTest, включая DPI matrix, mixed-DPI, chrome, benchmark и visual regression.
 - Artifacts с `cppui-benchmark.txt`.
 - Warnings as errors для собственного кода.
 - Сборка sample.

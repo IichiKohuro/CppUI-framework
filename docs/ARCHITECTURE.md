@@ -1,7 +1,7 @@
 # ARCHITECTURE — техническая архитектура CppUI
 
-> Статус: Draft · Phase 5 hardening · 14.11.2026.
-> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [ROADMAP.md](ROADMAP.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [QUALITY.md](QUALITY.md), [PHASE0.md](PHASE0.md), [PHASE1.md](PHASE1.md), [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md), [PHASE4.md](PHASE4.md), [PHASE5.md](PHASE5.md).
+> Статус: Draft · M0 accepted with waivers · 14.11.2026.
+> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [ROADMAP.md](ROADMAP.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [QUALITY.md](QUALITY.md), [PHASE0.md](PHASE0.md), [PHASE1.md](PHASE1.md), [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md), [PHASE4.md](PHASE4.md), [PHASE5.md](PHASE5.md), [M0.md](M0.md).
 
 ## 1. Ограничения и цель
 
@@ -288,6 +288,7 @@ CppUI-framework/
 ├─ tests/form_tests.cpp
 ├─ tests/visual_test.ps1
 ├─ tests/dpi_matrix_test.ps1
+├─ tests/chrome_matrix_test.ps1
 ├─ tests/baselines/
 ├─ docs/PHASE1.md
 ├─ docs/PHASE2.md

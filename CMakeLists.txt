@@ -142,5 +142,17 @@ if(CPPUI_BUILD_TESTS)
             LABELS "dpi"
             TIMEOUT 60
         )
+
+        add_test(
+            NAME cppui.chrome
+            COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+                    -File "${CMAKE_CURRENT_SOURCE_DIR}/tests/chrome_matrix_test.ps1"
+                    -Exe "$<TARGET_FILE:cppui_bootstrap>"
+        )
+        set_tests_properties(cppui.chrome PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+            LABELS "chrome"
+            TIMEOUT 60
+        )
     endif()
 endif()

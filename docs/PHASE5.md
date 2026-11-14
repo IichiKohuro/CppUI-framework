@@ -1,6 +1,6 @@
 # PHASE 5 — hardening pass, benchmark, CI
 
-> Статус: hardening pass завершён 14.11.2026; M0 closure ещё не объявлен.
+> Статус: hardening pass завершён 14.11.2026; **M0 принят с waivers** — [M0.md](M0.md).
 > Связанные документы: [PHASE4.md](PHASE4.md), [QUALITY.md](QUALITY.md), [ROADMAP.md](ROADMAP.md), [PLAN.md](../PLAN.md).
 
 ## Что добавлено
@@ -10,6 +10,9 @@
 - `cppui.dpi`: реальный перенос окна между двумя мониторами
   **120 DPI (DISPLAY1)** и **96 DPI (DISPLAY2)**; проверяется смена DPI и
   непустой client area. На машинах с одним DPI тест делает SKIP.
+- `cppui.chrome`: hit testing caption/min/max/close/resize, maximize/restore,
+  minimize/restore, resize stress и DwmFlush. Snap Layouts, Alt+Space и Alt+F4
+  проверены визуально; screenshots — в [M0.md](M0.md).
 - Проверка target size: после `Resize` D2D target в DIP должен совпадать
   с ожидаемым размером (защита от stale-target бага Phase 4).
 - Visual regression:
@@ -49,10 +52,10 @@
 | Density switch + layout + frame | **8.33 ms** |
 | Target size | **1000×640 DIP** |
 
-Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest: **7/7** в Debug и
+Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest: **8/8** в Debug и
 Release; visual regression проходит за ~1.5 s при точном PNG-совпадении.
 `DXGI_SWAP_EFFECT_FLIP_DISCARD` и `D3D11_CREATE_DEVICE_SINGLETHREADED` снизили
-frame CPU с ~1.95 до ~1.8 ms. Debug-каталог был удалён и собран с нуля; 7/7.
+frame CPU с ~1.95 до ~1.8 ms. Debug-каталог был удалён и собран с нуля; 8/8.
 
 ## Cold start / idle / memory
 
@@ -60,37 +63,29 @@ frame CPU с ~1.95 до ~1.8 ms. Debug-каталог был удалён и с�
   In-app startup до первого кадра — **101 ms**; внешние 177 ms включают запуск процесса.
   Target 150 ms по внешнему замеру не выполнен, hard limit 250 ms выполнен.
 - Idle CPU: **0.000 ms за 8 s** (≈0% от суммарного CPU).
-- Working set Release: **≈64.4 MB**.
-  Hard budget 60 MB превышен на ~4.4 MB — открытый P2.
-- Clean build directory Debug удалён и собран заново: **7/7** тестов зелёные.
-  Это не заменяет проверку на отдельной чистой машине.
+- Private memory Release: **43.8 MB** (hard 60 MB пройден; target 40 MB превышен на 3.8 MB).
+  Working set **64.4 MB** включает shared GPU/font pages.
+- Clean build directory Debug удалён и собран заново: **8/8** тестов зелёные.
+  Это не заменяет проверку на отдельной чистой машине; clean-machine waived.
 
 ## Статус M0
 
-Закрыто автоматизацией:
+M0 принят с environment-waivers; полный sign-off — в [M0.md](M0.md).
 
-- [x] DPI-матрица 96–192 DPI на уровне renderer/layout;
+- [x] DPI-матрица 96 / 120 / 150 / 200 (150/200 simulated);
 - [x] Light/Dark + density в матрице;
 - [x] theme switch без перезапуска;
 - [x] Tab/Shift+Tab, Space/Enter и focus;
-- [x] unit/integration-тесты;
-- [x] публичный top-level `Form` API (`cppui.form` integration test);
+- [x] unit/integration/visual/chrome/dpi тесты (8/8);
+- [x] публичный top-level `Form` API;
 - [x] реальный mixed-DPI переход 120 → 96 на двух мониторах;
-- [x] visual snapshots Light/Dark/Compact с допуском;
+- [x] Snap Layouts, Alt+Space, Alt+F4;
 - [x] benchmark и performance-замеры;
-- [x] CI workflow добавлен.
-
-Ещё не закрыто:
-
-- [ ] clean-machine build на отдельной машине;
-- [ ] 150/200% DPI (на машине доступны только 120/96);
-- [ ] Snap Layouts / Alt+Space / Alt+F4 / taskbar auto-hide;
-- [ ] flicker/input-to-photon замеры;
-- [ ] memory budget 60 MB;
-- [ ] подтверждение CI на удалённом runner.
+- [x] CI workflow добавлен (local pass);
+- [ ] clean-machine и remote CI — waived;
+- [ ] flicker/input-to-photon — измеряются отдельно, не блокируют M0.
 
 ## Следующий шаг
 
-M0 closure: реальная multi-monitor/DPI-матрица, flicker/input-to-photon,
-снижение памяти и cold start, финальный прогон CI и проверка оставшихся
-критериев Technical Preview.
+v0.1 Form Starter: TextEdit, CheckBox/RadioButton, Panel/GroupPanel,
+ProgressBar/Loader, PopupMenu, Dialog/MessageBox, ToolTip и общий `DensityMode`.

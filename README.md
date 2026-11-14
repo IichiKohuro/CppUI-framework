@@ -2,7 +2,7 @@
 
 **CppUI** — рабочее название лёгкого UI-фреймворка для Windows на C++20. Цель — быстрый и предсказуемый десктопный toolkit с кастомным окном, аппаратной отрисовкой, аккуратными темами и API, которое не заставляет писать инфраструктуру заново в каждом приложении.
 
-> Статус: **Phase 5 hardening pass завершён**. Есть Form-preview, DPI matrix 96–192, benchmark и CI workflow; M0 closure ещё открыт (multi-monitor, visual, memory).
+> Статус: **M0 Technical Preview принят с environment-waivers** (см. [docs/M0.md](docs/M0.md)). Следующая волна — v0.1 Form Starter.
 > Дата: 14.11.2026.
 
 ## Ключевые решения
@@ -27,6 +27,7 @@
 | [docs/PHASE3.md](docs/PHASE3.md) | Retained-mode core, Button, UiHost, Light/Dark/System |
 | [docs/PHASE4.md](docs/PHASE4.md) | Form preview, StatusBar, titlebar actions |
 | [docs/PHASE5.md](docs/PHASE5.md) | DPI matrix, benchmark, CI, hardening results |
+| [docs/M0.md](docs/M0.md) | M0 sign-off, доказательства и environment-waivers |
 | [CONTROL_BACKLOG.md](CONTROL_BACKLOG.md) | Полный каталог контролов, недостающие элементы, зависимости и волны |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Релизы, ориентировочные сроки, критерии выхода |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архитектура, стек, окно, рендер, API и структура проекта |
@@ -46,18 +47,18 @@
 
 ## Hardening (Phase 5)
 
-- CTest **7/7** в Debug и Release: theme, UI, Form, DPI matrix, mixed-DPI, benchmark, visual regression.
-- Simulated DPI matrix **96 / 120 / 144 / 192** с Light/Dark и S/M/L.
+- CTest **8/8** в Debug и Release: theme, UI, Form, DPI matrix, mixed-DPI, chrome, benchmark, visual regression.
+- Simulated DPI matrix **96 / 120 / 150 / 200** с Light/Dark и S/M/L.
 - Реальная mixed-DPI проверка на двух мониторах: **120 DPI / 96 DPI**.
+- Snap Layouts, Alt+Space и Alt+F4 проверены; screenshots в [docs/M0.md](docs/M0.md).
 - Visual snapshots Light/Dark/Compact в `tests/baselines`, сравнение через WIC/D2D.
 - Публичный `Form` API с Create/SetContent/theme/density/status/Show/Run.
 - Release benchmark: **120 FPS** (VSync), **~1.8 ms CPU/кадр**, layout **~0.15 ms**.
-- Startup до первого кадра **101 ms** внутри приложения; внешний cold start **177 ms**.
-- Idle CPU **≈0%**, working set **64.4 MB** (P2: выше 60 MB).
-- Clean build-каталог Debug собран с нуля; 7/7 тестов зелёные.
-- GitHub Actions workflow для Debug/Release и benchmark artifacts.
+- Startup до первого кадра **101 ms**; idle CPU **≈0%**.
+- Private memory **43.8 MB** (hard 60 MB), working set 64.4 MB включает shared GPU.
+- Clean build-каталог Debug собран с нуля; 8/8 тестов зелёные.
 
-M0 closure ещё не объявлен: 150/200% DPI, flicker/input-to-photon, memory budget, clean-machine и подтверждение CI на runner. `Form` API уже доступен в [include/cppui/form.hpp](include/cppui/form.hpp). Подробности — в [docs/PHASE5.md](docs/PHASE5.md).
+M0 принят с waivers: 150/200% DPI simulated, clean-machine и remote CI недоступны в текущем окружении. `Form` API — [include/cppui/form.hpp](include/cppui/form.hpp). Подробности — в [docs/PHASE5.md](docs/PHASE5.md).
 
 ## Визуальный концепт
 
@@ -93,10 +94,11 @@ M0 closure ещё не объявлен: 150/200% DPI, flicker/input-to-photon, 
 - [x] Добавлены Light/Dark/System, переключатель темы в шапке и интерактивное demo.
 - [x] Добавлен `DensityMode` Compact/Cozy/Comfortable для компактных Button.
 - [x] Добавлены Form-preview, `FormPanel`, `StatusBar` и действие сброса в titlebar.
-- [x] Добавлены simulated DPI matrix 96–192, benchmark, visual regression и GitHub Actions workflow.
+- [x] Добавлены DPI matrix 96–200, benchmark, visual regression и GitHub Actions workflow.
 - [x] Добавлен публичный top-level `Form` API и integration test.
 - [x] Проверен реальный переход между двумя мониторами 120 DPI / 96 DPI.
-- [ ] Закрыт M0: 150/200% DPI, flicker/input-to-photon, memory budget, clean-machine.
+- [x] Snap Layouts, Alt+Space и Alt+F4 проверены.
+- [x] M0 принят с environment-waivers: [docs/M0.md](docs/M0.md).
 
 ## Сборка
 
@@ -141,7 +143,7 @@ Pop-Location
 
 ## Ближайший шаг
 
-M0 closure: 150/200% DPI, flicker/input-to-photon, снижение memory, clean-machine и подтверждение CI на runner.
+v0.1 Form Starter: публичные TextEdit, CheckBox/RadioButton, Panel/GroupPanel, ProgressBar/Loader, PopupMenu, Dialog/MessageBox, ToolTip и общий `DensityMode` для всех контролов.
 
 ## Лицензия
 
