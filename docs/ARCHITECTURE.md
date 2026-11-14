@@ -1,7 +1,7 @@
 # ARCHITECTURE — техническая архитектура CppUI
 
-> Статус: Draft · Phase 1 implemented · 14.11.2026.
-> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [ROADMAP.md](ROADMAP.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [QUALITY.md](QUALITY.md), [PHASE0.md](PHASE0.md), [PHASE1.md](PHASE1.md).
+> Статус: Draft · Phase 2 implemented · 14.11.2026.
+> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [ROADMAP.md](ROADMAP.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [QUALITY.md](QUALITY.md), [PHASE0.md](PHASE0.md), [PHASE1.md](PHASE1.md), [PHASE2.md](PHASE2.md).
 
 ## 1. Ограничения и цель
 
@@ -107,7 +107,11 @@ int main() {
 
 ### 5.1 Модель
 
-- `Window` — внутренняя база для top-level окна.
+- `Win32Window` — текущий внутренний слой top-level окна с message loop и callbacks.
+- Кастомный chrome: `WM_NCCALCSIZE` отдаёт клиенту всю площадь, `WM_NCHITTEST` размечает caption, кнопки и resize-border; состояние hover/pressed передаётся в renderer.
+- При maximized клиентская область вписывается в `rcWork` с учётом DPI-метрик системной рамки.
+- DWM: rounded corners и frame extension для тени.
+- `Window` как публичная база для top-level окна появится позже.
 - `Form` — публичное главное окно.
 - `Dialog` — модальное/немодальное окно с owner, focus return и отдельной политикой закрытия.
 - `MessageBox` — готовый диалог поверх `Dialog`.
@@ -252,12 +256,13 @@ public:
 
 ## 10. Структура проекта
 
-Фактическая структура Phase 1:
+Фактическая структура Phase 2:
 
 ```text
 CppUI-framework/
 ├─ include/cppui/theme/tokens.hpp
 ├─ src/theme/theme.cpp
+├─ src/chrome/chrome_state.hpp
 ├─ src/platform/win32/win32_window.hpp
 ├─ src/platform/win32/win32_window.cpp
 ├─ src/render/d2d/d2d_renderer.hpp
@@ -265,6 +270,7 @@ CppUI-framework/
 ├─ samples/bootstrap/main.cpp
 ├─ tests/theme_tests.cpp
 ├─ docs/PHASE1.md
+├─ docs/PHASE2.md
 ├─ tools/build.ps1
 ├─ CMakeLists.txt
 └─ CMakePresets.json

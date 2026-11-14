@@ -80,14 +80,14 @@ CppUI — компактный нативный UI-фреймворк для Win
 |---|---:|---|---|
 | **0. Bootstrap ✅** | 1–2 дня | Toolchain, git, CMake-пресеты, пустое окно, дизайн-токены | Сборка с нуля одной командой; окно открывается |
 | **1. Platform + render ✅** | 3–4 дня | Win32-цикл, DXGI/D2D/DWrite, resize, DPI, device loss, WARP | Пустое окно resize без мерцания; idle CPU около нуля |
-| **2. Custom chrome** | 5–7 дней | `WM_NCCALCSIZE`, `WM_NCHITTEST`, drag, системные кнопки, Snap Layouts, DWM dark/corners | Chrome проходит ручную матрицу на Win11, 100–200% DPI |
+| **2. Custom chrome ✅** | 5–7 дней | `WM_NCCALCSIZE`, `WM_NCHITTEST`, drag, системные кнопки, Snap Layouts, DWM dark/corners | Chrome проходит ручную матрицу на Win11, 100–200% DPI |
 | **3. Widget core + Button + theme** | 4–5 дней | Дерево виджетов, layout, focus, Button, токены, Light/Dark/System | Демо с кнопками и переключением темы |
 | **4. Preview demo** | 3–4 дня | Экран формы, дополнительные действия, статус-бар, базовая документация | Демо соответствует заявленному объёму M0 |
 | **5. Hardening** | 4–5 дней | Unit/visual tests, CI, профилирование, исправление P0/P1 | Technical Preview готов |
 
 **Итого:** 20–27 рабочих дней, примерно **5–6 календарных недель** с буфером.
 
-Phase 0 закрыта 14.11.2026: git, CMake, токены Signal Teal, Win32-окно и D3D11/DXGI/D2D/DWrite baseline. Phase 1 закрыта в тот же день: выделен `Win32Window`, добавлены resize/DPI callbacks, WARP, device-loss recovery, render smoke test и проверка idle CPU. Детали — в [docs/PHASE0.md](docs/PHASE0.md) и [docs/PHASE1.md](docs/PHASE1.md). Следующая — Phase 2, custom chrome.
+Phase 0 закрыта 14.11.2026: git, CMake, токены Signal Teal, Win32-окно и D3D11/DXGI/D2D/DWrite baseline. Phase 1 закрыта в тот же день: `Win32Window`, resize/DPI callbacks, WARP, device-loss recovery, render smoke test и idle CPU. Phase 2: кастомный chrome, системные кнопки, hit testing, maximize/restore и DWM. Детали — в [docs/PHASE0.md](docs/PHASE0.md), [docs/PHASE1.md](docs/PHASE1.md), [docs/PHASE2.md](docs/PHASE2.md). Следующая — Phase 3, retained-mode `Widget`/`Button`/темы.
 
 ### Критерии выхода M0
 

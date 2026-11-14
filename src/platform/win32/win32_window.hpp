@@ -6,6 +6,8 @@
 #include <functional>
 #include <string>
 
+#include "chrome/chrome_state.hpp"
+
 namespace cppui {
 
 // Minimal top-level Win32 window for Phase 1. It owns the message loop and
@@ -41,13 +43,21 @@ public:
 
     [[nodiscard]] HWND Handle() const noexcept { return hwnd_; }
     [[nodiscard]] float Dpi() const noexcept { return dpi_; }
-    [[nodiscard]] bool IsMinimized() const noexcept;
+    [[nodiscard]] bool IsWindowMinimized() const noexcept;
+    [[nodiscard]] ChromeState GetChromeState() const noexcept;
 
 private:
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
     LRESULT HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
     void CenterOnPrimaryMonitor() noexcept;
     void NotifyResize(HWND hwnd, UINT width, UINT height) noexcept;
+    [[nodiscard]] LRESULT HitTest(POINT screen_point) const noexcept;
+    [[nodiscard]] ChromeButton ButtonAt(POINT screen_point) const noexcept;
+    static ChromeButton ButtonFromHitCode(LRESULT hit_code) noexcept;
+    void PerformChromeAction(ChromeButton button) noexcept;
+    void SetActive(bool active) noexcept;
+    void SetHovered(ChromeButton button) noexcept;
+    void ApplyDwmChrome() noexcept;
 
     HINSTANCE instance_{};
     HWND hwnd_{};
@@ -59,6 +69,9 @@ private:
     float dpi_{96.0f};
     Callbacks callbacks_{};
     bool class_registered_{false};
+    bool active_{false};
+    ChromeButton hovered_{ChromeButton::none};
+    ChromeButton pressed_{ChromeButton::none};
 };
 
 }  // namespace cppui

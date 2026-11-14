@@ -60,6 +60,7 @@ target_link_libraries(cppui
         dxgi
         d2d1
         dwrite
+        dwmapi
         user32
         gdi32
         ole32

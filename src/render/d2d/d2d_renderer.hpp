@@ -10,6 +10,8 @@
 
 #include <cppui/theme/tokens.hpp>
 
+#include "chrome/chrome_state.hpp"
+
 namespace cppui {
 
 // Phase 1 renderer: D3D11 -> DXGI flip model -> Direct2D/DirectWrite.
@@ -27,7 +29,7 @@ public:
 
     [[nodiscard]] bool Initialize(HWND hwnd, const ThemeTokens& theme);
     [[nodiscard]] bool Resize(UINT width, UINT height, float dpi);
-    [[nodiscard]] bool Render();
+    [[nodiscard]] bool Render(const ChromeState& chrome = {});
     // Rebuilds the D3D device, swap chain, D2D device context and all resources.
     // Called after DEVICE_REMOVED/RESET and exposed for the render smoke test.
     [[nodiscard]] bool RecreateDevice();
@@ -48,7 +50,7 @@ private:
 
     void ReleaseTarget() noexcept;
     void ReleaseDeviceResources() noexcept;
-    void DrawScene() noexcept;
+    void DrawScene(const ChromeState& chrome) noexcept;
 
     HWND hwnd_{};
     ThemeTokens theme_{};
@@ -73,9 +75,13 @@ private:
     Microsoft::WRL::ComPtr<IDWriteTextFormat> meta_format_;
     Microsoft::WRL::ComPtr<IDWriteTextFormat> pill_format_;
     Microsoft::WRL::ComPtr<IDWriteTextFormat> version_format_;
+    Microsoft::WRL::ComPtr<IDWriteTextFormat> caption_format_;
+    Microsoft::WRL::ComPtr<IDWriteTextFormat> badge_format_;
 
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_window_;
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_surface_;
+    Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_surface_soft_;
+    Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_surface_hover_;
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_border_;
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_primary_text_;
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_secondary_text_;
@@ -83,6 +89,8 @@ private:
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_accent_soft_;
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_on_accent_;
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_success_;
+    Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_close_hover_;
+    Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_on_close_;
 };
 
 }  // namespace cppui

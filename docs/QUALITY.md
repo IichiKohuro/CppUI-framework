@@ -33,6 +33,8 @@
 
 - `cppui.render_smoke`: hidden window, initial frame, resize, device recreation, final frame;
 - создание hidden window и message loop;
+- `WM_NCHITTEST`: caption, min/max/close, resize-border, client;
+- custom maximize/restore, minimize, close и close-hover;
 - `WM_SIZE`, `WM_DPICHANGED`, `WM_SETTINGCHANGE`;
 - закрытие через `WM_CLOSE` и отмена через callback;
 - minimize/maximize/restore state machine;
@@ -98,7 +100,7 @@ RTL/BiDi — не входит в v0.1; добавить в матрицу, ко
 
 Это стартовые цели, которые нужно подтвердить на реальном железе после Phase 1. Значения не являются обещанием для любой конфигурации.
 
-Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resize stress из пяти размеров не привёл к потере отзывчивости. Cold start, input-to-photon и frame-time бюджеты ещё не измерялись.
+Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resize stress из пяти размеров не привёл к потере отзывчивости. Phase 2: hit testing и maximize/restore проверены на 125% DPI; 100/150/200% и Snap-flyout требуют отдельного ручного прогона. Cold start, input-to-photon и frame-time бюджеты ещё не измерялись.
 
 | Метрика | Target | Hard threshold |
 |---|---:|---:|

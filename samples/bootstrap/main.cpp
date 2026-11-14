@@ -13,8 +13,8 @@
 
 namespace {
 
-constexpr wchar_t kWindowTitle[] = L"CppUI - Phase 1";
-constexpr wchar_t kErrorTitle[] = L"CppUI - Phase 1";
+constexpr wchar_t kWindowTitle[] = L"CppUI - Phase 2";
+constexpr wchar_t kErrorTitle[] = L"CppUI - Phase 2";
 constexpr int kInitialWidthDip = 1000;
 constexpr int kInitialHeightDip = 640;
 constexpr int kMinWidthDip = 720;
@@ -88,7 +88,14 @@ int BootstrapApp::Run(HINSTANCE instance, int show_command, bool self_test) {
 }
 
 int BootstrapApp::RunSelfTest(cppui::Win32Window& window) {
-    if (!renderer_.Render()) {
+    const cppui::ChromeState chrome{
+        true,
+        false,
+        cppui::ChromeButton::none,
+        cppui::ChromeButton::none,
+    };
+
+    if (!renderer_.Render(chrome)) {
         OutputDebugStringW(L"CppUI self-test: initial render failed.\n");
         return 2;
     }
@@ -98,7 +105,7 @@ int BootstrapApp::RunSelfTest(cppui::Win32Window& window) {
         return 3;
     }
 
-    if (!renderer_.Render()) {
+    if (!renderer_.Render(chrome)) {
         OutputDebugStringW(L"CppUI self-test: render after resize failed.\n");
         return 4;
     }
@@ -108,7 +115,7 @@ int BootstrapApp::RunSelfTest(cppui::Win32Window& window) {
         return 5;
     }
 
-    if (!renderer_.Render()) {
+    if (!renderer_.Render(chrome)) {
         OutputDebugStringW(L"CppUI self-test: render after device recreation failed.\n");
         return 6;
     }
@@ -126,7 +133,8 @@ void BootstrapApp::OnPaint() {
         return;
     }
 
-    if (renderer_.Render()) {
+    const cppui::ChromeState chrome = window_ != nullptr ? window_->GetChromeState() : cppui::ChromeState{};
+    if (renderer_.Render(chrome)) {
         paint_failures_ = 0;
         return;
     }

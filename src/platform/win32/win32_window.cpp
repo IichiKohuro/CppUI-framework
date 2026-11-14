@@ -1,15 +1,24 @@
 #include "platform/win32/win32_window.hpp"
 
+#include <windowsx.h>
+
+#include <dwmapi.h>
+
 #include <utility>
 
 namespace cppui {
 namespace {
 
 constexpr wchar_t kWindowClass[] = L"CppUI.MainWindow";
+constexpr int kResizeBorderDip = 7;
 
 UINT WindowDpi(HWND hwnd) noexcept {
     const UINT dpi = GetDpiForWindow(hwnd);
     return dpi == 0 ? 96U : dpi;
+}
+
+int DipToPixels(int dip, UINT dpi) noexcept {
+    return MulDiv(dip, static_cast<int>(dpi), 96);
 }
 
 }  // namespace
@@ -57,13 +66,8 @@ bool Win32Window::Create(Callbacks callbacks) {
     }
     class_registered_ = true;
 
-    const UINT dpi = GetDpiForSystem();
-    const int initial_dpi = dpi == 0 ? 96 : static_cast<int>(dpi);
-    RECT desired{0,
-                 0,
-                 MulDiv(width_dip_, initial_dpi, 96),
-                 MulDiv(height_dip_, initial_dpi, 96)};
-    AdjustWindowRectExForDpi(&desired, WS_OVERLAPPEDWINDOW, FALSE, 0, static_cast<UINT>(initial_dpi));
+    const UINT system_dpi = GetDpiForSystem();
+    const UINT initial_dpi = system_dpi == 0 ? 96U : system_dpi;
 
     hwnd_ = CreateWindowExW(0,
                             kWindowClass,
@@ -71,8 +75,8 @@ bool Win32Window::Create(Callbacks callbacks) {
                             WS_OVERLAPPEDWINDOW,
                             CW_USEDEFAULT,
                             CW_USEDEFAULT,
-                            desired.right - desired.left,
-                            desired.bottom - desired.top,
+                            DipToPixels(width_dip_, initial_dpi),
+                            DipToPixels(height_dip_, initial_dpi),
                             nullptr,
                             nullptr,
                             instance_,
@@ -84,6 +88,7 @@ bool Win32Window::Create(Callbacks callbacks) {
     }
 
     dpi_ = static_cast<float>(WindowDpi(hwnd_));
+    ApplyDwmChrome();
     CenterOnPrimaryMonitor();
     return true;
 }
@@ -131,8 +136,193 @@ void Win32Window::Invalidate() noexcept {
     }
 }
 
-bool Win32Window::IsMinimized() const noexcept {
+bool Win32Window::IsWindowMinimized() const noexcept {
     return hwnd_ != nullptr && IsIconic(hwnd_) != FALSE;
+}
+
+ChromeState Win32Window::GetChromeState() const noexcept {
+    return ChromeState{
+        active_,
+        hwnd_ != nullptr && IsZoomed(hwnd_) != FALSE,
+        hovered_,
+        pressed_,
+    };
+}
+
+ChromeButton Win32Window::ButtonAt(POINT screen_point) const noexcept {
+    if (hwnd_ == nullptr) {
+        return ChromeButton::none;
+    }
+
+    POINT client = screen_point;
+    if (ScreenToClient(hwnd_, &client) == FALSE) {
+        return ChromeButton::none;
+    }
+
+    RECT client_rect{};
+    if (GetClientRect(hwnd_, &client_rect) == FALSE) {
+        return ChromeButton::none;
+    }
+
+    const UINT dpi = WindowDpi(hwnd_);
+    const int title_bar_height = DipToPixels(static_cast<int>(kTitleBarHeightDip), dpi);
+    const int button_width = DipToPixels(static_cast<int>(kCaptionButtonWidthDip), dpi);
+
+    if (client.x < 0 || client.x >= client_rect.right || client.y < 0 || client.y >= title_bar_height) {
+        return ChromeButton::none;
+    }
+
+    const int right = client_rect.right;
+    if (client.x >= right - button_width) {
+        return ChromeButton::close;
+    }
+    if (client.x >= right - button_width * 2) {
+        return ChromeButton::maximize;
+    }
+    if (client.x >= right - button_width * 3) {
+        return ChromeButton::minimize;
+    }
+    return ChromeButton::none;
+}
+
+ChromeButton Win32Window::ButtonFromHitCode(LRESULT hit_code) noexcept {
+    switch (hit_code) {
+        case HTMINBUTTON:
+            return ChromeButton::minimize;
+        case HTMAXBUTTON:
+            return ChromeButton::maximize;
+        case HTCLOSE:
+            return ChromeButton::close;
+        default:
+            return ChromeButton::none;
+    }
+}
+
+LRESULT Win32Window::HitTest(POINT screen_point) const noexcept {
+    if (hwnd_ == nullptr) {
+        return HTNOWHERE;
+    }
+
+    POINT client = screen_point;
+    if (ScreenToClient(hwnd_, &client) == FALSE) {
+        return HTNOWHERE;
+    }
+
+    RECT client_rect{};
+    if (GetClientRect(hwnd_, &client_rect) == FALSE) {
+        return HTNOWHERE;
+    }
+
+    const UINT dpi = WindowDpi(hwnd_);
+    const bool maximized = IsZoomed(hwnd_) != FALSE;
+
+    if (!maximized) {
+        const int border = DipToPixels(kResizeBorderDip, dpi);
+        const bool left = client.x < border;
+        const bool right = client.x >= client_rect.right - border;
+        const bool top = client.y < border;
+        const bool bottom = client.y >= client_rect.bottom - border;
+
+        if (top && left) {
+            return HTTOPLEFT;
+        }
+        if (top && right) {
+            return HTTOPRIGHT;
+        }
+        if (bottom && left) {
+            return HTBOTTOMLEFT;
+        }
+        if (bottom && right) {
+            return HTBOTTOMRIGHT;
+        }
+        if (left) {
+            return HTLEFT;
+        }
+        if (right) {
+            return HTRIGHT;
+        }
+        if (top) {
+            return HTTOP;
+        }
+        if (bottom) {
+            return HTBOTTOM;
+        }
+    }
+
+    switch (ButtonAt(screen_point)) {
+        case ChromeButton::minimize:
+            return HTMINBUTTON;
+        case ChromeButton::maximize:
+            return HTMAXBUTTON;
+        case ChromeButton::close:
+            return HTCLOSE;
+        case ChromeButton::none:
+            break;
+    }
+
+    const int title_bar_height = DipToPixels(static_cast<int>(kTitleBarHeightDip), dpi);
+    if (client.x >= 0 && client.x < client_rect.right && client.y >= 0 &&
+        client.y < title_bar_height) {
+        return HTCAPTION;
+    }
+
+    return HTCLIENT;
+}
+
+void Win32Window::PerformChromeAction(ChromeButton button) noexcept {
+    if (hwnd_ == nullptr) {
+        return;
+    }
+
+    switch (button) {
+        case ChromeButton::minimize:
+            ShowWindow(hwnd_, SW_MINIMIZE);
+            break;
+        case ChromeButton::maximize:
+            ShowWindow(hwnd_, IsZoomed(hwnd_) != FALSE ? SW_RESTORE : SW_MAXIMIZE);
+            InvalidateRect(hwnd_, nullptr, FALSE);
+            break;
+        case ChromeButton::close:
+            PostMessageW(hwnd_, WM_CLOSE, 0, 0);
+            break;
+        case ChromeButton::none:
+            break;
+    }
+}
+
+void Win32Window::SetActive(bool active) noexcept {
+    if (active_ == active) {
+        return;
+    }
+    active_ = active;
+    if (hwnd_ != nullptr) {
+        InvalidateRect(hwnd_, nullptr, FALSE);
+    }
+}
+
+void Win32Window::SetHovered(ChromeButton button) noexcept {
+    if (hovered_ == button) {
+        return;
+    }
+    hovered_ = button;
+    if (hwnd_ != nullptr) {
+        InvalidateRect(hwnd_, nullptr, FALSE);
+    }
+}
+
+void Win32Window::ApplyDwmChrome() noexcept {
+    if (hwnd_ == nullptr) {
+        return;
+    }
+
+    const DWM_WINDOW_CORNER_PREFERENCE corner_preference = DWMWCP_ROUND;
+    (void)DwmSetWindowAttribute(hwnd_,
+                                DWMWA_WINDOW_CORNER_PREFERENCE,
+                                &corner_preference,
+                                sizeof(corner_preference));
+
+    const MARGINS margins{1, 1, 1, 1};
+    (void)DwmExtendFrameIntoClientArea(hwnd_, &margins);
 }
 
 void Win32Window::NotifyResize(HWND hwnd, UINT width, UINT height) noexcept {
@@ -204,6 +394,94 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT message, WPARAM wparam,
 
 LRESULT Win32Window::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
     switch (message) {
+        case WM_NCCALCSIZE:
+            if (wparam == TRUE) {
+                auto* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lparam);
+                if (IsZoomed(hwnd) != FALSE) {
+                    const UINT dpi = WindowDpi(hwnd);
+                    const int frame_x = GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) +
+                                        GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+                    const int frame_y = GetSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) +
+                                        GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+                    params->rgrc[0].left += frame_x;
+                    params->rgrc[0].top += frame_y;
+                    params->rgrc[0].right -= frame_x;
+                    params->rgrc[0].bottom -= frame_y;
+                }
+                return 0;
+            }
+            break;
+
+        case WM_NCPAINT:
+            return 0;
+
+        case WM_NCACTIVATE:
+            SetActive(wparam != FALSE);
+            return TRUE;
+
+        case WM_ACTIVATE:
+            SetActive(LOWORD(wparam) != WA_INACTIVE);
+            return 0;
+
+        case WM_NCHITTEST:
+            return HitTest(POINT{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)});
+
+        case WM_NCMOUSEMOVE: {
+            const POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+            SetHovered(ButtonAt(point));
+            TRACKMOUSEEVENT track{};
+            track.cbSize = sizeof(track);
+            track.dwFlags = TME_LEAVE | TME_NONCLIENT;
+            track.hwndTrack = hwnd;
+            (void)TrackMouseEvent(&track);
+            return 0;
+        }
+
+        case WM_NCMOUSELEAVE:
+            SetHovered(ChromeButton::none);
+            return 0;
+
+        case WM_MOUSEMOVE:
+            SetHovered(ChromeButton::none);
+            break;
+
+        case WM_NCLBUTTONDOWN: {
+            const ChromeButton button = ButtonFromHitCode(wparam);
+            if (button != ChromeButton::none) {
+                SetActive(true);
+                pressed_ = button;
+                SetHovered(button);
+                SetCapture(hwnd);
+                InvalidateRect(hwnd, nullptr, FALSE);
+                return 0;
+            }
+            break;
+        }
+
+        case WM_NCLBUTTONUP: {
+            if (pressed_ != ChromeButton::none) {
+                const POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+                const ChromeButton current = ButtonAt(point);
+                const ChromeButton pressed = pressed_;
+                pressed_ = ChromeButton::none;
+                if (GetCapture() == hwnd) {
+                    ReleaseCapture();
+                }
+                SetHovered(current);
+                if (current == pressed) {
+                    PerformChromeAction(pressed);
+                }
+                InvalidateRect(hwnd, nullptr, FALSE);
+                return 0;
+            }
+            break;
+        }
+
+        case WM_CAPTURECHANGED:
+            pressed_ = ChromeButton::none;
+            InvalidateRect(hwnd, nullptr, FALSE);
+            return 0;
+
         case WM_SIZE:
             if (wparam != SIZE_MINIMIZED) {
                 const UINT width = LOWORD(lparam);

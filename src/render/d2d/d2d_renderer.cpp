@@ -387,19 +387,45 @@ bool D2DRenderer::CreateTextFormats() {
         return false;
     }
 
+    if (!CreateTextFormat(write_factory_.Get(),
+                          L"Segoe UI",
+                          12.5f,
+                          DWRITE_FONT_WEIGHT_SEMI_BOLD,
+                          DWRITE_TEXT_ALIGNMENT_LEADING,
+                          DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+                          caption_format_.GetAddressOf())) {
+        last_error_ = E_FAIL;
+        return false;
+    }
+
+    if (!CreateTextFormat(write_factory_.Get(),
+                          L"Segoe UI",
+                          8.5f,
+                          DWRITE_FONT_WEIGHT_SEMI_BOLD,
+                          DWRITE_TEXT_ALIGNMENT_CENTER,
+                          DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+                          badge_format_.GetAddressOf())) {
+        last_error_ = E_FAIL;
+        return false;
+    }
+
     return true;
 }
 
 bool D2DRenderer::CreateBrushes() {
     return CreateSolidBrush(theme_.window_bg, brush_window_.GetAddressOf()) &&
            CreateSolidBrush(theme_.surface, brush_surface_.GetAddressOf()) &&
+           CreateSolidBrush(theme_.surface_soft, brush_surface_soft_.GetAddressOf()) &&
+           CreateSolidBrush(theme_.surface_hover, brush_surface_hover_.GetAddressOf()) &&
            CreateSolidBrush(theme_.border, brush_border_.GetAddressOf()) &&
            CreateSolidBrush(theme_.text_primary, brush_primary_text_.GetAddressOf()) &&
            CreateSolidBrush(theme_.text_secondary, brush_secondary_text_.GetAddressOf()) &&
            CreateSolidBrush(theme_.accent, brush_accent_.GetAddressOf()) &&
            CreateSolidBrush(theme_.accent_soft, brush_accent_soft_.GetAddressOf()) &&
            CreateSolidBrush(theme_.on_accent, brush_on_accent_.GetAddressOf()) &&
-           CreateSolidBrush(theme_.success, brush_success_.GetAddressOf());
+           CreateSolidBrush(theme_.success, brush_success_.GetAddressOf()) &&
+           CreateSolidBrush(theme_.close_hover, brush_close_hover_.GetAddressOf()) &&
+           CreateSolidBrush(theme_.on_close, brush_on_close_.GetAddressOf());
 }
 
 bool D2DRenderer::CreateSolidBrush(const Color& color, ID2D1SolidColorBrush** brush) {
@@ -463,7 +489,7 @@ bool D2DRenderer::Resize(UINT width, UINT height, float dpi) {
     return true;
 }
 
-bool D2DRenderer::Render() {
+bool D2DRenderer::Render(const ChromeState& chrome) {
     if (!initialized_ || !d2d_context_ || !swap_chain_) {
         return false;
     }
@@ -480,7 +506,7 @@ bool D2DRenderer::Render() {
     d2d_context_->BeginDraw();
     d2d_context_->SetTransform(D2D1::Matrix3x2F::Identity());
     d2d_context_->SetDpi(dpi_, dpi_);
-    DrawScene();
+    DrawScene(chrome);
 
     HRESULT hr = d2d_context_->EndDraw();
     if (FAILED(hr)) {
@@ -510,18 +536,130 @@ bool D2DRenderer::Render() {
     return true;
 }
 
-void D2DRenderer::DrawScene() noexcept {
+void D2DRenderer::DrawScene(const ChromeState& chrome) noexcept {
     if (!d2d_context_) {
         return;
     }
 
+    const D2D1_SIZE_F window_size = d2d_context_->GetSize();
     d2d_context_->Clear(ToColorF(theme_.window_bg));
 
-    const D2D1_SIZE_F window_size = d2d_context_->GetSize();
+    const bool active = chrome.active;
+    ID2D1SolidColorBrush* titlebar_brush =
+        active ? brush_surface_.Get() : brush_surface_soft_.Get();
+    ID2D1SolidColorBrush* primary_brush =
+        active ? brush_primary_text_.Get() : brush_secondary_text_.Get();
+    ID2D1SolidColorBrush* secondary_brush = brush_secondary_text_.Get();
+
+    const D2D1_RECT_F titlebar =
+        D2D1::RectF(0.0f, 0.0f, window_size.width, kTitleBarHeightDip);
+    d2d_context_->FillRectangle(titlebar, titlebar_brush);
+    d2d_context_->DrawLine(D2D1::Point2F(0.0f, kTitleBarHeightDip - 0.5f),
+                           D2D1::Point2F(window_size.width, kTitleBarHeightDip - 0.5f),
+                           brush_border_.Get(),
+                           1.0f);
+
+    const D2D1_RECT_F app_mark = D2D1::RectF(14.0f, 9.0f, 36.0f, 31.0f);
+    d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(app_mark, 6.0f, 6.0f),
+                                       brush_accent_.Get());
+    const D2D1_RECT_F app_glyph = D2D1::RectF(19.0f, 14.0f, 31.0f, 26.0f);
+    d2d_context_->DrawRoundedRectangle(D2D1::RoundedRect(app_glyph, 1.5f, 1.5f),
+                                       brush_on_accent_.Get(),
+                                       1.0f);
+    d2d_context_->DrawLine(D2D1::Point2F(app_glyph.left, 18.0f),
+                           D2D1::Point2F(app_glyph.right, 18.0f),
+                           brush_on_accent_.Get(),
+                           1.0f);
+
+    constexpr std::wstring_view caption = L"CppUI";
+    d2d_context_->DrawTextW(caption.data(),
+                            static_cast<UINT32>(caption.size()),
+                            caption_format_.Get(),
+                            D2D1::RectF(44.0f, 8.0f, 92.0f, 32.0f),
+                            primary_brush,
+                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
+
+    const D2D1_RECT_F badge = D2D1::RectF(94.0f, 12.0f, 152.0f, 28.0f);
+    d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(badge, 8.0f, 8.0f),
+                                       brush_accent_soft_.Get());
+    constexpr std::wstring_view badge_label = L"PHASE 2";
+    d2d_context_->DrawTextW(badge_label.data(),
+                            static_cast<UINT32>(badge_label.size()),
+                            badge_format_.Get(),
+                            badge,
+                            brush_accent_.Get(),
+                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
+
+    const float button_width = kCaptionButtonWidthDip;
+    const float close_left = window_size.width - button_width;
+    const float maximize_left = close_left - button_width;
+    const float minimize_left = maximize_left - button_width;
+    const float center_y = kTitleBarHeightDip * 0.5f;
+    const auto is_hot = [&chrome](ChromeButton button) {
+        return chrome.hovered == button || chrome.pressed == button;
+    };
+
+    const D2D1_RECT_F close_rect =
+        D2D1::RectF(close_left, 0.0f, window_size.width, kTitleBarHeightDip);
+    if (is_hot(ChromeButton::close)) {
+        d2d_context_->FillRectangle(close_rect, brush_close_hover_.Get());
+    }
+    ID2D1SolidColorBrush* close_brush = is_hot(ChromeButton::close)
+                                            ? brush_on_close_.Get()
+                                            : primary_brush;
+    const float close_center_x = close_left + button_width * 0.5f;
+    d2d_context_->DrawLine(D2D1::Point2F(close_center_x - 5.0f, center_y - 5.0f),
+                           D2D1::Point2F(close_center_x + 5.0f, center_y + 5.0f),
+                           close_brush,
+                           1.0f);
+    d2d_context_->DrawLine(D2D1::Point2F(close_center_x + 5.0f, center_y - 5.0f),
+                           D2D1::Point2F(close_center_x - 5.0f, center_y + 5.0f),
+                           close_brush,
+                           1.0f);
+
+    const D2D1_RECT_F maximize_rect =
+        D2D1::RectF(maximize_left, 0.0f, close_left, kTitleBarHeightDip);
+    if (chrome.pressed == ChromeButton::maximize) {
+        d2d_context_->FillRectangle(maximize_rect, brush_accent_soft_.Get());
+    } else if (chrome.hovered == ChromeButton::maximize) {
+        d2d_context_->FillRectangle(maximize_rect, brush_surface_hover_.Get());
+    }
+    const float maximize_center_x = maximize_left + button_width * 0.5f;
+    if (chrome.maximized) {
+        d2d_context_->DrawRectangle(D2D1::RectF(maximize_center_x - 5.0f, center_y - 3.0f,
+                                                maximize_center_x + 3.0f, center_y + 5.0f),
+                                    primary_brush,
+                                    1.0f);
+        d2d_context_->DrawRectangle(D2D1::RectF(maximize_center_x - 3.0f, center_y - 5.0f,
+                                                maximize_center_x + 5.0f, center_y + 3.0f),
+                                    primary_brush,
+                                    1.0f);
+    } else {
+        d2d_context_->DrawRectangle(D2D1::RectF(maximize_center_x - 5.0f, center_y - 5.0f,
+                                                maximize_center_x + 5.0f, center_y + 5.0f),
+                                    primary_brush,
+                                    1.0f);
+    }
+
+    const D2D1_RECT_F minimize_rect =
+        D2D1::RectF(minimize_left, 0.0f, maximize_left, kTitleBarHeightDip);
+    if (chrome.pressed == ChromeButton::minimize) {
+        d2d_context_->FillRectangle(minimize_rect, brush_accent_soft_.Get());
+    } else if (chrome.hovered == ChromeButton::minimize) {
+        d2d_context_->FillRectangle(minimize_rect, brush_surface_hover_.Get());
+    }
+    const float minimize_center_x = minimize_left + button_width * 0.5f;
+    d2d_context_->DrawLine(D2D1::Point2F(minimize_center_x - 5.0f, center_y),
+                           D2D1::Point2F(minimize_center_x + 5.0f, center_y),
+                           primary_brush,
+                           1.0f);
+
+    const float content_top = kTitleBarHeightDip;
     const float card_width = std::min(640.0f, std::max(360.0f, window_size.width - 96.0f));
     const float card_height = 300.0f;
     const float left = (window_size.width - card_width) * 0.5f;
-    const float top = (window_size.height - card_height) * 0.5f;
+    const float content_height = std::max(1.0f, window_size.height - content_top);
+    const float top = content_top + std::max(24.0f, (content_height - card_height) * 0.5f);
     const float right = left + card_width;
 
     const D2D1_RECT_F card = D2D1::RectF(left, top, right, top + card_height);
@@ -534,7 +672,6 @@ void D2DRenderer::DrawScene() noexcept {
     const D2D1_RECT_F logo = D2D1::RectF(left + 32.0f, top + 32.0f, left + 78.0f, top + 78.0f);
     d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(logo, 12.0f, 12.0f),
                                        brush_accent_.Get());
-
     const D2D1_RECT_F glyph =
         D2D1::RectF(logo.left + 13.0f, logo.top + 14.0f, logo.right - 13.0f, logo.bottom - 14.0f);
     d2d_context_->DrawRoundedRectangle(D2D1::RoundedRect(glyph, 2.0f, 2.0f),
@@ -557,7 +694,7 @@ void D2DRenderer::DrawScene() noexcept {
         D2D1::RectF(left + 98.0f, top + 98.0f, right - 32.0f, top + 118.0f);
 
     constexpr std::wstring_view title = L"CppUI";
-    constexpr std::wstring_view subtitle = L"Phase 1 - platform + render";
+    constexpr std::wstring_view subtitle = L"Phase 2 - custom chrome";
     constexpr std::wstring_view meta =
         L"Signal Teal tokens  /  D3D11  /  DXGI flip-model  /  DirectWrite  /  DPI-aware";
 
@@ -571,13 +708,13 @@ void D2DRenderer::DrawScene() noexcept {
                             static_cast<UINT32>(subtitle.size()),
                             subtitle_format_.Get(),
                             subtitle_rect,
-                            brush_secondary_text_.Get(),
+                            secondary_brush,
                             D2D1_DRAW_TEXT_OPTIONS_CLIP);
     d2d_context_->DrawTextW(meta.data(),
                             static_cast<UINT32>(meta.size()),
                             meta_format_.Get(),
                             meta_rect,
-                            brush_secondary_text_.Get(),
+                            secondary_brush,
                             D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
     d2d_context_->DrawLine(D2D1::Point2F(left + 32.0f, top + 158.0f),
@@ -591,7 +728,7 @@ void D2DRenderer::DrawScene() noexcept {
                                        brush_accent_soft_.Get());
     const D2D1_RECT_F pill_text =
         D2D1::RectF(pill.left + 12.0f, pill.top, pill.right - 8.0f, pill.bottom);
-    constexpr std::wstring_view pill_label = L"PHASE 1";
+    constexpr std::wstring_view pill_label = L"PHASE 2";
     d2d_context_->DrawTextW(pill_label.data(),
                             static_cast<UINT32>(pill_label.size()),
                             pill_format_.Get(),
@@ -611,7 +748,7 @@ void D2DRenderer::DrawScene() noexcept {
                             static_cast<UINT32>(status.size()),
                             meta_format_.Get(),
                             status_rect,
-                            brush_secondary_text_.Get(),
+                            secondary_brush,
                             D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
     const D2D1_RECT_F version_rect =
@@ -621,18 +758,17 @@ void D2DRenderer::DrawScene() noexcept {
                             static_cast<UINT32>(version.size()),
                             version_format_.Get(),
                             version_rect,
-                            brush_secondary_text_.Get(),
+                            secondary_brush,
                             D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
     const D2D1_RECT_F footer_rect =
         D2D1::RectF(left + 32.0f, top + 244.0f, right - 32.0f, top + 268.0f);
-    constexpr std::wstring_view footer =
-        L"Device loss recovery active. Custom chrome and retained-mode UI are next.";
+    constexpr std::wstring_view footer = L"Custom chrome active. Retained-mode UI and controls are next.";
     d2d_context_->DrawTextW(footer.data(),
                             static_cast<UINT32>(footer.size()),
                             meta_format_.Get(),
                             footer_rect,
-                            brush_secondary_text_.Get(),
+                            secondary_brush,
                             D2D1_DRAW_TEXT_OPTIONS_CLIP);
 }
 
@@ -647,6 +783,8 @@ void D2DRenderer::ReleaseDeviceResources() noexcept {
     ReleaseTarget();
     brush_window_.Reset();
     brush_surface_.Reset();
+    brush_surface_soft_.Reset();
+    brush_surface_hover_.Reset();
     brush_border_.Reset();
     brush_primary_text_.Reset();
     brush_secondary_text_.Reset();
@@ -654,6 +792,10 @@ void D2DRenderer::ReleaseDeviceResources() noexcept {
     brush_accent_soft_.Reset();
     brush_on_accent_.Reset();
     brush_success_.Reset();
+    brush_close_hover_.Reset();
+    brush_on_close_.Reset();
+    badge_format_.Reset();
+    caption_format_.Reset();
     version_format_.Reset();
     pill_format_.Reset();
     meta_format_.Reset();

@@ -51,6 +51,8 @@ int main() {
     passed &= Expect(dark.surface.a == 255, "dark surface is opaque");
     passed &= Expect(light.text_primary != light.window_bg, "light text contrasts with background");
     passed &= Expect(dark.text_primary != dark.window_bg, "dark text contrasts with background");
+    passed &= Expect(light.surface_hover != light.surface, "light hover surface differs from surface");
+    passed &= Expect(light.close_hover == Color{0xC4, 0x2B, 0x1C}, "close hover is the caption red");
 
     passed &= Expect(Contrast(light.primary, light.on_accent) >= 4.5,
                      "light primary has AA contrast with white text");

@@ -18,6 +18,7 @@ struct ThemeTokens {
     Color window_bg;
     Color surface;
     Color surface_soft;
+    Color surface_hover;
     Color border;
     Color border_strong;
     Color text_primary;
@@ -31,6 +32,8 @@ struct ThemeTokens {
     Color success;
     Color warning;
     Color danger;
+    Color close_hover;
+    Color on_close;
 };
 
 [[nodiscard]] const ThemeTokens& light_theme() noexcept;
