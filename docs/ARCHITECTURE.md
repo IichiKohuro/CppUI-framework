@@ -287,6 +287,7 @@ CppUI-framework/
 ├─ tests/ui_tests.cpp
 ├─ tests/form_tests.cpp
 ├─ tests/visual_test.ps1
+├─ tests/dpi_matrix_test.ps1
 ├─ tests/baselines/
 ├─ docs/PHASE1.md
 ├─ docs/PHASE2.md

@@ -76,6 +76,7 @@ private:
     cppui::ThemeMode theme_mode_{cppui::ThemeMode::light};
     cppui::DensityMode density_mode_{cppui::DensityMode::cozy};
     float dpi_{96.0f};
+    std::chrono::steady_clock::time_point run_start_{};
     int click_count_{};
     bool renderer_ready_{false};
     int paint_failures_{0};
@@ -86,6 +87,7 @@ int BootstrapApp::Run(HINSTANCE instance,
                       bool self_test,
                       bool benchmark,
                       bool capture_visual) {
+    run_start_ = std::chrono::steady_clock::now();
     cppui::Win32Window window(instance,
                               kWindowTitle,
                               kInitialWidthDip,
@@ -691,12 +693,18 @@ int BootstrapApp::RunBenchmark(cppui::Win32Window& window) {
     }
     LayoutUiForSize(1000.0f, 640.0f);
 
+    double startup_ms = 0.0;
     for (int warmup = 0; warmup < 10; ++warmup) {
         if (!renderer_.Render(chrome, ui_.root())) {
             OutputDebugStringW(L"CppUI benchmark: warmup render failed.\n");
             return 3;
         }
+        if (warmup == 0) {
+            startup_ms = elapsed_ms(run_start_, Clock::now());
+        }
     }
+
+
 
     FILETIME creation_start{};
     FILETIME exit_start{};
@@ -824,6 +832,7 @@ int BootstrapApp::RunBenchmark(cppui::Win32Window& window) {
     const double frame_avg_ms = frame_total / static_cast<double>(frame_times.size());
     const size_t p95_index =
         std::min(frame_times.size() - 1, static_cast<size_t>(frame_times.size() * 0.95));
+
     const cppui::Size target = renderer_.TargetSizeDip();
 
     std::ofstream output("cppui-benchmark.txt", std::ios::trunc);
@@ -842,6 +851,7 @@ int BootstrapApp::RunBenchmark(cppui::Win32Window& window) {
     output << "frame_p95_ms=" << frame_times[p95_index] << '\n';
     output << "frame_cpu_avg_ms=" << cpu_ms_per_frame << '\n';
     output << "frame_fps=" << (1000.0 / frame_avg_ms) << '\n';
+    output << "startup_to_first_frame_ms=" << startup_ms << '\n';
     output << "layout_avg_ms=" << layout_avg_ms << '\n';
     output << "resize_avg_ms=" << resize_avg_ms << '\n';
     output << "theme_switch_avg_ms=" << theme_avg_ms << '\n';

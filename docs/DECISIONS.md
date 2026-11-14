@@ -52,6 +52,7 @@
 | D-033 | Phase 5: DPI matrix + benchmark + CI | Accepted | `render_smoke` проверяет 96/120/144/192 DPI, Light/Dark, S/M/L и target DIP size; `--benchmark`/CTest фиксирует frame/layout/resize/theme/density; GitHub Actions запускает Debug/Release. Memory 64.4 MB остаётся P2 |
 | D-034 | Visual regression через WIC и backbuffer capture | Accepted | `RenderAndCapture` копирует D3D backbuffer в staging texture и кодирует PNG через WIC; `cppui.visual` сравнивает Light/Dark/Compact baselines с допуском 8/255 и 2% пикселей. Baselines лежат в `tests/baselines` |
 | D-035 | Публичный `Form` API через pimpl | Accepted | `Form` владеет Win32Window/D2DRenderer/UiHost/StatusBar, но public header не тянет windows.h. Поддерживает content, theme/density, статус, titlebar action, Show/Run; integration-тест `cppui.form`. Demo остаётся расширенным harness |
+| D-036 | Реальный mixed-DPI тест | Accepted | PowerShell `cppui.dpi` переносит окно между мониторами 120/96 DPI, проверяет `GetDpiForWindow` и client area; на одном DPI делает SKIP. Snap/Alt+Space/Alt+F4 остаются ручными |
 
 ## 3. Предложенные решения
 

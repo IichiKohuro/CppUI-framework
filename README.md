@@ -46,15 +46,18 @@
 
 ## Hardening (Phase 5)
 
-- CTest **6/6** в Debug и Release: theme, UI, Form, DPI matrix, benchmark, visual regression.
+- CTest **7/7** в Debug и Release: theme, UI, Form, DPI matrix, mixed-DPI, benchmark, visual regression.
 - Simulated DPI matrix **96 / 120 / 144 / 192** с Light/Dark и S/M/L.
+- Реальная mixed-DPI проверка на двух мониторах: **120 DPI / 96 DPI**.
 - Visual snapshots Light/Dark/Compact в `tests/baselines`, сравнение через WIC/D2D.
 - Публичный `Form` API с Create/SetContent/theme/density/status/Show/Run.
-- Release benchmark: **120 FPS** (VSync), **1.30 ms CPU/кадр**, layout **0.119 ms**.
-- Cold start **177 ms**, idle CPU **≈0%**, working set **64.4 MB** (P2: выше 60 MB).
+- Release benchmark: **120 FPS** (VSync), **~1.8 ms CPU/кадр**, layout **~0.15 ms**.
+- Startup до первого кадра **101 ms** внутри приложения; внешний cold start **177 ms**.
+- Idle CPU **≈0%**, working set **64.4 MB** (P2: выше 60 MB).
+- Clean build-каталог Debug собран с нуля; 7/7 тестов зелёные.
 - GitHub Actions workflow для Debug/Release и benchmark artifacts.
 
-M0 closure ещё не объявлен: реальная multi-monitor матрица, flicker/input-to-photon, memory budget, clean-machine и подтверждение CI на runner. `Form` API уже доступен в [include/cppui/form.hpp](include/cppui/form.hpp). Подробности — в [docs/PHASE5.md](docs/PHASE5.md).
+M0 closure ещё не объявлен: 150/200% DPI, flicker/input-to-photon, memory budget, clean-machine и подтверждение CI на runner. `Form` API уже доступен в [include/cppui/form.hpp](include/cppui/form.hpp). Подробности — в [docs/PHASE5.md](docs/PHASE5.md).
 
 ## Визуальный концепт
 
@@ -92,7 +95,8 @@ M0 closure ещё не объявлен: реальная multi-monitor матр
 - [x] Добавлены Form-preview, `FormPanel`, `StatusBar` и действие сброса в titlebar.
 - [x] Добавлены simulated DPI matrix 96–192, benchmark, visual regression и GitHub Actions workflow.
 - [x] Добавлен публичный top-level `Form` API и integration test.
-- [ ] Закрыт M0: реальная multi-monitor матрица, flicker/input-to-photon, memory budget, clean-machine.
+- [x] Проверен реальный переход между двумя мониторами 120 DPI / 96 DPI.
+- [ ] Закрыт M0: 150/200% DPI, flicker/input-to-photon, memory budget, clean-machine.
 
 ## Сборка
 
@@ -137,7 +141,7 @@ Pop-Location
 
 ## Ближайший шаг
 
-M0 closure: реальная 100–200% / mixed-DPI / multi-monitor матрица, flicker/input-to-photon, снижение memory и cold start, подтверждение CI на runner.
+M0 closure: 150/200% DPI, flicker/input-to-photon, снижение memory, clean-machine и подтверждение CI на runner.
 
 ## Лицензия
 

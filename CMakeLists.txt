@@ -130,5 +130,17 @@ if(CPPUI_BUILD_TESTS)
             LABELS "visual"
             TIMEOUT 120
         )
+
+        add_test(
+            NAME cppui.dpi
+            COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+                    -File "${CMAKE_CURRENT_SOURCE_DIR}/tests/dpi_matrix_test.ps1"
+                    -Exe "$<TARGET_FILE:cppui_bootstrap>"
+        )
+        set_tests_properties(cppui.dpi PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+            LABELS "dpi"
+            TIMEOUT 60
+        )
     endif()
 endif()
