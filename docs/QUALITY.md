@@ -31,6 +31,7 @@
 
 Тесты с окном, но без активного пользователя:
 
+- `cppui.render_smoke`: hidden window, initial frame, resize, device recreation, final frame;
 - создание hidden window и message loop;
 - `WM_SIZE`, `WM_DPICHANGED`, `WM_SETTINGCHANGE`;
 - закрытие через `WM_CLOSE` и отмена через callback;
@@ -96,6 +97,8 @@ RTL/BiDi — не входит в v0.1; добавить в матрицу, ко
 ## 5. Performance-бюджеты
 
 Это стартовые цели, которые нужно подтвердить на реальном железе после Phase 1. Значения не являются обещанием для любой конфигурации.
+
+Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resize stress из пяти размеров не привёл к потере отзывчивости. Cold start, input-to-photon и frame-time бюджеты ещё не измерялись.
 
 | Метрика | Target | Hard threshold |
 |---|---:|---:|

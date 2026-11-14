@@ -1,7 +1,7 @@
 # ARCHITECTURE — техническая архитектура CppUI
 
-> Статус: Draft · Phase 0 implemented · 14.11.2026.
-> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [ROADMAP.md](ROADMAP.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [QUALITY.md](QUALITY.md), [PHASE0.md](PHASE0.md).
+> Статус: Draft · Phase 1 implemented · 14.11.2026.
+> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [ROADMAP.md](ROADMAP.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [QUALITY.md](QUALITY.md), [PHASE0.md](PHASE0.md), [PHASE1.md](PHASE1.md).
 
 ## 1. Ограничения и цель
 
@@ -163,7 +163,7 @@ Hybrid hit-testing (client-drawn кнопки + non-client поведение Wi
 - Обработка `DXGI_ERROR_DEVICE_REMOVED`/`DXGI_ERROR_DEVICE_RESET`/`D2DERR_RECREATE_TARGET`: пересоздать device и ресурсы, не теряя состояние UI.
 - При resize — `ResizeBuffers` и пересоздание bitmap target; не рисовать в старый back buffer.
 
-> Phase 0 baseline: реализованы D3D11/DXGI flip/D2D/DWrite, WARP, resize и `D2DERR_RECREATE_TARGET` для target. Полный device-loss recovery и idle/present policy — Phase 1.
+> Phase 1 baseline: реализованы D3D11/DXGI flip/D2D/DWrite, WARP, resize, DPI callbacks, `D2DERR_RECREATE_TARGET` и полное пересоздание device/swap chain/ресурсов при `DEVICE_REMOVED`/`DEVICE_RESET`/`DEVICE_HUNG`. Present выполняется по invalidation, без busy-loop.
 
 ### 6.2 Кадры
 
@@ -252,16 +252,19 @@ public:
 
 ## 10. Структура проекта
 
-Фактическая структура Phase 0:
+Фактическая структура Phase 1:
 
 ```text
 CppUI-framework/
 ├─ include/cppui/theme/tokens.hpp
 ├─ src/theme/theme.cpp
+├─ src/platform/win32/win32_window.hpp
+├─ src/platform/win32/win32_window.cpp
 ├─ src/render/d2d/d2d_renderer.hpp
 ├─ src/render/d2d/d2d_renderer.cpp
 ├─ samples/bootstrap/main.cpp
 ├─ tests/theme_tests.cpp
+├─ docs/PHASE1.md
 ├─ tools/build.ps1
 ├─ CMakeLists.txt
 └─ CMakePresets.json

@@ -2,7 +2,7 @@
 
 **CppUI** — рабочее название лёгкого UI-фреймворка для Windows на C++20. Цель — быстрый и предсказуемый десктопный toolkit с кастомным окном, аппаратной отрисовкой, аккуратными темами и API, которое не заставляет писать инфраструктуру заново в каждом приложении.
 
-> Статус: **Phase 0 завершена**. Есть CMake-каркас, токены Signal Teal и реальное Win32-окно с D3D11/DXGI/Direct2D. Retained-mode ядро ещё впереди.
+> Статус: **Phase 1 завершена**. Есть Win32 window layer, D3D11/DXGI/Direct2D renderer с WARP, device-loss recovery и smoke-тестами. Retained-mode ядро ещё впереди.
 > Дата: 14.11.2026.
 
 ## Ключевые решения
@@ -21,7 +21,8 @@
 | Документ | Назначение |
 |---|---|
 | [PLAN.md](PLAN.md) | Основной план создания, цели, границы, этапы и риски |
-| [docs/PHASE0.md](docs/PHASE0.md) | Что сделано в Phase 0, как собрать и что проверено |
+| [docs/PHASE0.md](docs/PHASE0.md) | Bootstrap: CMake, токены, первое окно |
+| [docs/PHASE1.md](docs/PHASE1.md) | Platform + render: device loss, WARP, idle CPU, smoke test |
 | [CONTROL_BACKLOG.md](CONTROL_BACKLOG.md) | Полный каталог контролов, недостающие элементы, зависимости и волны |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Релизы, ориентировочные сроки, критерии выхода |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архитектура, стек, окно, рендер, API и структура проекта |
@@ -31,11 +32,11 @@
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Журнал принятых и открытых решений |
 | [design/README.md](design/README.md) | Описание макетов, галереи контролов и скриншотов |
 
-## Phase 0: рабочее окно
+## Phase 1: platform + render
 
-![Phase 0 bootstrap window](docs/images/phase0-bootstrap.png)
+![Phase 1 bootstrap window](docs/images/phase1-bootstrap.png)
 
-Это не макет, а реальный `cppui-bootstrap.exe`: Win32-окно, D3D11, DXGI flip-model, Direct2D/DirectWrite и токены Signal Teal. Сейчас используется стандартная рамка Windows; кастомный chrome и контролы — следующие этапы. Подробности и ограничения — в [docs/PHASE0.md](docs/PHASE0.md).
+Это реальный `cppui-bootstrap.exe`: Win32-окно, D3D11, DXGI flip-model, Direct2D/DirectWrite, hardware/WARP backend и восстановление после потери устройства. Сейчас используется стандартная рамка Windows; кастомный chrome и retained-mode UI — Phase 2+. Подробности, тесты и ограничения — в [docs/PHASE1.md](docs/PHASE1.md).
 
 ## Визуальный концепт
 
@@ -64,6 +65,8 @@
 - [x] Инициализирован git-репозиторий и CMake-каркас.
 - [x] Появился первый исполняемый пример: окно с D3D11/DXGI/Direct2D.
 - [x] Добавлены smoke-тест, Debug/Release пресеты и CI workflow.
+- [x] Выделен `Win32Window`, добавлены DPI/resize callbacks и WARP.
+- [x] Добавлены device-loss recovery и render smoke test; idle CPU ≈ 0%.
 - [ ] Появился retained-mode `Form` с кнопкой и переключением темы.
 
 ## Сборка
@@ -82,11 +85,21 @@
 .\out\build\windows-vs2026-debug\Debug\cppui-bootstrap.exe
 ```
 
-Скрипт находит Visual Studio, CMake и Ninja через `vswhere` и собирает нужный preset. Для VS 2022 используйте `-Preset windows-vs2022-debug`. Для Ninja-сборки на английской локали — `-Preset windows-msvc-debug`; подробнее в [docs/PHASE0.md](docs/PHASE0.md).
+Скрипт находит Visual Studio, CMake и Ninja через `vswhere` и собирает нужный preset. Для VS 2022 используйте `-Preset windows-vs2022-debug`. Для Ninja-сборки на английской локали — `-Preset windows-msvc-debug`; подробнее в [docs/PHASE1.md](docs/PHASE1.md).
+
+Проверки Phase 1:
+
+```powershell
+.\out\build\windows-vs2026-debug\Debug\cppui-bootstrap.exe --self-test
+$env:CPPUI_FORCE_WARP = '1'
+.\out\build\windows-vs2026-debug\Debug\cppui-bootstrap.exe --self-test
+```
+
+В живом окне `F5` принудительно пересоздаёт render device.
 
 ## Ближайший шаг
 
-Phase 1: завершить render-цикл (device loss, idle/present policy), затем кастомный chrome и retained-mode ядро с `Form`, `Button` и темами.
+Phase 2: кастомный chrome (`WM_NCCALCSIZE`, `WM_NCHITTEST`, drag, системные кнопки, Snap Layouts, DWM corners), затем retained-mode ядро с `Form`, `Button` и темами.
 
 ## Лицензия
 

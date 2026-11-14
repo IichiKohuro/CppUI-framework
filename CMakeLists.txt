@@ -7,7 +7,7 @@ if(NOT WIN32)
 endif()
 
 if(NOT MSVC)
-    message(FATAL_ERROR "Phase 0 targets MSVC 2022/2026. Configure from a Visual Studio developer shell.")
+    message(FATAL_ERROR "CppUI targets MSVC 2022/2026. Configure from a Visual Studio developer shell.")
 endif()
 
 
@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Phase 0 does not use C++20 modules. Keep module scanning out of the build
+# CppUI does not use C++20 modules yet. Keep module scanning out of the build
 # until modules are actually needed.
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
@@ -34,6 +34,7 @@ endfunction()
 
 add_library(cppui STATIC
     src/theme/theme.cpp
+    src/platform/win32/win32_window.cpp
     src/render/d2d/d2d_renderer.cpp
 )
 add_library(cppui::cppui ALIAS cppui)
@@ -87,4 +88,9 @@ if(CPPUI_BUILD_TESTS)
     cppui_configure_warnings(cppui_tests)
 
     add_test(NAME cppui.theme COMMAND cppui_tests)
+
+    if(CPPUI_BUILD_SAMPLES)
+        add_test(NAME cppui.render_smoke COMMAND cppui_bootstrap --self-test)
+        set_tests_properties(cppui.render_smoke PROPERTIES LABELS "render")
+    endif()
 endif()

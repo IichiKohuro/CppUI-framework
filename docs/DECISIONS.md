@@ -44,6 +44,7 @@
 | D-025 | **Data-workspace demo** с TreeList + GridView + PropertyGrid + bottom dock | Accepted | Показывает реальный data-heavy сценарий, а не только карточки контролов |
 | D-026 | **Inline editing и row states** входят в дизайн-требования data-контролов | Accepted | В HTML работают inline-меню, Running/Failed/new/changed; в C++ — поведение GridView/PropertyGrid |
 | D-027 | CI использует **CMake + Ninja**; локально на локализованной MSVC — **Visual Studio generator** | Accepted | CMake 4.3 + Ninja на русской MSVC пишут `/showIncludes`-префикс в неверной кодировке и теряют header-deps; VS generator даёт корректный incremental build. Оба пути используют один CMake-проект |
+| D-028 | Phase 1: **полное пересоздание D3D/DXGI/D2D-ресурсов** при device loss; отрисовка только по invalidation | Accepted | `DEVICE_REMOVED`/`RESET`/`HUNG` и ошибки target восстанавливаются без падения; idle CPU измерен около нуля. `Win32Window` остаётся внутренним слоем до custom chrome |
 
 ## 3. Предложенные решения
 

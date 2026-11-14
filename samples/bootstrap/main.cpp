@@ -3,15 +3,18 @@
 #include <objbase.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <string_view>
 
 #include <cppui/theme/tokens.hpp>
 
+#include "platform/win32/win32_window.hpp"
 #include "render/d2d/d2d_renderer.hpp"
 
 namespace {
 
-constexpr wchar_t kWindowClass[] = L"CppUI.BootstrapWindow";
-constexpr wchar_t kWindowTitle[] = L"CppUI - Phase 0";
+constexpr wchar_t kWindowTitle[] = L"CppUI - Phase 1";
+constexpr wchar_t kErrorTitle[] = L"CppUI - Phase 1";
 constexpr int kInitialWidthDip = 1000;
 constexpr int kInitialHeightDip = 640;
 constexpr int kMinWidthDip = 720;
@@ -19,250 +22,184 @@ constexpr int kMinHeightDip = 480;
 
 class BootstrapApp final {
 public:
-    int Run(HINSTANCE instance, int show_command);
+    int Run(HINSTANCE instance, int show_command, bool self_test);
 
 private:
-    static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
-    LRESULT HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
-    void CenterOnPrimaryMonitor();
-    void ResizeRenderer(UINT width, UINT height);
+    int RunSelfTest(cppui::Win32Window& window);
+    void OnPaint();
+    void OnResize(std::uint32_t width, std::uint32_t height, float dpi);
+    void OnDpiChanged(float dpi);
+    bool OnKeyDown(WPARAM key);
+    void StopRenderer();
 
-    HINSTANCE instance_{};
-    HWND hwnd_{};
+    cppui::Win32Window* window_{};
     cppui::D2DRenderer renderer_;
     bool renderer_ready_{false};
-    UINT dpi_{96};
+    int paint_failures_{0};
 };
 
-int BootstrapApp::Run(HINSTANCE instance, int show_command) {
-    instance_ = instance;
+int BootstrapApp::Run(HINSTANCE instance, int show_command, bool self_test) {
+    cppui::Win32Window window(instance,
+                              kWindowTitle,
+                              kInitialWidthDip,
+                              kInitialHeightDip,
+                              kMinWidthDip,
+                              kMinHeightDip);
 
-    WNDCLASSEXW window_class{};
-    window_class.cbSize = sizeof(window_class);
-    window_class.style = CS_HREDRAW | CS_VREDRAW;
-    window_class.lpfnWndProc = &BootstrapApp::WindowProc;
-    window_class.hInstance = instance_;
-    window_class.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-    window_class.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
-    window_class.hIconSm = window_class.hIcon;
-    window_class.lpszClassName = kWindowClass;
+    cppui::Win32Window::Callbacks callbacks{};
+    callbacks.paint = [this] { OnPaint(); };
+    callbacks.resized = [this](std::uint32_t width, std::uint32_t height, float dpi) {
+        OnResize(width, height, dpi);
+    };
+    callbacks.dpi_changed = [this](float dpi) { OnDpiChanged(dpi); };
+    callbacks.key_down = [this](WPARAM key) { return OnKeyDown(key); };
 
-    if (RegisterClassExW(&window_class) == 0) {
-        return 1;
-    }
-
-    dpi_ = GetDpiForSystem();
-    if (dpi_ == 0) {
-        dpi_ = 96;
-    }
-
-    RECT desired{0, 0, MulDiv(kInitialWidthDip, static_cast<int>(dpi_), 96),
-                 MulDiv(kInitialHeightDip, static_cast<int>(dpi_), 96)};
-    AdjustWindowRectExForDpi(&desired, WS_OVERLAPPEDWINDOW, FALSE, 0, dpi_);
-
-    hwnd_ = CreateWindowExW(0,
-                            kWindowClass,
-                            kWindowTitle,
-                            WS_OVERLAPPEDWINDOW,
-                            CW_USEDEFAULT,
-                            CW_USEDEFAULT,
-                            desired.right - desired.left,
-                            desired.bottom - desired.top,
-                            nullptr,
-                            nullptr,
-                            instance_,
-                            this);
-    if (hwnd_ == nullptr) {
-        UnregisterClassW(kWindowClass, instance_);
-        return 1;
-    }
-
-    dpi_ = GetDpiForWindow(hwnd_);
-    if (dpi_ == 0) {
-        dpi_ = 96;
-    }
-
-    if (!renderer_.Initialize(hwnd_, cppui::light_theme())) {
-        MessageBoxW(hwnd_,
-                    L"Direct2D renderer initialization failed. See the debug output for HRESULT details.",
-                    L"CppUI - Phase 0",
+    if (!window.Create(callbacks)) {
+        MessageBoxW(nullptr,
+                    L"Win32 window creation failed.",
+                    kErrorTitle,
                     MB_OK | MB_ICONERROR);
-        DestroyWindow(hwnd_);
-        UnregisterClassW(kWindowClass, instance_);
+        return 1;
+    }
+
+    window_ = &window;
+
+    if (!renderer_.Initialize(window.Handle(), cppui::light_theme())) {
+        MessageBoxW(window.Handle(),
+                    L"Direct2D/D3D11 renderer initialization failed. See the debug output for details.",
+                    kErrorTitle,
+                    MB_OK | MB_ICONERROR);
+        window_ = nullptr;
         return 1;
     }
     renderer_ready_ = true;
 
-    CenterOnPrimaryMonitor();
-    ShowWindow(hwnd_, show_command);
-    UpdateWindow(hwnd_);
-
-    MSG message{};
-    int result = 0;
-    while (GetMessageW(&message, nullptr, 0, 0) > 0) {
-        TranslateMessage(&message);
-        DispatchMessageW(&message);
+    if (self_test) {
+        return RunSelfTest(window);
     }
-    result = static_cast<int>(message.wParam);
+
+    window.Show(show_command);
+    const int result = window.Run();
 
     renderer_.Shutdown();
     renderer_ready_ = false;
-    UnregisterClassW(kWindowClass, instance_);
+    window_ = nullptr;
     return result;
 }
 
-void BootstrapApp::ResizeRenderer(UINT width, UINT height) {
+int BootstrapApp::RunSelfTest(cppui::Win32Window& window) {
+    if (!renderer_.Render()) {
+        OutputDebugStringW(L"CppUI self-test: initial render failed.\n");
+        return 2;
+    }
+
+    if (!renderer_.Resize(800, 500, window.Dpi())) {
+        OutputDebugStringW(L"CppUI self-test: resize failed.\n");
+        return 3;
+    }
+
+    if (!renderer_.Render()) {
+        OutputDebugStringW(L"CppUI self-test: render after resize failed.\n");
+        return 4;
+    }
+
+    if (!renderer_.RecreateDevice()) {
+        OutputDebugStringW(L"CppUI self-test: device recreation failed.\n");
+        return 5;
+    }
+
+    if (!renderer_.Render()) {
+        OutputDebugStringW(L"CppUI self-test: render after device recreation failed.\n");
+        return 6;
+    }
+
+    renderer_.Shutdown();
+    renderer_ready_ = false;
+    window_ = nullptr;
+    window.Destroy();
+    OutputDebugStringW(L"CppUI self-test: passed.\n");
+    return 0;
+}
+
+void BootstrapApp::OnPaint() {
     if (!renderer_ready_) {
         return;
     }
 
-    if (!renderer_.Resize(width, height, static_cast<float>(dpi_))) {
-        renderer_ready_ = false;
-        OutputDebugStringW(L"CppUI: Direct2D renderer resize failed.\n");
-    }
-}
-
-void BootstrapApp::CenterOnPrimaryMonitor() {
-    if (hwnd_ == nullptr) {
+    if (renderer_.Render()) {
+        paint_failures_ = 0;
         return;
     }
 
-    RECT window_rect{};
-    if (!GetWindowRect(hwnd_, &window_rect)) {
+    if (!renderer_.IsInitialized()) {
+        StopRenderer();
         return;
     }
 
-    MONITORINFO monitor_info{};
-    monitor_info.cbSize = sizeof(monitor_info);
-    const HMONITOR monitor = MonitorFromWindow(hwnd_, MONITOR_DEFAULTTOPRIMARY);
-    if (!GetMonitorInfoW(monitor, &monitor_info)) {
+    ++paint_failures_;
+    if (paint_failures_ <= 2) {
+        window_->Invalidate();
+    } else {
+        StopRenderer();
+    }
+}
+
+void BootstrapApp::OnResize(std::uint32_t width, std::uint32_t height, float dpi) {
+    if (!renderer_ready_) {
         return;
     }
 
-    const int width = window_rect.right - window_rect.left;
-    const int height = window_rect.bottom - window_rect.top;
-    const int x =
-        monitor_info.rcWork.left + ((monitor_info.rcWork.right - monitor_info.rcWork.left) - width) / 2;
-    const int y =
-        monitor_info.rcWork.top + ((monitor_info.rcWork.bottom - monitor_info.rcWork.top) - height) / 2;
-
-    SetWindowPos(hwnd_,
-                 nullptr,
-                 x,
-                 y,
-                 0,
-                 0,
-                 SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    if (!renderer_.Resize(width, height, dpi)) {
+        if (!renderer_.IsInitialized()) {
+            StopRenderer();
+        }
+    }
 }
 
-LRESULT CALLBACK BootstrapApp::WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
-    BootstrapApp* app = reinterpret_cast<BootstrapApp*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
-
-    if (message == WM_NCCREATE) {
-        const auto* create = reinterpret_cast<const CREATESTRUCTW*>(lparam);
-        app = static_cast<BootstrapApp*>(create->lpCreateParams);
-        SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(app));
-        return app->HandleMessage(hwnd, message, wparam, lparam);
+void BootstrapApp::OnDpiChanged(float dpi) {
+    if (!renderer_ready_ || window_ == nullptr) {
+        return;
     }
 
-    if (app != nullptr) {
-        const LRESULT result = app->HandleMessage(hwnd, message, wparam, lparam);
-        if (message == WM_NCDESTROY) {
-            SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
+    RECT client{};
+    if (GetClientRect(window_->Handle(), &client) == FALSE) {
+        return;
+    }
+
+    const UINT width = static_cast<UINT>(std::max<LONG>(1, client.right - client.left));
+    const UINT height = static_cast<UINT>(std::max<LONG>(1, client.bottom - client.top));
+    if (!renderer_.Resize(width, height, dpi)) {
+        if (!renderer_.IsInitialized()) {
+            StopRenderer();
         }
-        return result;
     }
-
-    return DefWindowProcW(hwnd, message, wparam, lparam);
 }
 
-LRESULT BootstrapApp::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
-    switch (message) {
-        case WM_SIZE:
-            if (renderer_ready_) {
-                const UINT width = LOWORD(lparam);
-                const UINT height = HIWORD(lparam);
-                UINT window_dpi = GetDpiForWindow(hwnd);
-                if (window_dpi == 0) {
-                    window_dpi = 96;
-                }
-                dpi_ = window_dpi;
-                if (width > 0 && height > 0) {
-                    ResizeRenderer(width, height);
-                }
-                InvalidateRect(hwnd, nullptr, FALSE);
-            }
-            return 0;
-
-        case WM_DPICHANGED: {
-            dpi_ = HIWORD(wparam);
-            if (dpi_ == 0) {
-                dpi_ = 96;
-            }
-
-            const auto* suggested = reinterpret_cast<const RECT*>(lparam);
-            SetWindowPos(hwnd,
-                         nullptr,
-                         suggested->left,
-                         suggested->top,
-                         suggested->right - suggested->left,
-                         suggested->bottom - suggested->top,
-                         SWP_NOZORDER | SWP_NOACTIVATE);
-
-            if (renderer_ready_) {
-                RECT client{};
-                GetClientRect(hwnd, &client);
-                const UINT width = static_cast<UINT>(std::max<LONG>(1, client.right - client.left));
-                const UINT height = static_cast<UINT>(std::max<LONG>(1, client.bottom - client.top));
-                ResizeRenderer(width, height);
-            }
-            InvalidateRect(hwnd, nullptr, FALSE);
-            return 0;
+bool BootstrapApp::OnKeyDown(WPARAM key) {
+    if (key == VK_ESCAPE) {
+        if (window_ != nullptr) {
+            window_->Destroy();
         }
-
-        case WM_GETMINMAXINFO: {
-            auto* minmax = reinterpret_cast<MINMAXINFO*>(lparam);
-            UINT window_dpi = GetDpiForWindow(hwnd);
-            if (window_dpi == 0) {
-                window_dpi = 96;
-            }
-            minmax->ptMinTrackSize.x = MulDiv(kMinWidthDip, static_cast<int>(window_dpi), 96);
-            minmax->ptMinTrackSize.y = MulDiv(kMinHeightDip, static_cast<int>(window_dpi), 96);
-            return 0;
-        }
-
-        case WM_ERASEBKGND:
-            return 1;
-
-        case WM_PAINT: {
-            PAINTSTRUCT paint{};
-            BeginPaint(hwnd, &paint);
-            if (renderer_ready_ && !renderer_.Render()) {
-                InvalidateRect(hwnd, nullptr, FALSE);
-            }
-            EndPaint(hwnd, &paint);
-            return 0;
-        }
-
-        case WM_KEYDOWN:
-            if (wparam == VK_ESCAPE) {
-                DestroyWindow(hwnd);
-                return 0;
-            }
-            break;
-
-        case WM_DESTROY:
-            PostQuitMessage(0);
-            return 0;
-
-        case WM_NCDESTROY:
-            break;
-
-        default:
-            break;
+        return true;
     }
 
-    return DefWindowProcW(hwnd, message, wparam, lparam);
+    if (key == VK_F5 && renderer_ready_) {
+        renderer_ready_ = renderer_.RecreateDevice();
+        paint_failures_ = 0;
+        if (!renderer_ready_) {
+            OutputDebugStringW(L"CppUI: manual device recreation failed.\n");
+        } else if (window_ != nullptr) {
+            window_->Invalidate();
+        }
+        return true;
+    }
+
+    return false;
+}
+
+void BootstrapApp::StopRenderer() {
+    renderer_ready_ = false;
+    OutputDebugStringW(L"CppUI: renderer stopped after unrecoverable failure.\n");
 }
 
 }  // namespace
@@ -275,8 +212,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
         return 1;
     }
 
+    const std::wstring_view command_line = GetCommandLineW();
+    const bool self_test = command_line.find(L"--self-test") != std::wstring_view::npos;
+
     BootstrapApp app;
-    const int result = app.Run(instance, show_command);
+    const int result = app.Run(instance, show_command, self_test);
 
     CoUninitialize();
     return result;

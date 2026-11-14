@@ -1,6 +1,7 @@
 #include "render/d2d/d2d_renderer.hpp"
 
 #include <algorithm>
+#include <cstdio>
 #include <string_view>
 
 #include <d2d1helper.h>
@@ -46,6 +47,23 @@ bool CreateTextFormat(IDWriteFactory* factory,
     return true;
 }
 
+bool IsDeviceLost(HRESULT hr) noexcept {
+    return hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET ||
+           hr == DXGI_ERROR_DEVICE_HUNG;
+}
+
+void TraceHresult(const wchar_t* operation, HRESULT hr) noexcept {
+    wchar_t buffer[192]{};
+    swprintf_s(buffer, L"CppUI: %s failed (0x%08X)\n", operation, static_cast<unsigned int>(hr));
+    OutputDebugStringW(buffer);
+}
+
+bool ForceWarpFromEnvironment() noexcept {
+    wchar_t value[8]{};
+    const DWORD length = GetEnvironmentVariableW(L"CPPUI_FORCE_WARP", value, ARRAYSIZE(value));
+    return length > 0 && value[0] == L'1';
+}
+
 }  // namespace
 
 D2DRenderer::~D2DRenderer() {
@@ -60,6 +78,7 @@ bool D2DRenderer::Initialize(HWND hwnd, const ThemeTokens& theme) {
     hwnd_ = hwnd;
     theme_ = theme;
     last_error_ = S_OK;
+    using_warp_ = false;
 
     RECT client{};
     if (!GetClientRect(hwnd_, &client)) {
@@ -75,9 +94,45 @@ bool D2DRenderer::Initialize(HWND hwnd, const ThemeTokens& theme) {
         dpi_ = 96.0f;
     }
 
-    if (!CreateDeviceResources() || !CreateSwapChain() || !CreateTextFormats() ||
-        !CreateBrushes() || !CreateTargetBitmap()) {
+    if (!BuildResources()) {
         Shutdown();
+        return false;
+    }
+
+    initialized_ = true;
+    return true;
+}
+
+bool D2DRenderer::BuildResources() {
+    return CreateDeviceResources() && CreateSwapChain() && CreateTextFormats() &&
+           CreateBrushes() && CreateTargetBitmap();
+}
+
+bool D2DRenderer::RecreateDevice() {
+    if (hwnd_ == nullptr || IsWindow(hwnd_) == FALSE) {
+        return false;
+    }
+
+    const HWND hwnd = hwnd_;
+    const ThemeTokens theme = theme_;
+    const UINT width = std::max<UINT>(1, width_);
+    const UINT height = std::max<UINT>(1, height_);
+    const float dpi = dpi_;
+
+    initialized_ = false;
+    ReleaseDeviceResources();
+
+    hwnd_ = hwnd;
+    theme_ = theme;
+    width_ = width;
+    height_ = height;
+    dpi_ = dpi;
+    last_error_ = S_OK;
+
+    if (!BuildResources()) {
+        TraceHresult(L"device recreation", last_error_);
+        ReleaseDeviceResources();
+        initialized_ = false;
         return false;
     }
 
@@ -93,19 +148,29 @@ bool D2DRenderer::CreateDeviceResources() {
     };
 
     D3D_FEATURE_LEVEL selected_feature_level{};
-    HRESULT hr = D3D11CreateDevice(nullptr,
-                                   D3D_DRIVER_TYPE_HARDWARE,
-                                   nullptr,
-                                   flags,
-                                   feature_levels,
-                                   ARRAYSIZE(feature_levels),
-                                   D3D11_SDK_VERSION,
-                                   d3d_device_.GetAddressOf(),
-                                   &selected_feature_level,
-                                   d3d_context_.GetAddressOf());
+    HRESULT hr = E_FAIL;
+    bool hardware_created = false;
 
-    if (FAILED(hr)) {
-        // The WARP fallback keeps the framework usable in VMs and over RDP.
+    if (!ForceWarpFromEnvironment()) {
+        hr = D3D11CreateDevice(nullptr,
+                               D3D_DRIVER_TYPE_HARDWARE,
+                               nullptr,
+                               flags,
+                               feature_levels,
+                               ARRAYSIZE(feature_levels),
+                               D3D11_SDK_VERSION,
+                               d3d_device_.GetAddressOf(),
+                               &selected_feature_level,
+                               d3d_context_.GetAddressOf());
+        hardware_created = SUCCEEDED(hr);
+    }
+
+    if (!hardware_created) {
+        d3d_device_.Reset();
+        d3d_context_.Reset();
+
+        // The WARP fallback keeps the framework usable in VMs, over RDP and on
+        // machines without a usable hardware adapter.
         hr = D3D11CreateDevice(nullptr,
                                D3D_DRIVER_TYPE_WARP,
                                nullptr,
@@ -116,10 +181,18 @@ bool D2DRenderer::CreateDeviceResources() {
                                d3d_device_.GetAddressOf(),
                                &selected_feature_level,
                                d3d_context_.GetAddressOf());
+        using_warp_ = true;
+        if (SUCCEEDED(hr)) {
+            OutputDebugStringW(L"CppUI: using WARP renderer.\n");
+        }
+    } else {
+        using_warp_ = false;
+        OutputDebugStringW(L"CppUI: using hardware renderer.\n");
     }
 
     if (FAILED(hr)) {
         last_error_ = hr;
+        using_warp_ = false;
         return false;
     }
 
@@ -359,11 +432,19 @@ bool D2DRenderer::Resize(UINT width, UINT height, float dpi) {
         return true;
     }
 
+    last_error_ = S_OK;
     ReleaseTarget();
 
     HRESULT hr = swap_chain_->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
     if (FAILED(hr)) {
         last_error_ = hr;
+        TraceHresult(L"ResizeBuffers", hr);
+        if (IsDeviceLost(hr)) {
+            width_ = width;
+            height_ = height;
+            dpi_ = dpi;
+            (void)RecreateDevice();
+        }
         return false;
     }
 
@@ -371,14 +452,31 @@ bool D2DRenderer::Resize(UINT width, UINT height, float dpi) {
     height_ = height;
     dpi_ = dpi;
 
-    return CreateTargetBitmap();
-}
-
-bool D2DRenderer::Render() {
-    if (!initialized_ || !d2d_context_ || !target_bitmap_) {
+    if (!CreateTargetBitmap()) {
+        TraceHresult(L"CreateTargetBitmap", last_error_);
+        if (IsDeviceLost(last_error_)) {
+            (void)RecreateDevice();
+        }
         return false;
     }
 
+    return true;
+}
+
+bool D2DRenderer::Render() {
+    if (!initialized_ || !d2d_context_ || !swap_chain_) {
+        return false;
+    }
+
+    if (!target_bitmap_ && !CreateTargetBitmap()) {
+        TraceHresult(L"CreateTargetBitmap", last_error_);
+        if (IsDeviceLost(last_error_)) {
+            (void)RecreateDevice();
+        }
+        return false;
+    }
+
+    last_error_ = S_OK;
     d2d_context_->BeginDraw();
     d2d_context_->SetTransform(D2D1::Matrix3x2F::Identity());
     d2d_context_->SetDpi(dpi_, dpi_);
@@ -387,9 +485,14 @@ bool D2DRenderer::Render() {
     HRESULT hr = d2d_context_->EndDraw();
     if (FAILED(hr)) {
         last_error_ = hr;
+        TraceHresult(L"EndDraw", hr);
         if (hr == D2DERR_RECREATE_TARGET) {
             ReleaseTarget();
-            (void)CreateTargetBitmap();
+            if (!CreateTargetBitmap() && IsDeviceLost(last_error_)) {
+                (void)RecreateDevice();
+            }
+        } else if (IsDeviceLost(hr)) {
+            (void)RecreateDevice();
         }
         return false;
     }
@@ -397,6 +500,10 @@ bool D2DRenderer::Render() {
     hr = swap_chain_->Present(1, 0);
     if (FAILED(hr)) {
         last_error_ = hr;
+        TraceHresult(L"Present", hr);
+        if (IsDeviceLost(hr)) {
+            (void)RecreateDevice();
+        }
         return false;
     }
 
@@ -450,9 +557,9 @@ void D2DRenderer::DrawScene() noexcept {
         D2D1::RectF(left + 98.0f, top + 98.0f, right - 32.0f, top + 118.0f);
 
     constexpr std::wstring_view title = L"CppUI";
-    constexpr std::wstring_view subtitle = L"Phase 0 - Direct2D bootstrap";
+    constexpr std::wstring_view subtitle = L"Phase 1 - platform + render";
     constexpr std::wstring_view meta =
-        L"Signal Teal tokens  /  D3D11  /  DXGI flip-model  /  DirectWrite";
+        L"Signal Teal tokens  /  D3D11  /  DXGI flip-model  /  DirectWrite  /  DPI-aware";
 
     d2d_context_->DrawTextW(title.data(),
                             static_cast<UINT32>(title.size()),
@@ -484,7 +591,7 @@ void D2DRenderer::DrawScene() noexcept {
                                        brush_accent_soft_.Get());
     const D2D1_RECT_F pill_text =
         D2D1::RectF(pill.left + 12.0f, pill.top, pill.right - 8.0f, pill.bottom);
-    constexpr std::wstring_view pill_label = L"PHASE 0";
+    constexpr std::wstring_view pill_label = L"PHASE 1";
     d2d_context_->DrawTextW(pill_label.data(),
                             static_cast<UINT32>(pill_label.size()),
                             pill_format_.Get(),
@@ -498,7 +605,8 @@ void D2DRenderer::DrawScene() noexcept {
 
     const D2D1_RECT_F status_rect =
         D2D1::RectF(left + 168.0f, top + 190.0f, right - 92.0f, top + 218.0f);
-    constexpr std::wstring_view status = L"Renderer online";
+    const std::wstring_view status =
+        using_warp_ ? L"WARP renderer online" : L"Hardware renderer online";
     d2d_context_->DrawTextW(status.data(),
                             static_cast<UINT32>(status.size()),
                             meta_format_.Get(),
@@ -518,7 +626,8 @@ void D2DRenderer::DrawScene() noexcept {
 
     const D2D1_RECT_F footer_rect =
         D2D1::RectF(left + 32.0f, top + 244.0f, right - 32.0f, top + 268.0f);
-    constexpr std::wstring_view footer = L"Retained-mode UI and custom chrome are coming in the next phases.";
+    constexpr std::wstring_view footer =
+        L"Device loss recovery active. Custom chrome and retained-mode UI are next.";
     d2d_context_->DrawTextW(footer.data(),
                             static_cast<UINT32>(footer.size()),
                             meta_format_.Get(),
@@ -562,6 +671,7 @@ void D2DRenderer::ReleaseDeviceResources() noexcept {
 void D2DRenderer::Shutdown() noexcept {
     ReleaseDeviceResources();
     initialized_ = false;
+    using_warp_ = false;
     hwnd_ = nullptr;
     width_ = 0;
     height_ = 0;

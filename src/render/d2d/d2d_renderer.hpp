@@ -12,7 +12,7 @@
 
 namespace cppui {
 
-// Phase 0 renderer: D3D11 -> DXGI flip model -> Direct2D/DirectWrite.
+// Phase 1 renderer: D3D11 -> DXGI flip model -> Direct2D/DirectWrite.
 // It deliberately exposes only the bootstrap needs; the retained-mode scene
 // and public renderer API arrive in later phases.
 class D2DRenderer final {
@@ -28,11 +28,17 @@ public:
     [[nodiscard]] bool Initialize(HWND hwnd, const ThemeTokens& theme);
     [[nodiscard]] bool Resize(UINT width, UINT height, float dpi);
     [[nodiscard]] bool Render();
+    // Rebuilds the D3D device, swap chain, D2D device context and all resources.
+    // Called after DEVICE_REMOVED/RESET and exposed for the render smoke test.
+    [[nodiscard]] bool RecreateDevice();
     void Shutdown() noexcept;
 
+    [[nodiscard]] bool IsInitialized() const noexcept { return initialized_; }
+    [[nodiscard]] bool IsWarp() const noexcept { return using_warp_; }
     [[nodiscard]] HRESULT LastError() const noexcept { return last_error_; }
 
 private:
+    bool BuildResources();
     bool CreateDeviceResources();
     bool CreateSwapChain();
     bool CreateTargetBitmap();
@@ -50,6 +56,7 @@ private:
     UINT height_{};
     float dpi_{96.0f};
     bool initialized_{false};
+    bool using_warp_{false};
     HRESULT last_error_{S_OK};
 
     Microsoft::WRL::ComPtr<ID3D11Device> d3d_device_;
