@@ -814,7 +814,7 @@ void D2DRenderer::DrawScene(const ChromeState& chrome, Widget* content) noexcept
     const D2D1_RECT_F badge = D2D1::RectF(94.0f, 12.0f, 152.0f, 28.0f);
     d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(badge, 8.0f, 8.0f),
                                        brush_accent_soft_.Get());
-    constexpr std::wstring_view badge_label = L"PHASE 3";
+    constexpr std::wstring_view badge_label = L"PHASE 4";
     d2d_context_->DrawTextW(badge_label.data(),
                             static_cast<UINT32>(badge_label.size()),
                             badge_format_.Get(),
@@ -837,6 +837,35 @@ void D2DRenderer::DrawScene(const ChromeState& chrome, Widget* content) noexcept
     const float switch_width = kThemeOptionWidthDip * 3.0f;
     const float switch_left = switch_right - switch_width;
     const float switch_top = (kTitleBarHeightDip - kThemeSwitcherHeightDip) * 0.5f;
+
+    const float action_right = switch_left - kThemeSwitcherGapDip;
+    const float action_left = action_right - kChromeActionWidthDip;
+    const D2D1_RECT_F action_rect = D2D1::RectF(action_left,
+                                                switch_top,
+                                                action_right,
+                                                switch_top + kThemeSwitcherHeightDip);
+    const bool action_hot = chrome.action_hovered == ChromeButton::action_reset ||
+                            chrome.action_pressed == ChromeButton::action_reset;
+    if (action_hot) {
+        d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(action_rect, 6.0f, 6.0f),
+                                           brush_surface_hover_.Get());
+    }
+
+    ID2D1SolidColorBrush* const action_icon =
+        action_hot ? brush_accent_.Get() : primary_brush;
+    const float action_center_x = (action_left + action_right) * 0.5f;
+    d2d_context_->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(action_center_x, center_y), 4.5f, 4.5f),
+                              action_icon,
+                              1.2f);
+    d2d_context_->DrawLine(D2D1::Point2F(action_center_x + 2.0f, center_y - 5.8f),
+                           D2D1::Point2F(action_center_x + 6.0f, center_y - 5.8f),
+                           action_icon,
+                           1.2f);
+    d2d_context_->DrawLine(D2D1::Point2F(action_center_x + 6.0f, center_y - 5.8f),
+                           D2D1::Point2F(action_center_x + 6.0f, center_y - 1.8f),
+                           action_icon,
+                           1.2f);
+
     const D2D1_RECT_F theme_switch = D2D1::RectF(switch_left,
                                                  switch_top,
                                                  switch_right,

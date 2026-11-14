@@ -1,4 +1,5 @@
 #include <cppui/theme/mode.hpp>
+#include <cppui/ui/form.hpp>
 #include <cppui/ui/host.hpp>
 #include <cppui/ui/painter.hpp>
 #include <cppui/ui/widget.hpp>
@@ -105,6 +106,35 @@ int main() {
     host.mouse_down(cppui::Point{20.0f, 60.0f});
     host.mouse_up(cppui::Point{20.0f, 60.0f});
     passed &= Expect(activations == 2, "disabled button does not activate");
+
+    int form_activations = 0;
+    auto form_content = std::make_unique<cppui::StackPanel>(cppui::Orientation::vertical, 0.0f);
+    form_content->set_padding(cppui::Insets{10.0f, 10.0f, 10.0f, 10.0f});
+    form_content->set_cross_align(cppui::CrossAlign::start);
+    auto form_button = std::make_unique<cppui::Button>(L"Form action", cppui::ButtonStyle::primary);
+    form_button->set_on_click([&form_activations] { ++form_activations; });
+    form_content->add_child(std::move(form_button));
+
+    auto status = std::make_unique<cppui::StatusBar>();
+    status->set_left_text(L"Ready");
+    cppui::StatusBar* const status_view = status.get();
+    auto form = std::make_unique<cppui::FormPanel>(std::move(form_content), std::move(status));
+
+    cppui::UiHost form_host;
+    form_host.set_root(std::move(form));
+    form_host.layout(painter, cppui::Rect{0.0f, 0.0f, 400.0f, 300.0f});
+
+    passed &= Expect(status_view->bounds().height == 28.0f, "status bar cozy height");
+    passed &= Expect(status_view->bounds().y == 272.0f, "status bar is pinned to bottom");
+
+    form_host.mouse_down(cppui::Point{20.0f, 20.0f});
+    form_host.mouse_up(cppui::Point{20.0f, 20.0f});
+    passed &= Expect(form_activations == 1, "form content remains interactive");
+
+    painter.set_density(cppui::DensityMode::compact);
+    form_host.layout(painter, cppui::Rect{0.0f, 0.0f, 400.0f, 300.0f});
+    passed &= Expect(status_view->bounds().height == 24.0f, "status bar compact height");
+    painter.set_density(cppui::DensityMode::cozy);
 
     if (passed) {
         std::cout << "CppUI UI tests passed.\n";

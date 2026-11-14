@@ -1,7 +1,7 @@
 # ARCHITECTURE — техническая архитектура CppUI
 
-> Статус: Draft · Phase 3 implemented · 14.11.2026.
-> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [ROADMAP.md](ROADMAP.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [QUALITY.md](QUALITY.md), [PHASE0.md](PHASE0.md), [PHASE1.md](PHASE1.md), [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md).
+> Статус: Draft · Phase 4 implemented · 14.11.2026.
+> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [ROADMAP.md](ROADMAP.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [QUALITY.md](QUALITY.md), [PHASE0.md](PHASE0.md), [PHASE1.md](PHASE1.md), [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md), [PHASE4.md](PHASE4.md).
 
 ## 1. Ограничения и цель
 
@@ -267,6 +267,7 @@ CppUI-framework/
 ├─ include/cppui/ui/density.hpp
 ├─ include/cppui/ui/widget.hpp
 ├─ include/cppui/ui/widgets.hpp
+├─ include/cppui/ui/form.hpp
 ├─ include/cppui/ui/host.hpp
 ├─ src/theme/theme.cpp
 ├─ src/theme/mode.cpp
@@ -277,6 +278,7 @@ CppUI-framework/
 ├─ src/render/d2d/d2d_renderer.cpp
 ├─ src/ui/widget.cpp
 ├─ src/ui/widgets.cpp
+├─ src/ui/form.cpp
 ├─ src/ui/host.cpp
 ├─ samples/bootstrap/main.cpp
 ├─ tests/theme_tests.cpp
@@ -284,6 +286,7 @@ CppUI-framework/
 ├─ docs/PHASE1.md
 ├─ docs/PHASE2.md
 ├─ docs/PHASE3.md
+├─ docs/PHASE4.md
 ├─ tools/build.ps1
 ├─ CMakeLists.txt
 └─ CMakePresets.json

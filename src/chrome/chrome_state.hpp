@@ -12,6 +12,7 @@ enum class ChromeButton {
     theme_light,
     theme_dark,
     theme_system,
+    action_reset,
 };
 
 struct ChromeState {
@@ -22,6 +23,8 @@ struct ChromeState {
     ThemeMode theme_mode{ThemeMode::light};
     ChromeButton theme_hovered{ChromeButton::none};
     ChromeButton theme_pressed{ChromeButton::none};
+    ChromeButton action_hovered{ChromeButton::none};
+    ChromeButton action_pressed{ChromeButton::none};
 };
 
 inline constexpr float kTitleBarHeightDip = 40.0f;
@@ -30,5 +33,6 @@ inline constexpr float kThemeOptionWidthDip = 36.0f;
 inline constexpr float kThemeSwitcherHeightDip = 26.0f;
 inline constexpr float kThemeSwitcherGapDip = 8.0f;
 inline constexpr float kTitleButtonSeparatorDip = 10.0f;
+inline constexpr float kChromeActionWidthDip = 30.0f;
 
 }  // namespace cppui

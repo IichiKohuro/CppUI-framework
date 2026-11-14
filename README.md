@@ -2,7 +2,7 @@
 
 **CppUI** — рабочее название лёгкого UI-фреймворка для Windows на C++20. Цель — быстрый и предсказуемый десктопный toolkit с кастомным окном, аппаратной отрисовкой, аккуратными темами и API, которое не заставляет писать инфраструктуру заново в каждом приложении.
 
-> Статус: **Phase 3 завершена**. Есть retained-mode `Widget`/layout/`Button`, кастомный chrome с переключателем темы в шапке, Light/Dark/System и compact-режим controls. Следующая — полноценный `Form`-preview.
+> Статус: **Phase 4 завершена**. Есть Form-preview с `FormPanel`/`StatusBar`, sidebar, actions в titlebar, Light/Dark/System и compact-режим. Следующая — hardening M0.
 > Дата: 14.11.2026.
 
 ## Ключевые решения
@@ -25,6 +25,7 @@
 | [docs/PHASE1.md](docs/PHASE1.md) | Platform + render: device loss, WARP, idle CPU, smoke test |
 | [docs/PHASE2.md](docs/PHASE2.md) | Custom chrome: title bar, hit testing, maximize/restore, DWM |
 | [docs/PHASE3.md](docs/PHASE3.md) | Retained-mode core, Button, UiHost, Light/Dark/System |
+| [docs/PHASE4.md](docs/PHASE4.md) | Form preview, StatusBar, titlebar actions |
 | [CONTROL_BACKLOG.md](CONTROL_BACKLOG.md) | Полный каталог контролов, недостающие элементы, зависимости и волны |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Релизы, ориентировочные сроки, критерии выхода |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архитектура, стек, окно, рендер, API и структура проекта |
@@ -34,13 +35,13 @@
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Журнал принятых и открытых решений |
 | [design/README.md](design/README.md) | Описание макетов, галереи контролов и скриншотов |
 
-## Phase 3: retained-mode UI
+## Phase 4: Form preview
 
-![Phase 3 retained-mode UI](docs/images/phase3-bootstrap.png)
+![Phase 4 form preview](docs/images/phase4-preview.png)
 
-Это уже не статичная карточка: интерфейс собран из retained-mode `Widget`-дерева. Работают `StackPanel`, `CardPanel`, `Label` и `Button`, hover/pressed/focus, клики, `Tab`/`Shift+Tab`, `Space`/`Enter`. Переключатель **Light / Dark / System** находится в шапке окна слева от системных кнопок, за вертикальным разделителем. В контенте есть density-переключатель **S / M / L**: компактный режим уменьшает высоту, padding и radius кнопок.
+Экран собран как форма: sidebar с разделами, основная карточка настроек, `FormPanel`, закреплённый снизу `StatusBar` и дополнительное действие сброса в titlebar. Работают Light/Dark/System, density S/M/L, hover/pressed/focus, клики, Tab/Shift+Tab, Space/Enter и обновление статуса при каждом действии.
 
-Тёмная тема: [phase3-dark.png](docs/images/phase3-dark.png). Компактные контролы: [phase3-density-compact.png](docs/images/phase3-density-compact.png). Подробности — в [docs/PHASE3.md](docs/PHASE3.md).
+Тёмная тема: [phase4-dark.png](docs/images/phase4-dark.png). Компактный режим: [phase4-compact.png](docs/images/phase4-compact.png). Подробности — в [docs/PHASE4.md](docs/PHASE4.md).
 
 ## Визуальный концепт
 
@@ -75,7 +76,8 @@
 - [x] Добавлены retained-mode `Widget`, `StackPanel`, `CardPanel`, `Label`, `Button`.
 - [x] Добавлены Light/Dark/System, переключатель темы в шапке и интерактивное demo.
 - [x] Добавлен `DensityMode` Compact/Cozy/Comfortable для компактных Button.
-- [ ] Появился полноценный `Form`-preview со status bar и набором контролов.
+- [x] Добавлены Form-preview, `FormPanel`, `StatusBar` и действие сброса в titlebar.
+- [ ] Проведён hardening M0: resize/DPI matrix, visual tests, performance budgets.
 
 ## Сборка
 
@@ -107,7 +109,7 @@ $env:CPPUI_FORCE_WARP = '1'
 
 ## Ближайший шаг
 
-Phase 4: `Form`-preview с content host, status bar, дополнительными titlebar actions и общим `DensityMode` для всех контролов на базе готового retained-mode ядра.
+Phase 5: hardening M0 — полный resize/DPI matrix, visual regression, performance budgets, доработка публичного `Form` API и оставшиеся критерии Technical Preview.
 
 ## Лицензия
 

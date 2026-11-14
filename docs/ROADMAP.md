@@ -30,6 +30,9 @@
 
 **Вопрос, на который отвечает релиз:** можно ли сделать быструю, красивую и надёжную форму на Win32 + Direct2D, и удобен ли выбранный API?
 
+> Phase 4 добавляет Form-preview, `FormPanel`, `StatusBar` и titlebar action; полная
+> матрица DPI/multi-monitor, visual regression и performance budgets остаются в Phase 5.
+
 ### Состав
 
 - `Form` с кастомным title bar.

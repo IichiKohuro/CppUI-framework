@@ -26,6 +26,7 @@ public:
         std::function<void(int x, int y)> mouse_up;
         std::function<void()> system_theme_changed;
         std::function<void(ThemeMode mode)> theme_selected;
+        std::function<void(ChromeButton button)> chrome_action;
     };
 
     Win32Window(HINSTANCE instance,
@@ -61,10 +62,12 @@ private:
     [[nodiscard]] LRESULT HitTest(POINT screen_point) const noexcept;
     [[nodiscard]] ChromeButton ButtonAt(POINT screen_point) const noexcept;
     [[nodiscard]] ChromeButton ThemeButtonAt(POINT screen_point) const noexcept;
+    [[nodiscard]] ChromeButton ActionButtonAt(POINT screen_point) const noexcept;
     static ChromeButton ButtonFromHitCode(LRESULT hit_code) noexcept;
     static ThemeMode ThemeModeForButton(ChromeButton button) noexcept;
     void CompleteChromePress(POINT screen_point) noexcept;
     void CompleteThemePress(POINT screen_point) noexcept;
+    void CompleteActionPress(POINT screen_point) noexcept;
     void PerformChromeAction(ChromeButton button) noexcept;
     void SetActive(bool active) noexcept;
     void SetHovered(ChromeButton button) noexcept;
@@ -86,6 +89,8 @@ private:
     ThemeMode theme_mode_{ThemeMode::light};
     ChromeButton theme_hovered_{ChromeButton::none};
     ChromeButton theme_pressed_{ChromeButton::none};
+    ChromeButton action_hovered_{ChromeButton::none};
+    ChromeButton action_pressed_{ChromeButton::none};
 };
 
 }  // namespace cppui

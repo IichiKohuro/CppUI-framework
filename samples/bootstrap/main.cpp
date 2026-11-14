@@ -8,6 +8,7 @@
 #include <string_view>
 
 #include <cppui/theme/mode.hpp>
+#include <cppui/ui/form.hpp>
 #include <cppui/ui/host.hpp>
 #include <cppui/ui/widget.hpp>
 #include <cppui/ui/widgets.hpp>
@@ -17,12 +18,12 @@
 
 namespace {
 
-constexpr wchar_t kWindowTitle[] = L"CppUI - Phase 3";
-constexpr wchar_t kErrorTitle[] = L"CppUI - Phase 3";
+constexpr wchar_t kWindowTitle[] = L"CppUI - Phase 4";
+constexpr wchar_t kErrorTitle[] = L"CppUI - Phase 4";
 constexpr int kInitialWidthDip = 1000;
 constexpr int kInitialHeightDip = 640;
-constexpr int kMinWidthDip = 720;
-constexpr int kMinHeightDip = 480;
+constexpr int kMinWidthDip = 900;
+constexpr int kMinHeightDip = 580;
 
 class BootstrapApp final {
 public:
@@ -36,6 +37,10 @@ private:
     void SetThemeMode(cppui::ThemeMode mode);
     void SetDensityMode(cppui::DensityMode mode);
     void CountClick();
+    void ResetCounter();
+    void SetStatusText(std::wstring text);
+    void UpdateStatusRight();
+    [[nodiscard]] const wchar_t* DensityName() const noexcept;
     void StopRenderer();
     int RunSelfTest(cppui::Win32Window& window);
 
@@ -56,6 +61,7 @@ private:
     cppui::Label* click_label_{};
     cppui::Label* theme_label_{};
     cppui::Label* density_label_{};
+    cppui::StatusBar* status_bar_{};
     cppui::ThemeMode theme_mode_{cppui::ThemeMode::light};
     cppui::DensityMode density_mode_{cppui::DensityMode::cozy};
     float dpi_{96.0f};
@@ -89,6 +95,11 @@ int BootstrapApp::Run(HINSTANCE instance, int show_command, bool self_test) {
         }
     };
     callbacks.theme_selected = [this](cppui::ThemeMode mode) { SetThemeMode(mode); };
+    callbacks.chrome_action = [this](cppui::ChromeButton button) {
+        if (button == cppui::ChromeButton::action_reset) {
+            ResetCounter();
+        }
+    };
 
     if (!window.Create(callbacks)) {
         MessageBoxW(nullptr, L"Win32 window creation failed.", kErrorTitle, MB_OK | MB_ICONERROR);
@@ -125,28 +136,86 @@ int BootstrapApp::Run(HINSTANCE instance, int show_command, bool self_test) {
 }
 
 void BootstrapApp::BuildUi() {
-    auto root = std::make_unique<cppui::StackPanel>(cppui::Orientation::vertical, 10.0f);
-    root->set_padding(cppui::Insets{48.0f, 28.0f, 48.0f, 28.0f});
+    auto root = std::make_unique<cppui::StackPanel>(cppui::Orientation::vertical, 14.0f);
+    root->set_padding(cppui::Insets{40.0f, 26.0f, 40.0f, 22.0f});
     root->set_cross_align(cppui::CrossAlign::center);
 
-    auto title = std::make_unique<cppui::Label>(L"CppUI",
-                                                cppui::FontRole::title,
-                                                cppui::LabelStyle::primary);
-    root->add_child(std::move(title));
+    auto header = std::make_unique<cppui::StackPanel>(cppui::Orientation::vertical, 4.0f);
+    header->set_cross_align(cppui::CrossAlign::center);
+    header->add_child(std::make_unique<cppui::Label>(L"CppUI Workspace",
+                                                     cppui::FontRole::title,
+                                                     cppui::LabelStyle::primary));
+    header->add_child(std::make_unique<cppui::Label>(L"Phase 4 - form preview",
+                                                     cppui::FontRole::body,
+                                                     cppui::LabelStyle::secondary));
+    root->add_child(std::move(header));
 
-    auto subtitle = std::make_unique<cppui::Label>(L"Phase 3 - retained-mode UI",
-                                                   cppui::FontRole::body,
-                                                   cppui::LabelStyle::secondary);
-    root->add_child(std::move(subtitle));
+    auto body = std::make_unique<cppui::StackPanel>(cppui::Orientation::horizontal, 16.0f);
+    body->set_cross_align(cppui::CrossAlign::stretch);
+
+    auto sidebar = std::make_unique<cppui::CardPanel>();
+    sidebar->set_preferred_width(220.0f);
+    sidebar->set_padding(cppui::Insets{18.0f, 18.0f, 18.0f, 18.0f});
+
+    auto navigation = std::make_unique<cppui::StackPanel>(cppui::Orientation::vertical, 8.0f);
+    navigation->set_cross_align(cppui::CrossAlign::stretch);
+    navigation->add_child(std::make_unique<cppui::Label>(L"РАЗДЕЛЫ",
+                                                         cppui::FontRole::caption,
+                                                         cppui::LabelStyle::muted));
+    auto overview = std::make_unique<cppui::Button>(L"Обзор", cppui::ButtonStyle::secondary);
+    overview->set_on_click([this] { SetStatusText(L"Раздел: Обзор"); });
+    navigation->add_child(std::move(overview));
+    auto appearance = std::make_unique<cppui::Button>(L"Оформление",
+                                                      cppui::ButtonStyle::secondary);
+    appearance->set_on_click([this] { SetStatusText(L"Раздел: Оформление"); });
+    navigation->add_child(std::move(appearance));
+    auto about = std::make_unique<cppui::Button>(L"О приложении",
+                                                 cppui::ButtonStyle::ghost);
+    about->set_on_click([this] { SetStatusText(L"CppUI M0 preview"); });
+    navigation->add_child(std::move(about));
+    navigation->add_child(std::make_unique<cppui::Label>(L"M0 · Technical Preview",
+                                                         cppui::FontRole::caption,
+                                                         cppui::LabelStyle::muted));
+    sidebar->add_child(std::move(navigation));
+    body->add_child(std::move(sidebar));
 
     auto card = std::make_unique<cppui::CardPanel>();
-    card->set_preferred_width(620.0f);
-    card->set_padding(cppui::Insets{28.0f, 26.0f, 28.0f, 26.0f});
+    card->set_preferred_width(560.0f);
+    card->set_padding(cppui::Insets{26.0f, 24.0f, 26.0f, 24.0f});
 
     auto content = std::make_unique<cppui::StackPanel>(cppui::Orientation::vertical, 10.0f);
     content->set_cross_align(cppui::CrossAlign::stretch);
 
-    content->add_child(std::make_unique<cppui::Label>(L"КНОПКИ",
+    content->add_child(std::make_unique<cppui::Label>(L"ОФОРМЛЕНИЕ",
+                                                      cppui::FontRole::caption,
+                                                      cppui::LabelStyle::muted));
+    auto theme_label = std::make_unique<cppui::Label>(L"Тема: Светлая",
+                                                      cppui::FontRole::caption,
+                                                      cppui::LabelStyle::muted);
+    theme_label_ = theme_label.get();
+    content->add_child(std::move(theme_label));
+
+    auto density_label = std::make_unique<cppui::Label>(L"Плотность: Обычная",
+                                                        cppui::FontRole::caption,
+                                                        cppui::LabelStyle::muted);
+    density_label_ = density_label.get();
+    content->add_child(std::move(density_label));
+
+    auto density_row = std::make_unique<cppui::StackPanel>(cppui::Orientation::horizontal, 8.0f);
+    auto compact_button = std::make_unique<cppui::Button>(L"Компактно",
+                                                          cppui::ButtonStyle::secondary);
+    compact_button->set_on_click([this] { SetDensityMode(cppui::DensityMode::compact); });
+    density_row->add_child(std::move(compact_button));
+    auto cozy_button = std::make_unique<cppui::Button>(L"Обычно", cppui::ButtonStyle::secondary);
+    cozy_button->set_on_click([this] { SetDensityMode(cppui::DensityMode::cozy); });
+    density_row->add_child(std::move(cozy_button));
+    auto comfortable_button = std::make_unique<cppui::Button>(L"Свободно",
+                                                              cppui::ButtonStyle::secondary);
+    comfortable_button->set_on_click([this] { SetDensityMode(cppui::DensityMode::comfortable); });
+    density_row->add_child(std::move(comfortable_button));
+    content->add_child(std::move(density_row));
+
+    content->add_child(std::make_unique<cppui::Label>(L"ДЕЙСТВИЯ",
                                                       cppui::FontRole::caption,
                                                       cppui::LabelStyle::muted));
     auto button_row = std::make_unique<cppui::StackPanel>(cppui::Orientation::horizontal, 8.0f);
@@ -170,49 +239,23 @@ void BootstrapApp::BuildUi() {
     click_label_ = click_label.get();
     content->add_child(std::move(click_label));
 
-    content->add_child(std::make_unique<cppui::Label>(L"ПЛОТНОСТЬ",
-                                                      cppui::FontRole::caption,
-                                                      cppui::LabelStyle::muted));
-    auto density_row = std::make_unique<cppui::StackPanel>(cppui::Orientation::horizontal, 8.0f);
-    auto compact_button = std::make_unique<cppui::Button>(L"Компактно",
-                                                          cppui::ButtonStyle::secondary);
-    compact_button->set_on_click([this] { SetDensityMode(cppui::DensityMode::compact); });
-    density_row->add_child(std::move(compact_button));
-    auto cozy_button = std::make_unique<cppui::Button>(L"Обычно", cppui::ButtonStyle::secondary);
-    cozy_button->set_on_click([this] { SetDensityMode(cppui::DensityMode::cozy); });
-    density_row->add_child(std::move(cozy_button));
-    auto comfortable_button = std::make_unique<cppui::Button>(L"Свободно",
-                                                              cppui::ButtonStyle::secondary);
-    comfortable_button->set_on_click([this] { SetDensityMode(cppui::DensityMode::comfortable); });
-    density_row->add_child(std::move(comfortable_button));
-    content->add_child(std::move(density_row));
-
-    auto density_label = std::make_unique<cppui::Label>(L"Плотность: Обычная",
-                                                        cppui::FontRole::caption,
-                                                        cppui::LabelStyle::muted);
-    density_label_ = density_label.get();
-    content->add_child(std::move(density_label));
-
-    auto theme_label = std::make_unique<cppui::Label>(L"Тема: Светлая",
-                                                      cppui::FontRole::caption,
-                                                      cppui::LabelStyle::muted);
-    theme_label_ = theme_label.get();
-    content->add_child(std::move(theme_label));
-
     content->add_child(std::make_unique<cppui::Label>(
         L"Tab / Shift+Tab - фокус, Space / Enter - нажатие",
         cppui::FontRole::caption,
         cppui::LabelStyle::muted));
 
     card->add_child(std::move(content));
-    root->add_child(std::move(card));
+    body->add_child(std::move(card));
+    root->add_child(std::move(body));
 
-    auto hint = std::make_unique<cppui::Label>(L"Retained-mode Widget / StackPanel / Button",
-                                               cppui::FontRole::caption,
-                                               cppui::LabelStyle::muted);
-    root->add_child(std::move(hint));
+    auto status = std::make_unique<cppui::StatusBar>();
+    status->set_left_text(L"Готово");
+    status_bar_ = status.get();
 
-    ui_.set_root(std::move(root));
+    auto form = std::make_unique<cppui::FormPanel>(std::move(root), std::move(status));
+    ui_.set_root(std::move(form));
+
+    UpdateStatusRight();
 }
 
 void BootstrapApp::LayoutUi() {
@@ -225,8 +268,17 @@ void BootstrapApp::LayoutUi() {
         return;
     }
 
-    const float width = static_cast<float>(client.right - client.left) * 96.0f / dpi_;
-    const float height = static_cast<float>(client.bottom - client.top) * 96.0f / dpi_;
+    const UINT client_width = static_cast<UINT>(std::max<LONG>(1, client.right - client.left));
+    const UINT client_height = static_cast<UINT>(std::max<LONG>(1, client.bottom - client.top));
+    if (!renderer_.Resize(client_width, client_height, dpi_)) {
+        if (!renderer_.IsInitialized()) {
+            StopRenderer();
+            return;
+        }
+    }
+
+    const float width = static_cast<float>(client_width) * 96.0f / dpi_;
+    const float height = static_cast<float>(client_height) * 96.0f / dpi_;
     LayoutUiForSize(width, height);
 }
 
@@ -269,6 +321,7 @@ void BootstrapApp::ApplyTheme() {
                                             : L"Тема: Системная (светлая)");
                 break;
         }
+        SetStatusText(theme_label_->text());
     }
 
     LayoutUi();
@@ -299,8 +352,10 @@ void BootstrapApp::SetDensityMode(cppui::DensityMode mode) {
                 density_label_->set_text(L"Плотность: Обычная");
                 break;
         }
+        SetStatusText(density_label_->text());
     }
 
+    UpdateStatusRight();
     LayoutUi();
     if (window_ != nullptr) {
         window_->Invalidate();
@@ -312,9 +367,53 @@ void BootstrapApp::CountClick() {
     if (click_label_ != nullptr) {
         click_label_->set_text(L"Нажатий: " + std::to_wstring(click_count_));
     }
+    SetStatusText(L"Нажатий: " + std::to_wstring(click_count_));
     LayoutUi();
     if (window_ != nullptr) {
         window_->Invalidate();
+    }
+}
+
+void BootstrapApp::ResetCounter() {
+    click_count_ = 0;
+    if (click_label_ != nullptr) {
+        click_label_->set_text(L"Нажатий: 0");
+    }
+    SetStatusText(L"Счётчик сброшен");
+    if (window_ != nullptr) {
+        window_->Invalidate();
+    }
+}
+
+void BootstrapApp::SetStatusText(std::wstring text) {
+    if (status_bar_ == nullptr) {
+        return;
+    }
+    status_bar_->set_left_text(std::move(text));
+    if (window_ != nullptr) {
+        window_->Invalidate();
+    }
+}
+
+void BootstrapApp::UpdateStatusRight() {
+    if (status_bar_ == nullptr) {
+        return;
+    }
+
+    const int dpi_percent = static_cast<int>(dpi_ * 100.0f / 96.0f + 0.5f);
+    status_bar_->set_right_text(L"CppUI M0 · " + std::to_wstring(dpi_percent) + L"% DPI · " +
+                                DensityName());
+}
+
+const wchar_t* BootstrapApp::DensityName() const noexcept {
+    switch (density_mode_) {
+        case cppui::DensityMode::compact:
+            return L"Compact";
+        case cppui::DensityMode::comfortable:
+            return L"Comfortable";
+        case cppui::DensityMode::cozy:
+        default:
+            return L"Cozy";
     }
 }
 
@@ -400,6 +499,7 @@ void BootstrapApp::OnResize(std::uint32_t width, std::uint32_t height, float dpi
         }
     }
 
+    UpdateStatusRight();
     LayoutUiForSize(static_cast<float>(width) * 96.0f / dpi,
                     static_cast<float>(height) * 96.0f / dpi);
 }
@@ -424,6 +524,7 @@ void BootstrapApp::OnDpiChanged(float dpi) {
         }
     }
 
+    UpdateStatusRight();
     LayoutUiForSize(static_cast<float>(width) * 96.0f / dpi,
                     static_cast<float>(height) * 96.0f / dpi);
 }

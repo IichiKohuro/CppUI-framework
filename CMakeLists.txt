@@ -39,6 +39,7 @@ add_library(cppui STATIC
     src/render/d2d/d2d_renderer.cpp
     src/ui/widget.cpp
     src/ui/widgets.cpp
+    src/ui/form.cpp
     src/ui/host.cpp
 )
 add_library(cppui::cppui ALIAS cppui)
