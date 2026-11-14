@@ -17,6 +17,7 @@
   - hover и pressed-состояния;
   - close hover — красный фон и белый крест;
   - restore-глиф после maximize.
+- Кнопки не вызывают `SetCapture`: иначе mouse-up приходит клиентским `WM_LBUTTONUP` и действие теряется. Завершение идёт по `WM_NCLBUTTONUP` с fallback на `WM_LBUTTONUP`.
 - Активное/неактивное состояние title bar.
 - Drag и double-click по title bar делегируются `DefWindowProc`; resize — через стандартные non-client коды.
 - `HTMAXBUTTON` оставляет системный механизм Snap Layouts рабочим.
@@ -47,7 +48,9 @@
 | Max client | 1920 × 1140 после NCCALCSIZE-inset |
 | Restore | 1250 × 800, исходная позиция |
 | Minimize/restore | OK |
-| Close | process exited |
+| Real mouse minimize | minimized |
+| Real mouse maximize/restore | maximized / restored to 1250 × 800 |
+| Real mouse close | process exited |
 | Close hover | красный фон, белый глиф |
 | DWM corner preference | `DWMWCP_ROUND` (value 2) |
 | F5 device recreation | OK |

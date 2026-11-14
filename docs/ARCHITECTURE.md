@@ -108,7 +108,7 @@ int main() {
 ### 5.1 Модель
 
 - `Win32Window` — текущий внутренний слой top-level окна с message loop и callbacks.
-- Кастомный chrome: `WM_NCCALCSIZE` отдаёт клиенту всю площадь, `WM_NCHITTEST` размечает caption, кнопки и resize-border; состояние hover/pressed передаётся в renderer.
+- Кастомный chrome: `WM_NCCALCSIZE` отдаёт клиенту всю площадь, `WM_NCHITTEST` размечает caption, кнопки и resize-border; состояние hover/pressed передаётся в renderer. Кнопки завершаются по `WM_NCLBUTTONUP` без `SetCapture`, с fallback на `WM_LBUTTONUP`.
 - При maximized клиентская область вписывается в `rcWork` с учётом DPI-метрик системной рамки.
 - DWM: rounded corners и frame extension для тени.
 - `Window` как публичная база для top-level окна появится позже.

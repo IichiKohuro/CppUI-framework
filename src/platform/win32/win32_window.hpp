@@ -54,6 +54,7 @@ private:
     [[nodiscard]] LRESULT HitTest(POINT screen_point) const noexcept;
     [[nodiscard]] ChromeButton ButtonAt(POINT screen_point) const noexcept;
     static ChromeButton ButtonFromHitCode(LRESULT hit_code) noexcept;
+    void CompleteChromePress(POINT screen_point) noexcept;
     void PerformChromeAction(ChromeButton button) noexcept;
     void SetActive(bool active) noexcept;
     void SetHovered(ChromeButton button) noexcept;

@@ -269,6 +269,23 @@ LRESULT Win32Window::HitTest(POINT screen_point) const noexcept {
     return HTCLIENT;
 }
 
+void Win32Window::CompleteChromePress(POINT screen_point) noexcept {
+    if (pressed_ == ChromeButton::none) {
+        return;
+    }
+
+    const ChromeButton current = ButtonAt(screen_point);
+    const ChromeButton pressed = pressed_;
+    pressed_ = ChromeButton::none;
+    SetHovered(current);
+
+    if (current == pressed) {
+        PerformChromeAction(pressed);
+    } else if (hwnd_ != nullptr) {
+        InvalidateRect(hwnd_, nullptr, FALSE);
+    }
+}
+
 void Win32Window::PerformChromeAction(ChromeButton button) noexcept {
     if (hwnd_ == nullptr) {
         return;
@@ -428,7 +445,12 @@ LRESULT Win32Window::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARA
 
         case WM_NCMOUSEMOVE: {
             const POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-            SetHovered(ButtonAt(point));
+            const ChromeButton button = ButtonAt(point);
+            SetHovered(button);
+            if (pressed_ != ChromeButton::none && button != pressed_) {
+                pressed_ = ChromeButton::none;
+                InvalidateRect(hwnd, nullptr, FALSE);
+            }
             TRACKMOUSEEVENT track{};
             track.cbSize = sizeof(track);
             track.dwFlags = TME_LEAVE | TME_NONCLIENT;
@@ -438,49 +460,58 @@ LRESULT Win32Window::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARA
         }
 
         case WM_NCMOUSELEAVE:
+            pressed_ = ChromeButton::none;
             SetHovered(ChromeButton::none);
             return 0;
 
         case WM_MOUSEMOVE:
+            if (pressed_ != ChromeButton::none) {
+                pressed_ = ChromeButton::none;
+                InvalidateRect(hwnd, nullptr, FALSE);
+            }
             SetHovered(ChromeButton::none);
             break;
 
         case WM_NCLBUTTONDOWN: {
             const ChromeButton button = ButtonFromHitCode(wparam);
             if (button != ChromeButton::none) {
+                // Do not SetCapture here: once captured, the mouse-up is
+                // delivered as a client WM_LBUTTONUP and the native caption
+                // button path is bypassed. Keep the button armed until the
+                // non-client up or the client fallback arrives.
                 SetActive(true);
                 pressed_ = button;
                 SetHovered(button);
-                SetCapture(hwnd);
                 InvalidateRect(hwnd, nullptr, FALSE);
                 return 0;
             }
             break;
         }
 
-        case WM_NCLBUTTONUP: {
+        case WM_NCLBUTTONUP:
             if (pressed_ != ChromeButton::none) {
-                const POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-                const ChromeButton current = ButtonAt(point);
-                const ChromeButton pressed = pressed_;
-                pressed_ = ChromeButton::none;
-                if (GetCapture() == hwnd) {
-                    ReleaseCapture();
-                }
-                SetHovered(current);
-                if (current == pressed) {
-                    PerformChromeAction(pressed);
-                }
-                InvalidateRect(hwnd, nullptr, FALSE);
+                CompleteChromePress(POINT{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)});
                 return 0;
             }
             break;
-        }
 
-        case WM_CAPTURECHANGED:
-            pressed_ = ChromeButton::none;
-            InvalidateRect(hwnd, nullptr, FALSE);
-            return 0;
+        case WM_LBUTTONUP:
+            if (pressed_ != ChromeButton::none) {
+                // Some input stacks still deliver the release as a client
+                // message; accept that path as a fallback.
+                POINT screen{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+                (void)ClientToScreen(hwnd, &screen);
+                CompleteChromePress(screen);
+                return 0;
+            }
+            break;
+
+        case WM_CANCELMODE:
+            if (pressed_ != ChromeButton::none) {
+                pressed_ = ChromeButton::none;
+                InvalidateRect(hwnd, nullptr, FALSE);
+            }
+            break;
 
         case WM_SIZE:
             if (wparam != SIZE_MINIMIZED) {
