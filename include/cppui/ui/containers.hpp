@@ -60,7 +60,10 @@ public:
                         PanelStyle style = PanelStyle::surface,
                         float corner_radius = 10.0f);
 
-    void set_title(std::wstring title) { title_ = std::move(title); }
+    void set_title(std::wstring title) {
+        title_ = std::move(title);
+        set_accessible_name(title_);
+    }
     [[nodiscard]] const std::wstring& title() const noexcept { return title_; }
 
     [[nodiscard]] Size measure(Painter& painter, const Size& available) override;

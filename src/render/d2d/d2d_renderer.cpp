@@ -86,6 +86,8 @@ bool D2DRenderer::Initialize(HWND hwnd, const ThemeTokens& theme) {
     theme_ = theme;
     last_error_ = S_OK;
     using_warp_ = false;
+    force_warp_ = false;
+    consecutive_render_failures_ = 0;
 
     RECT client{};
     if (!GetClientRect(hwnd_, &client)) {
@@ -126,6 +128,11 @@ bool D2DRenderer::RecreateDevice() {
     const UINT height = std::max<UINT>(1, height_);
     const float dpi = dpi_;
 
+    if (consecutive_render_failures_ >= 3) {
+        force_warp_ = true;
+        OutputDebugStringW(L"CppUI: switching to WARP after repeated render failures.\\n");
+    }
+
     initialized_ = false;
     ReleaseDeviceResources();
 
@@ -158,7 +165,7 @@ bool D2DRenderer::CreateDeviceResources() {
     HRESULT hr = E_FAIL;
     bool hardware_created = false;
 
-    if (!ForceWarpFromEnvironment()) {
+    if (!ForceWarpFromEnvironment() && !force_warp_) {
         hr = D3D11CreateDevice(nullptr,
                                D3D_DRIVER_TYPE_HARDWARE,
                                nullptr,
@@ -858,8 +865,18 @@ bool D2DRenderer::RenderInternal(const ChromeState& chrome,
         return false;
     }
 
+    const auto note_failure = [this] {
+        if (consecutive_render_failures_ < 1000) {
+            ++consecutive_render_failures_;
+        }
+        if (consecutive_render_failures_ >= 3) {
+            force_warp_ = true;
+        }
+    };
+
     if (!target_bitmap_ && !CreateTargetBitmap()) {
         TraceHresult(L"CreateTargetBitmap", last_error_);
+        note_failure();
         if (IsDeviceLost(last_error_)) {
             (void)RecreateDevice();
         }
@@ -876,6 +893,7 @@ bool D2DRenderer::RenderInternal(const ChromeState& chrome,
     if (FAILED(hr)) {
         last_error_ = hr;
         TraceHresult(L"EndDraw", hr);
+        note_failure();
         if (hr == D2DERR_RECREATE_TARGET) {
             ReleaseTarget();
             if (!CreateTargetBitmap() && IsDeviceLost(last_error_)) {
@@ -896,12 +914,14 @@ bool D2DRenderer::RenderInternal(const ChromeState& chrome,
     if (FAILED(hr)) {
         last_error_ = hr;
         TraceHresult(L"Present", hr);
+        note_failure();
         if (IsDeviceLost(hr)) {
             (void)RecreateDevice();
         }
         return false;
     }
 
+    consecutive_render_failures_ = 0;
     return true;
 }
 

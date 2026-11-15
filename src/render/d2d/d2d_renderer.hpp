@@ -104,6 +104,8 @@ private:
     float dpi_{96.0f};
     bool initialized_{false};
     bool using_warp_{false};
+    bool force_warp_{false};
+    int consecutive_render_failures_{0};
     DensityMode density_{DensityMode::cozy};
     HRESULT last_error_{S_OK};
 

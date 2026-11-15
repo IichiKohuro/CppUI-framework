@@ -940,6 +940,22 @@ LRESULT Win32Window::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARA
             const UINT window_dpi = WindowDpi(hwnd);
             minmax->ptMinTrackSize.x = MulDiv(min_width_dip_, static_cast<int>(window_dpi), 96);
             minmax->ptMinTrackSize.y = MulDiv(min_height_dip_, static_cast<int>(window_dpi), 96);
+
+            // Maximize into the monitor work area rather than the full monitor.
+            // This keeps a normal taskbar visible on multi-monitor setups and
+            // with a per-monitor taskbar configuration.
+            MONITORINFO monitor{};
+            monitor.cbSize = sizeof(monitor);
+            const HMONITOR current =
+                MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            if (current != nullptr && GetMonitorInfoW(current, &monitor) != FALSE) {
+                const RECT& work = monitor.rcWork;
+                const RECT& full = monitor.rcMonitor;
+                minmax->ptMaxPosition.x = work.left - full.left;
+                minmax->ptMaxPosition.y = work.top - full.top;
+                minmax->ptMaxSize.x = work.right - work.left;
+                minmax->ptMaxSize.y = work.bottom - work.top;
+            }
             return 0;
         }
 

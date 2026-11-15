@@ -93,6 +93,20 @@ int main() {
     edit.on_char(L'!');
     passed &= Expect(edit.text() == L"Ж!", "text edit accepts non-ASCII input");
 
+    cppui::TextEdit limited;
+    limited.set_max_length(3);
+    limited.on_char(L'A');
+    limited.on_char(L'B');
+    limited.on_char(L'C');
+    limited.on_char(L'D');
+    passed &= Expect(limited.text() == L"ABC", "text edit enforces max length");
+    limited.set_read_only(true);
+    passed &= Expect(!limited.on_char(L'E'), "read-only text edit rejects input");
+    passed &= Expect(limited.text() == L"ABC", "read-only text stays unchanged");
+    passed &= Expect(edit.accessible_role() == cppui::AccessibleRole::text_edit &&
+                         edit.accessible_value() == L"Ж!",
+                     "text edit exposes accessibility metadata");
+
     edit.set_validation_error(L"Required field");
     passed &= Expect(edit.has_validation_error(), "text edit exposes validation state");
     edit.paint(painter);
@@ -121,6 +135,9 @@ int main() {
     passed &= Expect(check.state() == cppui::CheckState::unchecked,
                      "checkbox cycles back to unchecked");
     passed &= Expect(checkbox_changes == 3, "checkbox reports every change");
+    passed &= Expect(check.accessible_role() == cppui::AccessibleRole::check_box &&
+                         check.accessible_value() == L"unchecked",
+                     "checkbox exposes accessibility metadata");
 
     // Radio group selection and keyboard movement.
     cppui::RadioGroup radios;
@@ -212,6 +229,9 @@ int main() {
 
     cppui::ProgressBar progress(1.7f);
     passed &= Expect(progress.value() == 1.0f, "progress value clamps");
+    passed &= Expect(progress.accessible_role() == cppui::AccessibleRole::progress_bar &&
+                         progress.accessible_value() == L"100%",
+                     "progress bar exposes accessibility value");
     (void)progress.measure(painter, cppui::Size{300.0f, 40.0f});
     progress.arrange(cppui::Rect{0.0f, 0.0f, 300.0f, 24.0f});
     progress.paint(painter);

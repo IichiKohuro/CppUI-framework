@@ -36,7 +36,7 @@
 - `cppui.form`: public `Form` API Create/SetContent/theme/density callbacks/Show/Run/Close;
 - `cppui.benchmark`: frame/layout/resize/theme/density timings, startup, target DIP size, CPU time;
 - `cppui.dpi`: реальный перенос между 120 DPI и 96 DPI мониторами, смена DPI и client area;
-- `cppui.chrome`: hit testing caption/min/max/close/resize, maximize/restore, minimize/restore, resize stress, DwmFlush;
+- `cppui.chrome`: hit testing caption/min/max/close/resize, maximize в work area монитора, restore, minimize, resize stress, DwmFlush;
 - `cppui.visual`: WIC PNG capture Light/Dark/Compact, baselines в `tests/baselines`, допуск 8/255 и 2% пикселей;
 - `cppui.dpi_awareness`: публичный `IsPerMonitorDpiAware()` и переход процесса в PMv2; `Form::Create` предупреждает при отсутствии awareness;
 - `cppui.benchmark`: Release-метрики проверяются по порогам через `tests/benchmark_gate.ps1`; Debug требует только успешного прогона (G-1 в [RISKS.md](RISKS.md));
@@ -94,7 +94,7 @@ RTL/BiDi — не входит в v0.1; добавить в матрицу, ко
 Для контрола — критерии в [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md). Для релиза:
 
 - [x] Все заявленные контролы/сценарии v0.1 реализованы.
-- [x] Unit- и integration-тесты зелёные: **12/12 Debug**.
+- [x] Unit- и integration-тесты зелёные: **13/13 Debug и Release**.
 - [x] Visual snapshots v0.1 обновлены и просмотрены: Light/Dark/Compact/Popup.
 - [x] Ручная матрица chrome/DPI пройдена для M0.
 - [x] Compact / Cozy / Comfortable проверены на Form Starter.
@@ -136,7 +136,7 @@ Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resiz
 [RISKS.md](RISKS.md), G-1.
 
 Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. M0 CTest **8/8** в Debug и Release;
-после v0.1 — **12/12** в Debug. Clean build directory Debug собран с нуля. Visual
+после v0.1 — **13/13** в Debug и Release. Clean build directory Debug собран с нуля. Visual
 regression проходит exact-SHA за ~1.5 s. FLIP_DISCARD + single-threaded D3D снизили
 frame CPU до ~1.8 ms. Реальный mixed-DPI 120/96 проверен на двух мониторах; 150/200%
 simulated. Snap/Alt+Space/Alt+F4 проверены. Private memory 43.8 MB проходит hard 60 MB;
@@ -149,9 +149,11 @@ input-to-photon и flicker остаются не измеренными и вы�
 | `cppui.v01` | TextEdit/CheckBox/Radio/Grid/Scroll/Command/Image/Popup/ToolTip — pass |
 | `cppui.dialog` | modal result, default Enter, mouse click on button center, owner re-enable, MessageBox cancel — pass |
 | `cppui.visual_v01` | 4 WIC snapshots, Light/Dark/Compact/Popup — pass |
+| `cppui.visual_v01_warp` | те же 4 snapshot на WARP — pass, расхождение <0.1% |
+| accessibility | accessible name/role/value у ключевых контролов |
 | Form Starter live | ввод, caret, ToolTip, popup, MessageBox, Yes/No/Cancel — проверено |
 | Density | Compact/Cozy/Comfortable на всех контролах волны |
-| Release CTest | **12/12**, benchmark gate pass |
+| Release CTest | **13/13**, benchmark gate pass |
 | Release metrics v0.1 | frame 8.33 ms / 120 FPS, CPU 1.69 ms, layout 0.182 ms, resize 7.69 ms, startup 96.8 ms |
 | Ограничения | non-modal Dialog, inline IME composition, popup submenu, ellipsis — не в v0.1 |
 
@@ -253,7 +255,8 @@ input-to-photon и flicker остаются не измеренными и вы�
 - [x] Проверены Light/Dark/System.
 - [x] 100/125/150/200% DPI и mixed-DPI (150/200 simulated, waiver).
 - [x] Chrome-матрица пройдена.
-- [ ] RDP/WARP smoke пройден — WARP render smoke есть, full RDP manual pending.
+- [x] WARP visual/render smoke пройден (`cppui.visual_v01_warp`, `CPPUI_FORCE_WARP`).
+- [ ] RDP reconnect/disconnect soak — manual pending.
 - [x] Нет новых P0/P1.
 - [x] Performance-замеры M0 в допустимых пределах.
 - [x] Visual snapshots приняты.
@@ -270,7 +273,7 @@ input-to-photon и flicker остаются не измеренными и вы�
 | DPI-баги всплывают поздно | Тестировать DPI с Phase 2, не после релиза |
 | TextEdit/IME сложнее ожидаемого | Ранние spike-тесты; не тянуть MemoEdit в v0.1 |
 | Производительность деградирует с контролами | Бюджеты и benchmark с первого вертикального среза |
-| UIA откладывается | Проектировать accessibility hooks в Widget с самого начала |
+| UIA откладывается | accessibility name/role/value уже в `Widget`; остаётся AutomationPeer/Narrator |
 
 ## 12. Ссылки на инструменты (позже)
 

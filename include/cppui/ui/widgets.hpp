@@ -5,13 +5,13 @@
 #include <string>
 #include <vector>
 
+#include <cppui/ui/command.hpp>
 #include <cppui/ui/painter.hpp>
 #include <cppui/ui/widget.hpp>
 
 namespace cppui {
 
 class Image;
-class Command;
 
 enum class CrossAlign {
     start,
@@ -69,7 +69,10 @@ class Label final : public Widget {
 public:
     Label(std::wstring text, FontRole role = FontRole::body, LabelStyle style = LabelStyle::primary);
 
-    void set_text(std::wstring text) { text_ = std::move(text); }
+    void set_text(std::wstring text) {
+        text_ = std::move(text);
+        set_accessible_name(text_);
+    }
     [[nodiscard]] const std::wstring& text() const noexcept { return text_; }
     void set_wrap(bool wrap) noexcept { wrap_ = wrap; }
     [[nodiscard]] bool wrap() const noexcept { return wrap_; }
@@ -96,10 +99,18 @@ class Button final : public Widget {
 public:
     explicit Button(std::wstring text, ButtonStyle style = ButtonStyle::secondary);
 
-    void set_text(std::wstring text) { text_ = std::move(text); }
+    void set_text(std::wstring text) {
+        text_ = std::move(text);
+        set_accessible_name(text_);
+    }
     void set_icon(std::shared_ptr<Image> icon) { icon_ = std::move(icon); }
     [[nodiscard]] const std::shared_ptr<Image>& icon() const noexcept { return icon_; }
-    void set_command(std::shared_ptr<Command> command) { command_ = std::move(command); }
+    void set_command(std::shared_ptr<Command> command) {
+        command_ = std::move(command);
+        if (command_ != nullptr && !command_->text().empty()) {
+            set_accessible_name(command_->text());
+        }
+    }
     [[nodiscard]] const std::shared_ptr<Command>& command() const noexcept { return command_; }
     void set_on_click(std::function<void()> callback) { on_click_ = std::move(callback); }
     void set_enabled(bool enabled) noexcept { enabled_ = enabled; }

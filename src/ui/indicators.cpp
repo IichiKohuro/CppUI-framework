@@ -37,10 +37,15 @@ void DrawArc(Painter& painter,
 
 }  // namespace
 
-ProgressBar::ProgressBar(float value) : value_(std::clamp(value, 0.0f, 1.0f)) {}
+ProgressBar::ProgressBar(float value) : value_(std::clamp(value, 0.0f, 1.0f)) {
+    set_accessible_role(AccessibleRole::progress_bar);
+    set_accessible_name(L"Progress");
+    set_value(value_);
+}
 
 void ProgressBar::set_value(float value) noexcept {
     value_ = std::clamp(value, 0.0f, 1.0f);
+    set_accessible_value(std::to_wstring(static_cast<int>(value_ * 100.0f + 0.5f)) + L"%");
 }
 
 Size ProgressBar::measure(Painter& painter, const Size& available) {

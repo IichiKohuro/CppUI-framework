@@ -61,7 +61,12 @@
 | D-042 | TextEdit v0.1: **UTF-16 модель с caret/anchor и снимками undo** | Accepted | Selection, clipboard, Ctrl+Z/Y и лимит 100 снимков. IME поддержан на уровне result string и `ImmSetCandidateWindow` у caret; inline composition preview остаётся системным. Memo/пароль/маска — v0.2 |
 | D-043 | `GridPanel`: **weight 0 = auto-sized колонка** | Accepted | Star-колонки делят остаток, auto-колонки измеряются по содержимому. Это закрывает header с правой кнопкой и табличные формы без отдельного DockPanel |
 | D-044 | **Focus trap** у PopupHost и BusyOverlay | Accepted | Открытый popup/overlay ограничивает Tab-порядок своим поддеревом; фон не получает клавиатуру. Это часть accessibility-минимума v0.1 |
-| D-045 | Image — **immutable BGRA + Painter::draw_image** | Accepted | WIC-загрузка в platform-слое; виджеты не видят COM. PictureBox поддерживает contain/cover/stretch; Button рисует иконку. SVG и кеш bitmap — следующие волны |
+| D-045 | Image — **immutable BGRA + Painter::draw_image** | Accepted | WIC-загрузка в platform-слое; виджеты не видят COM. PictureBox поддерживает contain/cover/stretch; Button рисует иконку. D2D-bitmap кешируется по Image::id() |
+| D-046 | Chrome максимизируется в **work area текущего монитора** | Accepted | `WM_GETMINMAXINFO` заполняет `ptMaxPosition/ptMaxSize` из `MonitorFromWindow` + `GetMonitorInfo`; `cppui.chrome` проверяет maximized client. Win10/touch/auto-hide taskbar остаются ручной матрицей |
+| D-047 | **WARP после 3 подряд render failures** | Accepted | `D2DRenderer` считает consecutive failures и принудительно пересоздаёт устройство на WARP; успешный кадр сбрасывает счётчик. Реальный TDR/RDP soak и порог остановки 10 — остаток R-02 |
+| D-048 | **WARP visual gate + diff PNG** | Accepted | `cppui.visual_v01_warp` запускает тот же набор под `CPPUI_FORCE_WARP=1`; visual-скрипты пишут `diff-*.png` при превышении допуска. Baseline снимаются в 96-DPI capture-режиме |
+| D-049 | Accessibility metadata в Widget **сейчас**, UIA позже | Accepted | name/role/value — стабильный контракт для AutomationPeer; контролы их заполняют. UIA provider и Narrator-тест остаются R-13 |
+| D-050 | Риски ведутся как **живой реестр с gate и остатком** | Accepted | [RISKS.md](RISKS.md): 15 карточек, ревизия 15.11.2026, у каждой статус/проверка/остаток. Открытые риски — R-05, R-08, R-14; R-09 Blocked; R-15 Accepted |
 
 ## 3. Предложенные решения
 

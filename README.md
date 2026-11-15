@@ -57,8 +57,9 @@ density S/M/L, hover/pressed/focus, Tab/Shift+Tab, undo/redo, clipboard, IME res
 
 ## Hardening (Phase 5)
 
-- CTest **12/12** после v0.1: theme, UI, v0.1 controls, Form, Dialog, DPI awareness, render smoke,
-  DPI matrix, mixed-DPI, chrome, benchmark gate, visual regression для M0 и Form Starter.
+- CTest **13/13** после v0.1: theme, UI, v0.1 controls, Form, Dialog, DPI awareness, render smoke,
+  DPI matrix, mixed-DPI, chrome, benchmark gate, visual regression для M0 и Form Starter,
+  плюс отдельный WARP-прогон визуальных эталонов.
 - Simulated DPI matrix **96 / 120 / 150 / 200** с Light/Dark и S/M/L.
 - Реальная mixed-DPI проверка на двух мониторах: **120 DPI / 96 DPI**.
 - Snap Layouts, Alt+Space и Alt+F4 проверены; screenshots в [docs/M0.md](docs/M0.md).
@@ -67,7 +68,7 @@ density S/M/L, hover/pressed/focus, Tab/Shift+Tab, undo/redo, clipboard, IME res
 - v0.1: `ScrollViewer`, `TextEdit`, `CheckBox`, `RadioGroup`, `ProgressBar`, `Loader`, `PopupHost`, `Dialog`, `MessageBox`, `Image`, `Command`.
 - Release benchmark после v0.1: **120 FPS** (VSync), **~1.7 ms CPU/кадр**, layout **~0.18 ms**, startup **97 ms**.
 - M0 idle CPU **≈0%**; private memory **43.8 MB** (hard 60 MB), working set 64.4 MB включает shared GPU.
-- Clean build-каталог Debug собран с нуля; после v0.1 — **12/12** тестов.
+- Clean build-каталог Debug собран с нуля; после v0.1 — **13/13** тестов.
 
 M0 принят с waivers: 150/200% DPI simulated, clean-machine и remote CI недоступны в текущем окружении. `Form` API — [include/cppui/form.hpp](include/cppui/form.hpp). Подробности M0 — в [docs/PHASE5.md](docs/PHASE5.md), v0.1 — в [docs/V01.md](docs/V01.md).
 
@@ -111,7 +112,7 @@ M0 принят с waivers: 150/200% DPI simulated, clean-machine и remote CI �
 - [x] Snap Layouts, Alt+Space и Alt+F4 проверены.
 - [x] M0 принят с environment-waivers: [docs/M0.md](docs/M0.md).
 - [x] v0.1 Form Starter: поля, панели, scroll, popup, dialog, validation, image, tooltips.
-- [x] 12/12 CTest, visual baselines Light/Dark/Compact/Popup, модальные Dialog/MessageBox.
+- [x] 13/13 CTest, visual baselines Light/Dark/Compact/Popup и WARP, модальные Dialog/MessageBox.
 - [x] Документация API всех контролов: [docs/CONTROLS.md](docs/CONTROLS.md).
 
 ## Сборка
@@ -153,7 +154,8 @@ Pop-Location
 пишет frame/layout/resize/theme/density-метрики в `cppui-benchmark.txt`, а CTest
 `cppui.benchmark` проверяет Release-пороги. `--capture-visual` пишет Light/Dark/Compact
 PNG; Form Starter дополнительно снимает popup. CTest `cppui.visual` и
-`cppui.visual_v01` сравнивают их с `tests/baselines/`. В живом окне `F5`
+`cppui.visual_v01` и `cppui.visual_v01_warp` сравнивают их с `tests/baselines/`;
+при расхождении сохраняется `diff-*.png`. В живом окне `F5`
 принудительно пересоздаёт render device; Esc закрывает popup, а окно — Alt+F4.
 Кастомный chrome проверяется вручную: min/max/close, resize и drag title bar.
 

@@ -27,21 +27,47 @@ senior C++/Win32-разработчик). Ревью — после каждой
 
 | ID | Риск | П/В | Статус | Gate |
 |---|---|---|---|---|
-| R-01 | Кастомный chrome и Snap Layouts | H/H | Partial | `cppui.chrome` + ручная матрица |
-| R-02 | Device loss / RDP / слабая GPU | M/M | Partial | `cppui.render_smoke`, soak |
+| R-01 | Кастомный chrome и Snap Layouts | H/H | Partial | `cppui.chrome` + work area |
+| R-02 | Device loss / RDP / слабая GPU | M/M | Partial | `cppui.render_smoke`, WARP fallback |
 | R-03 | Scope creep из-за списка контролов | H/H | Mitigated | заморозка scope v0.1 + 12/12 CTest |
 | R-04 | TextEdit/MemoEdit: IME, selection, undo | H/M | Partial | `cppui.v01` + ручная IME-матрица |
 | R-05 | PropertyGrid без рефлексии | H/M | Open | ревью контракта до v0.3 |
-| R-06 | Визуальная несогласованность | M/M | Partial | `cppui.visual` |
+| R-06 | Визуальная несогласованность | M/M | Partial | `cppui.visual*` |
 | R-07 | Отсутствие/хрупкость toolchain | L/L | Mitigated | `cppui.*` + CI |
 | R-08 | Оптимизм в оценках | H/M | Open | пере-баз после v0.1 |
 | R-09 | Удалённый CI ни разу не выполнялся | H/M | Blocked | G-3 |
 | R-10 | Performance-бюджеты не были gate | M/M | Mitigated | G-1 |
-| R-11 | Visual-тесты хрупкие по конструкции | M/M | Open | G-1/`cppui.visual` |
+| R-11 | Visual-тесты хрупкие по конструкции | M/M | Partial | `cppui.visual_v01_warp` + diff |
 | R-12 | DPI awareness не выставлялся библиотекой | M/H | Mitigated | G-2 |
-| R-13 | UIA/accessibility отложен архитектурно | M/H | Open | ревью `Widget` |
+| R-13 | UIA/accessibility отложен архитектурно | M/H | Partial | metadata в `Widget` |
 | R-14 | Лицензия и публичность репозитория | M/H | Open | решение O-002 |
 | R-15 | Концентрация знаний на одном человеке | L/H | Accepted | документация + ADR |
+
+### 2.1 Ревизия 15.11.2026
+
+Проработаны все 15 рисков: у каждого есть текущий статус, конкретное действие и
+остаток, который нельзя закрыть в текущем окружении.
+
+| ID | Статус | Проверено / сделано | Остаток |
+|---|---|---|---|
+| R-01 | Partial | `WM_GETMINMAXINFO` максимизирует в work area монитора; `cppui.chrome` проверяет client на work area. Real 120/96, Snap/Alt+Space. | Win10, touch/pen, auto-hide taskbar, реальные 150/200%. |
+| R-02 | Partial | WARP выбирается после 3 подряд render failures; `render_smoke` проходит и на WARP. | Нет реального TDR/RDP reconnect soak, нет backoff после WARP. |
+| R-03 | Mitigated | Scope v0.1 закрыт, data-контролы не добавлены, 12/12 CTest. | Расширение v0.2 требует нового scope-review. |
+| R-04 | Partial | Selection, clipboard, undo/redo, max length, read-only, IME result string; тесты в `cppui.v01`. | CJK IME вручную, inline composition, double-click, Memo. |
+| R-05 | Open | Контракт `PropertyDescriptor` зафиксирован как обязательный до v0.3. | Кода нет; решение O-005 откладывает VerticalGrid. |
+| R-06 | Partial | Baselines Light/Dark/Compact/Popup; focus-ring и border clipping исправлены. | Нет автоматической матрицы всех состояний hover/focus/disabled. |
+| R-07 | Mitigated | VS 2026/MSVC 19.51, Windows SDK 10.0.26100, CMake 4.3, локальный Debug/Release. | Удалённый runner = R-09. |
+| R-08 | Open | v0.1 закрыт; фактические замеры производительности есть. | Нет учёта часов на контрол, ROADMAP не пере-базирован. |
+| R-09 | Blocked | Workflow-файлы и CTest готовы. | Нет git remote; ни одного remote run. |
+| R-10 | Mitigated | G-1 проверяет Release-бюджеты; текущий прогон зелёный. | Пороги грубые, дрейф 20% не ловят. |
+| R-11 | Partial | WARP-прогон Form Starter проходит; при mismatch создаётся diff PNG. | Нет CI-runner и второго шрифтового/GPU окружения. |
+| R-12 | Mitigated | `IsPerMonitorDpiAware`, G-2, PMv2 в Form Starter, диагностика в `Form::Create`. | Библиотека осознанно не меняет процесс глобально. |
+| R-13 | Partial | В `Widget` добавлены accessible name/role/value; контролы заполняют metadata. | UIA AutomationPeer и Narrator-тест отсутствуют. |
+| R-14 | Open | Проверено, что в репозиторий не добавлены чужие шрифты. | Нужен выбор лицензии владельцем; без него публичный push запрещён. |
+| R-15 | Accepted | README, ARCHITECTURE, ADR, тесты и demo покрывают основной контекст. | Онбординг нового разработчика не измерялся. |
+
+**Итог:** 4 Mitigated, 6 Partial, 3 Open, 1 Blocked, 1 Accepted. Все риски имеют
+владельца, gate/ручную проверку и записанный остаток; необработанных карточек нет.
 
 ## 3. Карточки рисков
 
@@ -53,18 +79,19 @@ min/max/close, double-click, Alt+Space, Snap Layouts, DWM-рамки. Ошибк
 
 **Где.** [win32_window.cpp](../src/platform/win32/win32_window.cpp):
 `WM_NCCALCSIZE` компенсирует рамку в maximized, `HitTest` отдаёт
-`HTMAXBUTTON`, поэтому Snap работает. Урок с `SetCapture` уже оплачен
-(коммит `6c891c4`). Слабые места: `WM_GETMINMAXINFO` не учитывает work area
-монитора с auto-hide таскбаром; theme/action-кнопки принудительно отдаются
-как `HTCLIENT`; touch/pen (`WM_POINTER`) не обрабатывается.
+`HTMAXBUTTON`, поэтому Snap работает. `WM_GETMINMAXINFO` теперь максимизирует
+в `rcWork` текущего монитора; `cppui.chrome` проверяет, что maximized client
+совпадает с work area. Урок с `SetCapture` уже оплачен (коммит `6c891c4`).
+Слабые места: theme/action-кнопки принудительно отдаются как `HTCLIENT`;
+touch/pen (`WM_POINTER`) не обрабатывается; Win10 и auto-hide taskbar
+проверены не на всех конфигурациях.
 
 **Триггер.** Кнопка «залипает» после drag; Snap не открывается на втором
 мониторе; maximized окно вылезает за край на 1–2 px; после смены DPI
 hit-area смещена; Alt+Space открывает меню не там.
 
 **Что делать.** Матрица Win10/Win11 × 100–200 % × один/два монитора × RDP ×
-touch. Дополнить `WM_GETMINMAXINFO` maximized bounds по `MonitorFromWindow` и
-work area. Зафиксировать «мышь/клавиатура в MVP» или добавить `WM_POINTER`.
+touch. Зафиксировать «мышь/клавиатура в MVP» или добавить `WM_POINTER`.
 Каждый ручной кейс из [M0.md](M0.md) — пункт чек-листа с датой.
 
 **Критерий закрытия.** Chrome-матрица автоматизирована на реальных 150/200 %
@@ -81,17 +108,18 @@ work area. Зафиксировать «мышь/клавиатура в MVP» �
 если hardware не создался; [form.cpp](../src/form.cpp) вызывает recreate при
 ошибке рендера.
 
-**Дыры.** WARP выбирается, только если hardware **не создался**, а не если он
-создаётся и стабильно падает. Нет backoff и порога «N неудач → WARP».
-Реальный TDR не воспроизводился — только принудительный `F5`.
+**Дыры и прогресс.** WARP выбирается, если hardware не создался, и после
+**3 подряд render failures** (`consecutive_render_failures_`). Порог 10 с
+остановкой рендера и backoff пока не сделаны. Реальный TDR/RDP reconnect
+не воспроизводился — только принудительный `F5` и `CPPUI_FORCE_WARP=1`.
 
 **Триггер.** Чёрное окно после RDP; CPU в idle не ноль; мигание при
 перетаскивании между GPU; падение при сворачивании.
 
-**Что делать.** Счётчик подряд идущих неудач: 3 → WARP, 10 → остановка
-рендера с диагностикой. Recreate по `WM_DISPLAYCHANGE`, `WM_DPICHANGED`,
-`WM_POWERBROADCAST`. Soak: 100 recreate с замером private memory (база M0 —
-43.8 MB). Ручной сценарий RDP disconnect/reconnect.
+**Что делать.** Добавить порог 10 → остановка рендера с диагностикой и backoff.
+Recreate по `WM_DISPLAYCHANGE`, `WM_DPICHANGED`, `WM_POWERBROADCAST`.
+Soak: 100 recreate с замером private memory (база M0 — 43.8 MB). Ручной
+сценарий RDP disconnect/reconnect.
 
 **Критерий закрытия.** 100 recreate без роста памяти и падений; RDP-сессия
 переживает reconnect; в логе виден выбранный путь.
@@ -240,15 +268,20 @@ v0.3.
 **Критерий закрытия.** G-1 зелёный в Release; при падении видно, какая метрика
 и на сколько вышла за предел.
 
-### R-11. Visual-тесты хрупкие по конструкции — M/M, Open
+### R-11. Visual-тесты хрупкие по конструкции — M/M, Partial
 
 **Механизм.** PowerShell + `System.Drawing` + WIC + сравнение PNG, снятых на
 конкретной GPU/DPI/шрифтах. На WARP или другом раннере антиалиасинг текста
 отличается.
 
-**Что делать.** Снимать эталоны в WARP с фиксированным DPI; сначала проверять
-структурные инварианты (размеры, hit-area), затем пиксели; при падении
-сохранять diff-изображение и visual-output.
+**Что делать / сделано.** `cppui.visual_v01_warp` запускает Form Starter под
+`CPPUI_FORCE_WARP=1`; WARP проходит текущие baseline с расхождением <0.1%.
+Оба visual-скрипта при превышении допуска сохраняют `diff-*.png` в
+`visual-output`, который CI загружает при падении. Baseline снимаются при
+фиксированном 96-DPI capture-профиле.
+
+**Остаток.** Удалённого CI и второго шрифтового окружения нет; структурные
+hit-area проверяются отдельно в `cppui.chrome`, а не внутри visual-скрипта.
 
 **Критерий закрытия.** Visual-тест стабилен на двух разных конфигурациях
 (локально и CI) без обновления baseline.
@@ -271,15 +304,19 @@ debugger output при отсутствии PMv2; тест `cppui.dpi_awareness`
 **Критерий закрытия.** G-2 зелёный; в README/API явно сказано, что хост
 обязан включить PMv2.
 
-### R-13. UIA/accessibility отложен архитектурно — M/H, Open
+### R-13. UIA/accessibility отложен архитектурно — M/H, Partial
 
 **Механизм.** Keyboard/focus есть, AutomationPeer-слоя нет. Для кастомно
 нарисованных контролов UIA — отдельная подсистема, которую дорого добавлять
 после релиза.
 
-**Что делать.** Заложить абстракцию доступности в `Widget` сейчас (имя, роль,
-значение, действия), даже если провайдер no-op. Решить тайминг UIA в O-008.
-Проверять Narrator/Inspector на одном контроле до v0.3.
+**Что сделано.** В `Widget` добавлены стабильные accessible name/role/value;
+Label, Button, TextEdit, CheckBox, RadioButton, ProgressBar, GroupPanel,
+PictureBox, PopupMenu и ScrollViewer заполняют metadata. Это контракт для
+будущего AutomationPeer, но не UIA-провайдер.
+
+**Остаток.** Нет `IRawElementProviderSimple`/AutomationPeer, Narrator/Inspector
+теста и полного набора actions. Решить тайминг UIA в O-008.
 
 **Критерий закрытия.** Базовый UIA-провайдер для Button/TextEdit; клавиатурная
 навигация без мыши проходит сценарий формы.
@@ -349,12 +386,14 @@ PMv2, и что `SetProcessDpiAwarenessContext` переводит процес�
 | Дата | Изменение |
 |---|---|
 | 15.11.2026 | Реестр создан; R-10 и R-12 закрыты gates G-1/G-2; R-09 переведён в Blocked (нет remote); подтверждены 11/11 CTest в Debug и Release |
+| 15.11.2026 | Полная ревизия 15 рисков. R-01: maximize в work area + тест. R-02: 3 render failures → WARP. R-11: WARP visual gate + diff PNG. R-13: accessible name/role/value в Widget. R-03/R-07/R-10/R-12 — Mitigated; R-05/R-08/R-14 — Open; R-09 — Blocked; R-15 — Accepted. **13/13 CTest в Debug и Release**. |
 
 ## 6. Ближайшие действия
 
 1. **R-09:** добавить remote и получить первый зелёный run — это разблокирует
    доверие ко всем остальным gate.
-2. **R-03:** зафиксировать письменный scope v0.1 и не расширять его.
-3. **R-04:** spike TextDocument до обещаний по TextEdit.
-4. **R-11:** снять baseline в WARP и добавить diff-артефакт при падении.
-5. **R-08:** после v0.1 пересчитать ROADMAP по фактическим часам.
+2. **R-14:** владельцу выбрать лицензию; без этого публичный push запрещён.
+3. **R-13:** spike UIA AutomationPeer для Button/TextEdit и Narrator-проверка.
+4. **R-02:** TDR/RDP soak и порог 10 → остановка рендера с диагностикой.
+5. **R-08:** пересчитать ROADMAP по фактическим часам после v0.1.
+6. **R-05:** контракт PropertyDescriptor до старта v0.3.

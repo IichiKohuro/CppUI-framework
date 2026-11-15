@@ -14,14 +14,37 @@ public static class CppUiChromeNative {
     [StructLayout(LayoutKind.Sequential)]
     public struct RECT { public int Left, Top, Right, Bottom; }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MONITORINFO {
+        public uint cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
     [DllImport("user32.dll")]
     public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern bool GetMonitorInfoW(IntPtr monitor, ref MONITORINFO info);
 
     [DllImport("user32.dll")]
     public static extern uint GetDpiForWindow(IntPtr hwnd);
 
     [DllImport("user32.dll")]
     public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
+
+    [DllImport("user32.dll")]
+    public static extern bool GetClientRect(IntPtr hwnd, out RECT rect);
+
+    [DllImport("user32.dll")]
+    public static extern bool ClientToScreen(IntPtr hwnd, ref POINT point);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct POINT { public int X, Y; }
 
     [DllImport("user32.dll")]
     public static extern bool IsZoomed(IntPtr hwnd);
@@ -104,6 +127,26 @@ try {
     [void][CppUiChromeNative]::SendMessageW($hwnd, 0x0112, [IntPtr]0xF030, [IntPtr]::Zero)
     Start-Sleep -Milliseconds 300
     Expect ([CppUiChromeNative]::IsZoomed($hwnd)) "maximize"
+
+    $monitor = [CppUiChromeNative]::MonitorFromWindow($hwnd, 2)
+    $info = New-Object CppUiChromeNative+MONITORINFO
+    $info.cbSize = [uint32][System.Runtime.InteropServices.Marshal]::SizeOf($info)
+    Expect ([CppUiChromeNative]::GetMonitorInfoW($monitor, [ref]$info)) "monitor info"
+    $clientRect = New-Object CppUiChromeNative+RECT
+    Expect ([CppUiChromeNative]::GetClientRect($hwnd, [ref]$clientRect)) "maximized client rect"
+    $clientOrigin = New-Object CppUiChromeNative+POINT
+    $clientOrigin.X = 0
+    $clientOrigin.Y = 0
+    Expect ([CppUiChromeNative]::ClientToScreen($hwnd, [ref]$clientOrigin)) "maximized client origin"
+    $clientRight = $clientOrigin.X + $clientRect.Right
+    $clientBottom = $clientOrigin.Y + $clientRect.Bottom
+    Write-Host ("maximized client={0},{1},{2},{3} work={4},{5},{6},{7}" -f
+        $clientOrigin.X, $clientOrigin.Y, $clientRight, $clientBottom,
+        $info.rcWork.Left, $info.rcWork.Top, $info.rcWork.Right, $info.rcWork.Bottom)
+    Expect ([Math]::Abs($clientOrigin.X - $info.rcWork.Left) -le 2 -and
+            [Math]::Abs($clientOrigin.Y - $info.rcWork.Top) -le 2 -and
+            [Math]::Abs($clientRight - $info.rcWork.Right) -le 2 -and
+            [Math]::Abs($clientBottom - $info.rcWork.Bottom) -le 2) "maximized client within monitor work area"
 
     [void][CppUiChromeNative]::SendMessageW($hwnd, 0x0112, [IntPtr]0xF120, [IntPtr]::Zero)
     Start-Sleep -Milliseconds 300

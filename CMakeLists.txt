@@ -184,6 +184,7 @@ if(CPPUI_BUILD_TESTS)
         set_tests_properties(cppui.visual PROPERTIES
             WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
             LABELS "visual"
+            RESOURCE_LOCK "visual-output"
             TIMEOUT 120
         )
 
@@ -197,6 +198,22 @@ if(CPPUI_BUILD_TESTS)
         set_tests_properties(cppui.visual_v01 PROPERTIES
             WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
             LABELS "visual"
+            RESOURCE_LOCK "visual-output"
+            TIMEOUT 120
+        )
+
+        add_test(
+            NAME cppui.visual_v01_warp
+            COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+                    -File "${CMAKE_CURRENT_SOURCE_DIR}/tests/v01_visual_test.ps1"
+                    -Exe "$<TARGET_FILE:cppui_form_starter>"
+                    -Baseline "${CMAKE_CURRENT_SOURCE_DIR}/tests/baselines"
+        )
+        set_tests_properties(cppui.visual_v01_warp PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+            LABELS "visual"
+            ENVIRONMENT "CPPUI_FORCE_WARP=1"
+            RESOURCE_LOCK "visual-output"
             TIMEOUT 120
         )
 

@@ -193,7 +193,10 @@ void CardPanel::paint(Painter& painter) const {
 }
 
 Label::Label(std::wstring text, FontRole role, LabelStyle style)
-    : text_(std::move(text)), role_(role), style_(style) {}
+    : text_(std::move(text)), role_(role), style_(style) {
+    set_accessible_role(AccessibleRole::label);
+    set_accessible_name(text_);
+}
 
 Size Label::measure(Painter& painter, const Size& available) {
     const float line_height = painter.measure_text(L"Ag", role_).height;
@@ -256,7 +259,10 @@ void Label::paint(Painter& painter) const {
 }
 
 Button::Button(std::wstring text, ButtonStyle style)
-    : text_(std::move(text)), style_(style) {}
+    : text_(std::move(text)), style_(style) {
+    set_accessible_role(AccessibleRole::button);
+    set_accessible_name(text_);
+}
 
 bool Button::enabled() const noexcept {
     return EffectiveEnabled();

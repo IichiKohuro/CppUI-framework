@@ -110,6 +110,8 @@ void Panel::paint(Painter& painter) const {
 GroupPanel::GroupPanel(std::wstring title, PanelStyle style, float corner_radius)
     : Panel(style, corner_radius), title_(std::move(title)) {
     set_padding(Insets{16.0f, 14.0f, 16.0f, 16.0f});
+    set_accessible_role(AccessibleRole::group);
+    set_accessible_name(title_);
 }
 
 Size GroupPanel::measure(Painter& painter, const Size& available) {
@@ -550,6 +552,7 @@ void ScrollBar::paint(Painter& painter) const {
 }
 
 ScrollViewer::ScrollViewer(std::unique_ptr<Widget> content) {
+    set_accessible_role(AccessibleRole::scroll_view);
     if (content) {
         content_ = content.get();
         add_child(std::move(content));

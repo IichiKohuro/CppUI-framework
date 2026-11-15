@@ -29,6 +29,18 @@ constexpr int kKeyX = 0x58;
 constexpr int kKeyY = 0x59;
 constexpr int kKeyZ = 0x5A;
 
+const wchar_t* CheckStateValue(CheckState state) noexcept {
+    switch (state) {
+        case CheckState::checked:
+            return L"checked";
+        case CheckState::indeterminate:
+            return L"indeterminate";
+        case CheckState::unchecked:
+        default:
+            return L"unchecked";
+    }
+}
+
 bool IsWordCharacter(wchar_t character) noexcept {
     return std::iswalnum(static_cast<wint_t>(character)) != 0 || character == L'_';
 }
@@ -41,7 +53,11 @@ float ClampCaretX(float value, const Rect& area) noexcept {
 
 TextEdit::TextEdit(std::wstring text, std::wstring placeholder)
     : text_(std::move(text)), placeholder_(std::move(placeholder)), caret_(text_.size()),
-      anchor_(text_.size()) {}
+      anchor_(text_.size()) {
+    set_accessible_role(AccessibleRole::text_edit);
+    set_accessible_name(placeholder_);
+    set_accessible_value(text_);
+}
 
 void TextEdit::set_text(std::wstring text) {
     if (text_ == text) {
@@ -171,6 +187,7 @@ void TextEdit::InsertText(std::wstring_view text) {
 
 void TextEdit::NotifyChanged() {
     ClampSelection();
+    set_accessible_value(text_);
     if (on_text_changed_) {
         on_text_changed_(text_);
     }
@@ -521,14 +538,23 @@ void TextEdit::paint(Painter& painter) const {
 }
 
 CheckBox::CheckBox(std::wstring text, bool checked)
-    : text_(std::move(text)), state_(checked ? CheckState::checked : CheckState::unchecked) {}
+    : text_(std::move(text)), state_(checked ? CheckState::checked : CheckState::unchecked) {
+    set_accessible_role(AccessibleRole::check_box);
+    set_accessible_name(text_);
+    set_accessible_value(CheckStateValue(state_));
+}
+
+void CheckBox::set_state(CheckState state) noexcept {
+    state_ = state;
+    set_accessible_value(CheckStateValue(state_));
+}
 
 void CheckBox::set_checked(bool checked) {
     const CheckState next = checked ? CheckState::checked : CheckState::unchecked;
     if (state_ == next) {
         return;
     }
-    state_ = next;
+    set_state(next);
     if (on_changed_) {
         on_changed_(state_);
     }
@@ -541,17 +567,17 @@ void CheckBox::Toggle() {
     if (tristate_) {
         switch (state_) {
             case CheckState::unchecked:
-                state_ = CheckState::checked;
+                set_state(CheckState::checked);
                 break;
             case CheckState::checked:
-                state_ = CheckState::indeterminate;
+                set_state(CheckState::indeterminate);
                 break;
             case CheckState::indeterminate:
-                state_ = CheckState::unchecked;
+                set_state(CheckState::unchecked);
                 break;
         }
     } else {
-        state_ = state_ == CheckState::checked ? CheckState::unchecked : CheckState::checked;
+        set_state(state_ == CheckState::checked ? CheckState::unchecked : CheckState::checked);
     }
     if (on_changed_) {
         on_changed_(state_);
@@ -640,13 +666,18 @@ void CheckBox::paint(Painter& painter) const {
 }
 
 RadioButton::RadioButton(std::wstring text, bool checked)
-    : text_(std::move(text)), checked_(checked) {}
+    : text_(std::move(text)), checked_(checked) {
+    set_accessible_role(AccessibleRole::radio_button);
+    set_accessible_name(text_);
+    set_accessible_value(checked_ ? L"checked" : L"unchecked");
+}
 
 void RadioButton::ApplyChecked(bool checked, bool notify) {
     if (checked_ == checked) {
         return;
     }
     checked_ = checked;
+    set_accessible_value(checked_ ? L"checked" : L"unchecked");
     if (notify && on_changed_) {
         on_changed_(checked_);
     }

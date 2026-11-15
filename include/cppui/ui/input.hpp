@@ -23,7 +23,10 @@ public:
 
     void set_text(std::wstring text);
     [[nodiscard]] const std::wstring& text() const noexcept { return text_; }
-    void set_placeholder(std::wstring placeholder) { placeholder_ = std::move(placeholder); }
+    void set_placeholder(std::wstring placeholder) {
+        placeholder_ = std::move(placeholder);
+        set_accessible_name(placeholder_);
+    }
     [[nodiscard]] const std::wstring& placeholder() const noexcept { return placeholder_; }
     void set_read_only(bool read_only) noexcept { read_only_ = read_only; }
     [[nodiscard]] bool read_only() const noexcept { return read_only_; }
@@ -109,11 +112,14 @@ class CheckBox final : public Widget {
 public:
     explicit CheckBox(std::wstring text = {}, bool checked = false);
 
-    void set_text(std::wstring text) { text_ = std::move(text); }
+    void set_text(std::wstring text) {
+        text_ = std::move(text);
+        set_accessible_name(text_);
+    }
     [[nodiscard]] const std::wstring& text() const noexcept { return text_; }
     void set_checked(bool checked);
     [[nodiscard]] bool checked() const noexcept { return state_ == CheckState::checked; }
-    void set_state(CheckState state) noexcept { state_ = state; }
+    void set_state(CheckState state) noexcept;
     [[nodiscard]] CheckState state() const noexcept { return state_; }
     void set_tristate(bool enabled) noexcept { tristate_ = enabled; }
     void set_enabled(bool enabled) noexcept { enabled_ = enabled; }
@@ -145,7 +151,10 @@ class RadioButton final : public Widget {
 public:
     explicit RadioButton(std::wstring text = {}, bool checked = false);
 
-    void set_text(std::wstring text) { text_ = std::move(text); }
+    void set_text(std::wstring text) {
+        text_ = std::move(text);
+        set_accessible_name(text_);
+    }
     [[nodiscard]] const std::wstring& text() const noexcept { return text_; }
     void set_checked(bool checked);
     [[nodiscard]] bool checked() const noexcept { return checked_; }

@@ -111,6 +111,32 @@ foreach ($name in $names) {
         $total = $current.Width * $current.Height
         $ratio = $mismatch / [double]$total
         if ($ratio -gt 0.02) {
+            $diff = New-Object System.Drawing.Bitmap(
+                $current.Width,
+                $current.Height,
+                [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+            try {
+                $red = [System.Drawing.Color]::FromArgb(255, 220, 40, 40)
+                $clear = [System.Drawing.Color]::FromArgb(0, 0, 0, 0)
+                for ($y = 0; $y -lt $current.Height; $y++) {
+                    $row = $y * $currentPixels.Stride
+                    for ($x = 0; $x -lt $current.Width; $x++) {
+                        $offset = $row + $x * 4
+                        $delta = [Math]::Max(
+                            [Math]::Abs([int]$currentPixels.Bytes[$offset] - [int]$expectedPixels.Bytes[$offset]),
+                            [Math]::Max(
+                                [Math]::Abs([int]$currentPixels.Bytes[$offset + 1] - [int]$expectedPixels.Bytes[$offset + 1]),
+                                [Math]::Abs([int]$currentPixels.Bytes[$offset + 2] - [int]$expectedPixels.Bytes[$offset + 2])))
+                        $diff.SetPixel($x, $y, $(if ($delta -gt 8) { $red } else { $clear }))
+                    }
+                }
+                $diffPath = Join-Path (Get-Location) (Join-Path 'visual-output' ("diff-$name"))
+                $diff.Save($diffPath, [System.Drawing.Imaging.ImageFormat]::Png)
+                Write-Host "Diff saved: $diffPath"
+            }
+            finally {
+                $diff.Dispose()
+            }
             Write-Error ("v0.1 visual mismatch for {0}: {1}/{2} pixels ({3:P2}), max delta {4}" -f
                 $name, $mismatch, $total, $ratio, $maxDelta)
             $failed = $true

@@ -31,7 +31,10 @@ float ClampOrCenter(float value, float start, float size, float limit) {
 
 }  // namespace
 
-PopupMenu::PopupMenu(float minimum_width) : minimum_width_(minimum_width) {}
+PopupMenu::PopupMenu(float minimum_width) : minimum_width_(minimum_width) {
+    set_accessible_role(AccessibleRole::menu);
+    set_accessible_name(L"Menu");
+}
 
 void PopupMenu::add_item(std::wstring text,
                          std::function<void()> action,

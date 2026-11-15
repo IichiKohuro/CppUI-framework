@@ -7,7 +7,10 @@
 
 namespace cppui {
 
-PictureBox::PictureBox(std::shared_ptr<Image> image) : image_(std::move(image)) {}
+PictureBox::PictureBox(std::shared_ptr<Image> image) : image_(std::move(image)) {
+    set_accessible_role(AccessibleRole::image);
+    set_accessible_name(placeholder_);
+}
 
 Size PictureBox::measure(Painter& painter, const Size& available) {
     (void)painter;

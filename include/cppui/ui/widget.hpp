@@ -21,6 +21,24 @@ struct KeyModifiers {
     bool alt{};
 };
 
+// Accessibility metadata lives on the widget now, even while the UIA provider
+// is not implemented yet. It gives controls and future AutomationPeers one
+// stable source for name/role/value.
+enum class AccessibleRole {
+    generic,
+    label,
+    button,
+    text_edit,
+    check_box,
+    radio_button,
+    progress_bar,
+    menu,
+    menu_item,
+    group,
+    image,
+    scroll_view,
+};
+
 // Base class for the retained-mode tree. Input callbacks are intentionally
 // small and overridable; a control that does not care about an event ignores it.
 class Widget {
@@ -108,6 +126,17 @@ public:
     [[nodiscard]] bool has_validation_error() const noexcept { return !validation_error_.empty(); }
     [[nodiscard]] const std::wstring& validation_error() const noexcept { return validation_error_; }
 
+    void set_accessible_name(std::wstring name) { accessible_name_ = std::move(name); }
+    [[nodiscard]] const std::wstring& accessible_name() const noexcept {
+        return accessible_name_;
+    }
+    void set_accessible_value(std::wstring value) { accessible_value_ = std::move(value); }
+    [[nodiscard]] const std::wstring& accessible_value() const noexcept {
+        return accessible_value_;
+    }
+    void set_accessible_role(AccessibleRole role) noexcept { accessible_role_ = role; }
+    [[nodiscard]] AccessibleRole accessible_role() const noexcept { return accessible_role_; }
+
     virtual void collect_focusable(std::vector<Widget*>& output);
 
 protected:
@@ -124,6 +153,9 @@ private:
     std::vector<std::unique_ptr<Widget>> children_;
     std::wstring tooltip_;
     std::wstring validation_error_;
+    std::wstring accessible_name_;
+    std::wstring accessible_value_;
+    AccessibleRole accessible_role_{AccessibleRole::generic};
     bool hovered_{false};
     bool pressed_{false};
     bool focused_{false};

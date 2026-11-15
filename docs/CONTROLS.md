@@ -49,6 +49,20 @@ widget.clear_validation_error();
 - Ошибка валидации — состояние `Widget`; конкретный контрол решает, как её рисовать.
   `TextEdit` подсвечивает рамку. Текст ошибки обычно рисуется отдельным `Label`.
 
+### 1.2.1 Accessibility metadata
+
+`Widget` уже хранит name/role/value для будущего UIA-слоя:
+
+```cpp
+widget.set_accessible_name(L"Сохранить профиль");
+widget.set_accessible_role(cppui::AccessibleRole::button);
+widget.set_accessible_value(L"enabled");
+```
+
+Контролы v0.1 заполняют metadata автоматически (Label/Button text, TextEdit value,
+CheckBox/RadioButton state, ProgressBar percent, GroupPanel title, Image placeholder).
+Сам UIA AutomationPeer пока не реализован; это осознанный остаток R-13.
+
 ### 1.3 Фокус и клавиатура
 
 - `Tab` / `Shift+Tab` — общий порядок.

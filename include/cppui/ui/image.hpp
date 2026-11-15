@@ -52,7 +52,10 @@ public:
     void set_fit(ImageFit fit) noexcept { fit_ = fit; }
     void set_preferred_size(Size size) noexcept { preferred_size_ = size; }
     void set_corner_radius(float radius) noexcept { corner_radius_ = radius; }
-    void set_placeholder(std::wstring text) { placeholder_ = std::move(text); }
+    void set_placeholder(std::wstring text) {
+        placeholder_ = std::move(text);
+        set_accessible_name(placeholder_);
+    }
     [[nodiscard]] bool accepts_mouse() const noexcept override { return !tooltip().empty(); }
 
     [[nodiscard]] Size measure(Painter& painter, const Size& available) override;
