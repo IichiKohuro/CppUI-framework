@@ -23,6 +23,29 @@
 
 namespace {
 
+// Process CPU time is the only metric that does not depend on the display
+// refresh rate: Render() blocks in Present(1, 0), so wall-clock frame times are
+// quantized to the monitor refresh (8.3 ms at 120 Hz, ~21 ms on a 48 Hz CI
+// runner). Returns false when the query fails so the gate can report it
+// instead of silently gating on a zero.
+bool QueryProcessCpuMs(double& cpu_ms) {
+    FILETIME creation{};
+    FILETIME exit{};
+    FILETIME kernel{};
+    FILETIME user{};
+    if (GetProcessTimes(GetCurrentProcess(), &creation, &exit, &kernel, &user) == FALSE) {
+        return false;
+    }
+    ULARGE_INTEGER kernel_ticks{};
+    kernel_ticks.LowPart = kernel.dwLowDateTime;
+    kernel_ticks.HighPart = kernel.dwHighDateTime;
+    ULARGE_INTEGER user_ticks{};
+    user_ticks.LowPart = user.dwLowDateTime;
+    user_ticks.HighPart = user.dwHighDateTime;
+    cpu_ms = static_cast<double>(kernel_ticks.QuadPart + user_ticks.QuadPart) / 10000.0;
+    return true;
+}
+
 constexpr wchar_t kWindowTitle[] = L"CppUI - Phase 4";
 constexpr wchar_t kErrorTitle[] = L"CppUI - Phase 4";
 constexpr int kInitialWidthDip = 1000;
@@ -698,19 +721,8 @@ int BootstrapApp::RunBenchmark(cppui::Win32Window& window) {
 
 
 
-    FILETIME creation_start{};
-    FILETIME exit_start{};
-    FILETIME cpu_kernel_start{};
-    FILETIME cpu_user_start{};
-    FILETIME creation_end{};
-    FILETIME exit_end{};
-    FILETIME cpu_kernel_end{};
-    FILETIME cpu_user_end{};
-    (void)GetProcessTimes(GetCurrentProcess(),
-                          &creation_start,
-                          &exit_start,
-                          &cpu_kernel_start,
-                          &cpu_user_start);
+    double cpu_start_ms = 0.0;
+    const bool cpu_start_ok = QueryProcessCpuMs(cpu_start_ms);
 
     std::vector<double> frame_times;
     frame_times.reserve(120);
@@ -723,22 +735,12 @@ int BootstrapApp::RunBenchmark(cppui::Win32Window& window) {
         frame_times.push_back(elapsed_ms(start, Clock::now()));
     }
 
-    (void)GetProcessTimes(GetCurrentProcess(),
-                          &creation_end,
-                          &exit_end,
-                          &cpu_kernel_end,
-                          &cpu_user_end);
+    double cpu_end_ms = 0.0;
+    const bool cpu_end_ok = QueryProcessCpuMs(cpu_end_ms);
+    const bool cpu_ok = cpu_start_ok && cpu_end_ok;
 
-    const auto filetime_ms = [](const FILETIME& time) {
-        ULARGE_INTEGER value{};
-        value.LowPart = time.dwLowDateTime;
-        value.HighPart = time.dwHighDateTime;
-        return static_cast<double>(value.QuadPart) / 10000.0;
-    };
     const double cpu_ms_per_frame =
-        ((filetime_ms(cpu_kernel_end) + filetime_ms(cpu_user_end)) -
-         (filetime_ms(cpu_kernel_start) + filetime_ms(cpu_user_start))) /
-        static_cast<double>(frame_times.size());
+        cpu_ok ? (cpu_end_ms - cpu_start_ms) / static_cast<double>(frame_times.size()) : -1.0;
 
     const auto layout_start = Clock::now();
     for (int iteration = 0; iteration < 500; ++iteration) {
@@ -785,6 +787,9 @@ int BootstrapApp::RunBenchmark(cppui::Win32Window& window) {
     }
     LayoutUiForSize(1000.0f, 640.0f);
 
+    double theme_cpu_start_ms = 0.0;
+    double theme_cpu_end_ms = 0.0;
+    const bool theme_cpu_start_ok = QueryProcessCpuMs(theme_cpu_start_ms);
     const auto theme_start = Clock::now();
     for (int iteration = 0; iteration < 60; ++iteration) {
         const cppui::ThemeTokens& theme =
@@ -795,7 +800,14 @@ int BootstrapApp::RunBenchmark(cppui::Win32Window& window) {
         }
     }
     const double theme_avg_ms = elapsed_ms(theme_start, Clock::now()) / 60.0;
+    const bool theme_cpu_end_ok = QueryProcessCpuMs(theme_cpu_end_ms);
+    const bool theme_cpu_ok = theme_cpu_start_ok && theme_cpu_end_ok;
+    const double theme_cpu_avg_ms =
+        theme_cpu_ok ? (theme_cpu_end_ms - theme_cpu_start_ms) / 60.0 : -1.0;
 
+    double density_cpu_start_ms = 0.0;
+    double density_cpu_end_ms = 0.0;
+    const bool density_cpu_start_ok = QueryProcessCpuMs(density_cpu_start_ms);
     const auto density_start = Clock::now();
     const cppui::DensityMode densities[] = {
         cppui::DensityMode::compact,
@@ -811,6 +823,10 @@ int BootstrapApp::RunBenchmark(cppui::Win32Window& window) {
         }
     }
     const double density_avg_ms = elapsed_ms(density_start, Clock::now()) / 30.0;
+    const bool density_cpu_end_ok = QueryProcessCpuMs(density_cpu_end_ms);
+    const bool density_cpu_ok = density_cpu_start_ok && density_cpu_end_ok;
+    const double density_cpu_avg_ms =
+        density_cpu_ok ? (density_cpu_end_ms - density_cpu_start_ms) / 30.0 : -1.0;
 
     if (!renderer_.SetTheme(cppui::light_theme())) {
         OutputDebugStringW(L"CppUI benchmark: restore theme failed.\n");
@@ -847,7 +863,12 @@ int BootstrapApp::RunBenchmark(cppui::Win32Window& window) {
     output << "layout_avg_ms=" << layout_avg_ms << '\n';
     output << "resize_avg_ms=" << resize_avg_ms << '\n';
     output << "theme_switch_avg_ms=" << theme_avg_ms << '\n';
+    output << "theme_switch_cpu_avg_ms=" << theme_cpu_avg_ms << '\n';
     output << "density_switch_avg_ms=" << density_avg_ms << '\n';
+    output << "density_switch_cpu_avg_ms=" << density_cpu_avg_ms << '\n';
+    output << "renderer=" << (renderer_.IsWarp() ? "warp" : "hardware") << '\n';
+    output << "cpu_measure=" << ((cpu_ok && theme_cpu_ok && density_cpu_ok) ? "ok" : "failed")
+           << '\n';
     output << "target_dip=" << target.width << 'x' << target.height << '\n';
 
     renderer_.Shutdown();

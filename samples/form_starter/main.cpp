@@ -481,7 +481,7 @@ private:
             form_.SetDensityMode(density);
             SyncDensityRadios(density);
             form_.SetStatusText(L"Готово: Form Starter");
-            return form_.CapturePng(name);
+            return form_.CapturePng(name, kInitialWidthDip, kInitialHeightDip);
         };
 
         if (!capture(cppui::ThemeMode::light, cppui::DensityMode::cozy,
@@ -500,7 +500,8 @@ private:
         SyncDensityRadios(cppui::DensityMode::cozy);
         form_.SetStatusText(L"Готово: Form Starter");
         ShowActionsMenu();
-        if (!form_.CapturePng(L"visual-output/v01-light-popup.png")) {
+        if (!form_.CapturePng(L"visual-output/v01-light-popup.png", kInitialWidthDip,
+                              kInitialHeightDip)) {
             MessageBoxW(nullptr, L"Popup visual capture failed.", kErrorTitle,
                         MB_OK | MB_ICONERROR);
             return 1;

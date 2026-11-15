@@ -45,6 +45,7 @@ struct Form::Impl {
     void SetContent(std::unique_ptr<Widget> content);
     void BuildRoot(std::unique_ptr<Widget> content);
     void Layout();
+    void LayoutAtPixels(UINT width, UINT height);
     void UpdateStatusRight();
     void SetStatusText(std::wstring text);
     void SetThemeMode(ThemeMode mode);
@@ -68,6 +69,7 @@ struct Form::Impl {
     [[nodiscard]] Point ToDip(int x, int y) const;
     void OnThemeChanged();
     bool CapturePng(std::wstring_view path);
+    bool CapturePng(std::wstring_view path, int requested_width_dip, int requested_height_dip);
     void Shutdown();
 
     std::wstring title;
@@ -226,6 +228,14 @@ void Form::Impl::Layout() {
     const UINT width = static_cast<UINT>(std::max<LONG>(1, client.right - client.left));
     const UINT height = static_cast<UINT>(std::max<LONG>(1, client.bottom - client.top));
     dpi = window->Dpi();
+
+    LayoutAtPixels(width, height);
+}
+
+void Form::Impl::LayoutAtPixels(UINT width, UINT height) {
+    if (!created || !renderer || ui.root() == nullptr) {
+        return;
+    }
 
     if (!renderer->Resize(width, height, dpi)) {
         return;
@@ -561,6 +571,35 @@ bool Form::Impl::CapturePng(std::wstring_view path) {
     return renderer->RenderAndCapture(window->GetChromeState(), ui.root(), path);
 }
 
+bool Form::Impl::CapturePng(std::wstring_view path,
+                            int requested_width_dip,
+                            int requested_height_dip) {
+    if (!created || !renderer || !window) {
+        return false;
+    }
+    if (requested_width_dip <= 0 || requested_height_dip <= 0) {
+        return false;
+    }
+
+    // Visual regression baselines are captured at a fixed DIP size, but the
+    // host desktop may be smaller than that size (CI runners often are). The
+    // window itself gets clamped to the desktop, so lay out the offscreen
+    // target at the requested size instead of the window client size.
+    dpi = window->Dpi();
+    const UINT width =
+        static_cast<UINT>(std::lround(static_cast<double>(requested_width_dip) * dpi / 96.0));
+    const UINT height =
+        static_cast<UINT>(std::lround(static_cast<double>(requested_height_dip) * dpi / 96.0));
+    LayoutAtPixels(std::max<UINT>(1, width), std::max<UINT>(1, height));
+
+    const bool captured = renderer->RenderAndCapture(window->GetChromeState(), ui.root(), path);
+
+    // Restore the layout for the real client rect so the live window keeps
+    // painting correctly after the capture.
+    Layout();
+    return captured;
+}
+
 void Form::Impl::Shutdown() {
     if (renderer) {
         renderer->Shutdown();
@@ -701,6 +740,10 @@ void Form::Close() {
 
 bool Form::CapturePng(std::wstring_view path) {
     return impl_ != nullptr && impl_->CapturePng(path);
+}
+
+bool Form::CapturePng(std::wstring_view path, int width_dip, int height_dip) {
+    return impl_ != nullptr && impl_->CapturePng(path, width_dip, height_dip);
 }
 
 bool Form::IsCreated() const noexcept {

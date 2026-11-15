@@ -54,19 +54,36 @@ if ($metrics['configuration'] -ne 'Release') {
     throw "Configuration mismatch: expected Release, output says $($metrics['configuration'])."
 }
 
+if ($metrics.ContainsKey('cpu_measure') -and $metrics['cpu_measure'] -ne 'ok') {
+    throw 'Benchmark could not measure process CPU time; budgets would be meaningless.'
+}
+
+$renderer = if ($metrics.ContainsKey('renderer')) { $metrics['renderer'] } else { 'unknown' }
+Write-Host "Renderer: $renderer"
+
+# Frame wall-clock time is quantized by Present(1, 0): 8.3 ms on a 120 Hz
+# monitor, ~21 ms on the 48 Hz virtual display of a CI runner. Budgets are
+# therefore expressed in process CPU time, which is refresh independent. The
+# software rasterizer (WARP) is roughly three times slower than a real GPU, so
+# it gets its own scale instead of a false failure.
+$cpuScale = if ($renderer -eq 'warp') { 3.0 } else { 1.0 }
+
 # Deliberately generous compared with the measured Release baseline
-# (CPU ~1.8 ms, layout ~0.15 ms, startup 101 ms) so that a slower clean CI
-# runner or the WARP fallback does not produce false failures. They catch
+# (CPU ~1.8 ms hardware, ~3.9 ms WARP; layout ~0.15 ms; startup 101 ms) so that
+# a slower clean CI runner does not produce false failures. They catch
 # order-of-magnitude regressions, not small drift.
 $limits = [ordered]@{
-    frame_cpu_avg_ms          = 10.0
-    frame_p95_ms              = 45.0
+    frame_cpu_avg_ms          = 10.0 * $cpuScale
+    frame_p95_ms              = 90.0
     layout_avg_ms             = 1.5
-    resize_avg_ms             = 25.0
-    startup_to_first_frame_ms = 600.0
-    theme_switch_avg_ms       = 20.0
-    density_switch_avg_ms     = 20.0
+    resize_avg_ms             = 100.0
+    startup_to_first_frame_ms = 1200.0
+    theme_switch_cpu_avg_ms   = 10.0 * $cpuScale
+    density_switch_cpu_avg_ms = 10.0 * $cpuScale
 }
+
+Show-Metrics @('frame_avg_ms', 'frame_p95_ms', 'resize_avg_ms', 'theme_switch_avg_ms',
+               'density_switch_avg_ms') @{}
 
 $failed = $false
 $rows = foreach ($name in $limits.Keys) {

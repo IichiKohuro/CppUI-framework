@@ -63,7 +63,13 @@ public:
     int Run();
     void Invalidate();
     void Close();
+    // Captures the form client into a PNG at the current client size.
     [[nodiscard]] bool CapturePng(std::wstring_view path);
+    // Captures at an explicit DIP size, independent of the desktop resolution.
+    // The window may be smaller than the requested size (for example on a CI
+    // runner with a 1024x768 desktop); the offscreen target is laid out at the
+    // requested size and the client layout is restored afterwards.
+    [[nodiscard]] bool CapturePng(std::wstring_view path, int width_dip, int height_dip);
 
     [[nodiscard]] bool IsCreated() const noexcept;
     [[nodiscard]] void* NativeHandle() const noexcept;

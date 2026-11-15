@@ -133,8 +133,11 @@ Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resiz
 С 15.11.2026 эти бюджеты являются gate, а не только отчётом: CTest-тест
 `cppui.benchmark` запускает `tests/benchmark_gate.ps1` и падает в Release при
 выходе за пределы. Пороги намеренно грубые (~5× от baseline), чтобы не ловить
-шум CI; они рассчитаны на регресс на порядок. Подробности — в
-[RISKS.md](RISKS.md), G-1.
+шум CI; они рассчитаны на регресс на порядок. Бюджеты выражены в **CPU-времени
+процесса**, а не в wall-clock: `Render` блокируется в `Present(1, 0)`, поэтому
+wall-время квантуется частотой монитора (8.3 ms при 120 Гц, ~21 ms на 48 Гц
+виртуальном дисплее CI-раннера). Метрика указывает `renderer=hardware|warp`;
+для WARP бюджеты умножаются на 3. Подробности — в [RISKS.md](RISKS.md), G-1.
 
 Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. M0 CTest **8/8** в Debug и Release;
 после v0.1 — **14/14** в Debug и Release. Clean build directory Debug собран с нуля. Visual
