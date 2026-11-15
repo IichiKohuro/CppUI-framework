@@ -33,6 +33,7 @@
 
 - `cppui.render_smoke`: hidden window, DPI matrix 96/120/144/192, Light/Dark, density S/M/L, target-size invariants, device recreation;
 - `cppui.ui`: Widget layout, hit testing, click, focus, Space activation, disabled button, compact/cozy Button metrics, FormPanel/StatusBar layout and compact status height;
+- `cppui.ui_controls`: Button hover/press/drag, CheckBox click/keyboard, Radio arrow selection + focus, TextEdit click/char/selection/undo, ScrollViewer wheel/scrollbar drag, popup focus trap/action/click-outside, BusyOverlay input blocking, feedback/image paint;
 - `cppui.form`: public `Form` API Create/SetContent/theme/density callbacks/Show/Run/Close;
 - `cppui.benchmark`: frame/layout/resize/theme/density timings, startup, target DIP size, CPU time;
 - `cppui.dpi`: реальный перенос между 120 DPI и 96 DPI мониторами, смена DPI и client area;
@@ -94,7 +95,7 @@ RTL/BiDi — не входит в v0.1; добавить в матрицу, ко
 Для контрола — критерии в [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md). Для релиза:
 
 - [x] Все заявленные контролы/сценарии v0.1 реализованы.
-- [x] Unit- и integration-тесты зелёные: **13/13 Debug и Release**.
+- [x] Unit- и integration-тесты зелёные: **14/14 Debug и Release**.
 - [x] Visual snapshots v0.1 обновлены и просмотрены: Light/Dark/Compact/Popup.
 - [x] Ручная матрица chrome/DPI пройдена для M0.
 - [x] Compact / Cozy / Comfortable проверены на Form Starter.
@@ -136,7 +137,7 @@ Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resiz
 [RISKS.md](RISKS.md), G-1.
 
 Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. M0 CTest **8/8** в Debug и Release;
-после v0.1 — **13/13** в Debug и Release. Clean build directory Debug собран с нуля. Visual
+после v0.1 — **14/14** в Debug и Release. Clean build directory Debug собран с нуля. Visual
 regression проходит exact-SHA за ~1.5 s. FLIP_DISCARD + single-threaded D3D снизили
 frame CPU до ~1.8 ms. Реальный mixed-DPI 120/96 проверен на двух мониторах; 150/200%
 simulated. Snap/Alt+Space/Alt+F4 проверены. Private memory 43.8 MB проходит hard 60 MB;
@@ -147,13 +148,14 @@ input-to-photon и flicker остаются не измеренными и вы�
 | Проверка | Результат |
 |---|---|
 | `cppui.v01` | TextEdit/CheckBox/Radio/Grid/Scroll/Command/Image/Popup/ToolTip — pass |
+| `cppui.ui_controls` | Сквозное взаимодействие всех контролов, focus trap и scrollbar drag — pass |
 | `cppui.dialog` | modal result, default Enter, mouse click on button center, owner re-enable, MessageBox cancel — pass |
 | `cppui.visual_v01` | 4 WIC snapshots, Light/Dark/Compact/Popup — pass |
 | `cppui.visual_v01_warp` | те же 4 snapshot на WARP — pass, расхождение <0.1% |
 | accessibility | accessible name/role/value у ключевых контролов |
 | Form Starter live | ввод, caret, ToolTip, popup, MessageBox, Yes/No/Cancel — проверено |
 | Density | Compact/Cozy/Comfortable на всех контролах волны |
-| Release CTest | **13/13**, benchmark gate pass |
+| Release CTest | **14/14**, benchmark gate pass |
 | Release metrics v0.1 | frame 8.33 ms / 120 FPS, CPU 1.69 ms, layout 0.182 ms, resize 7.69 ms, startup 96.8 ms |
 | Ограничения | non-modal Dialog, inline IME composition, popup submenu, ellipsis — не в v0.1 |
 

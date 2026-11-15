@@ -833,7 +833,9 @@ void RadioGroup::select_adjacent(RadioButton& current, int delta) {
     for (int step = 0; step < count; ++step) {
         index = (index + delta + count) % count;
         if (buttons[static_cast<std::size_t>(index)]->enabled()) {
-            select(buttons[static_cast<std::size_t>(index)]);
+            RadioButton* const next = buttons[static_cast<std::size_t>(index)];
+            select(next);
+            next->request_focus();
             return;
         }
     }

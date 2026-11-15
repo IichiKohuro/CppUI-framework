@@ -63,6 +63,9 @@ void UiHost::set_root(std::unique_ptr<Widget> root) {
     tooltip_.clear();
     focus_order_.clear();
     root_ = std::move(root);
+    if (root_) {
+        root_->set_focus_requester([this](Widget* widget) { set_focus(widget); });
+    }
 }
 
 void UiHost::layout(Painter& painter, const Rect& bounds) {

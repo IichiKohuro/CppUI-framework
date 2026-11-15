@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -103,6 +104,9 @@ public:
     [[nodiscard]] virtual Widget* hit_test(Point point) const;
     void add_child(std::unique_ptr<Widget> child);
     std::unique_ptr<Widget> remove_child(Widget* child);
+
+    void set_focus_requester(std::function<void(Widget*)> requester);
+    void request_focus();
     [[nodiscard]] const std::vector<std::unique_ptr<Widget>>& children() const noexcept {
         return children_;
     }
@@ -155,6 +159,7 @@ private:
     std::wstring validation_error_;
     std::wstring accessible_name_;
     std::wstring accessible_value_;
+    std::function<void(Widget*)> focus_requester_;
     AccessibleRole accessible_role_{AccessibleRole::generic};
     bool hovered_{false};
     bool pressed_{false};

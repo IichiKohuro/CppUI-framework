@@ -29,7 +29,7 @@ senior C++/Win32-разработчик). Ревью — после каждой
 |---|---|---|---|---|
 | R-01 | Кастомный chrome и Snap Layouts | H/H | Partial | `cppui.chrome` + work area |
 | R-02 | Device loss / RDP / слабая GPU | M/M | Partial | `cppui.render_smoke`, WARP fallback |
-| R-03 | Scope creep из-за списка контролов | H/H | Mitigated | заморозка scope v0.1 + 12/12 CTest |
+| R-03 | Scope creep из-за списка контролов | H/H | Mitigated | заморозка scope v0.1 + 14/14 CTest |
 | R-04 | TextEdit/MemoEdit: IME, selection, undo | H/M | Partial | `cppui.v01` + ручная IME-матрица |
 | R-05 | PropertyGrid без рефлексии | H/M | Open | ревью контракта до v0.3 |
 | R-06 | Визуальная несогласованность | M/M | Partial | `cppui.visual*` |
@@ -52,7 +52,7 @@ senior C++/Win32-разработчик). Ревью — после каждой
 |---|---|---|---|
 | R-01 | Partial | `WM_GETMINMAXINFO` максимизирует в work area монитора; `cppui.chrome` проверяет client на work area. Real 120/96, Snap/Alt+Space. | Win10, touch/pen, auto-hide taskbar, реальные 150/200%. |
 | R-02 | Partial | WARP выбирается после 3 подряд render failures; `render_smoke` проходит и на WARP. | Нет реального TDR/RDP reconnect soak, нет backoff после WARP. |
-| R-03 | Mitigated | Scope v0.1 закрыт, data-контролы не добавлены, 12/12 CTest. | Расширение v0.2 требует нового scope-review. |
+| R-03 | Mitigated | Scope v0.1 закрыт, data-контролы не добавлены, 14/14 CTest. | Расширение v0.2 требует нового scope-review. |
 | R-04 | Partial | Selection, clipboard, undo/redo, max length, read-only, IME result string; тесты в `cppui.v01`. | CJK IME вручную, inline composition, double-click, Memo. |
 | R-05 | Open | Контракт `PropertyDescriptor` зафиксирован как обязательный до v0.3. | Кода нет; решение O-005 откладывает VerticalGrid. |
 | R-06 | Partial | Baselines Light/Dark/Compact/Popup; focus-ring и border clipping исправлены. | Нет автоматической матрицы всех состояний hover/focus/disabled. |
@@ -386,7 +386,7 @@ PMv2, и что `SetProcessDpiAwarenessContext` переводит процес�
 | Дата | Изменение |
 |---|---|
 | 15.11.2026 | Реестр создан; R-10 и R-12 закрыты gates G-1/G-2; R-09 переведён в Blocked (нет remote); подтверждены 11/11 CTest в Debug и Release |
-| 15.11.2026 | Полная ревизия 15 рисков. R-01: maximize в work area + тест. R-02: 3 render failures → WARP. R-11: WARP visual gate + diff PNG. R-13: accessible name/role/value в Widget. R-03/R-07/R-10/R-12 — Mitigated; R-05/R-08/R-14 — Open; R-09 — Blocked; R-15 — Accepted. **13/13 CTest в Debug и Release**. |
+| 15.11.2026 | Полная ревизия 15 рисков. R-01: maximize в work area + тест. R-02: 3 render failures → WARP. R-11: WARP visual gate + diff PNG. R-13: accessible name/role/value в Widget. R-03/R-07/R-10/R-12 — Mitigated; R-05/R-08/R-14 — Open; R-09 — Blocked; R-15 — Accepted. **14/14 CTest в Debug и Release**. |
 
 ## 6. Ближайшие действия
 

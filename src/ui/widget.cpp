@@ -34,9 +34,25 @@ void Widget::add_child(std::unique_ptr<Widget> child) {
         return;
     }
     child->parent_ = this;
+    if (focus_requester_) {
+        child->set_focus_requester(focus_requester_);
+    }
     Widget& reference = *child;
     children_.push_back(std::move(child));
     on_child_added(reference);
+}
+
+void Widget::set_focus_requester(std::function<void(Widget*)> requester) {
+    focus_requester_ = std::move(requester);
+    for (const auto& child : children_) {
+        child->set_focus_requester(focus_requester_);
+    }
+}
+
+void Widget::request_focus() {
+    if (focus_requester_) {
+        focus_requester_(this);
+    }
 }
 
 std::unique_ptr<Widget> Widget::remove_child(Widget* child) {

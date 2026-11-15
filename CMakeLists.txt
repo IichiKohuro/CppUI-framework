@@ -150,6 +150,13 @@ if(CPPUI_BUILD_TESTS)
     add_test(NAME cppui.v01 COMMAND cppui_v01_tests)
     set_tests_properties(cppui.v01 PROPERTIES TIMEOUT 30)
 
+    add_executable(cppui_ui_controls_tests tests/ui_controls_test.cpp)
+    target_link_libraries(cppui_ui_controls_tests PRIVATE cppui::cppui)
+    cppui_configure_warnings(cppui_ui_controls_tests)
+
+    add_test(NAME cppui.ui_controls COMMAND cppui_ui_controls_tests)
+    set_tests_properties(cppui.ui_controls PROPERTIES TIMEOUT 30)
+
     add_executable(cppui_dialog_tests tests/dialog_tests.cpp)
     target_link_libraries(cppui_dialog_tests PRIVATE cppui::cppui)
     cppui_configure_warnings(cppui_dialog_tests)
