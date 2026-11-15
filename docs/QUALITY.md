@@ -1,7 +1,7 @@
 # QUALITY — тесты, производительность и критерии релиза
 
-> Статус: Draft · 14.11.2026.
-> Связанные документы: [PLAN.md](../PLAN.md), [ROADMAP.md](ROADMAP.md), [ARCHITECTURE.md](ARCHITECTURE.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md).
+> Статус: v0.1 Form Starter delivered · 15.11.2026.
+> Связанные документы: [PLAN.md](../PLAN.md), [ROADMAP.md](ROADMAP.md), [ARCHITECTURE.md](ARCHITECTURE.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [V01.md](V01.md).
 
 ## 1. Принципы
 
@@ -38,6 +38,8 @@
 - `cppui.dpi`: реальный перенос между 120 DPI и 96 DPI мониторами, смена DPI и client area;
 - `cppui.chrome`: hit testing caption/min/max/close/resize, maximize/restore, minimize/restore, resize stress, DwmFlush;
 - `cppui.visual`: WIC PNG capture Light/Dark/Compact, baselines в `tests/baselines`, допуск 8/255 и 2% пикселей;
+- `cppui.dpi_awareness`: публичный `IsPerMonitorDpiAware()` и переход процесса в PMv2; `Form::Create` предупреждает при отсутствии awareness;
+- `cppui.benchmark`: Release-метрики проверяются по порогам через `tests/benchmark_gate.ps1`; Debug требует только успешного прогона (G-1 в [RISKS.md](RISKS.md));
 - создание hidden window и message loop;
 - `WM_NCHITTEST`: caption, min/max/close, resize-border, client;
 - custom maximize/restore, minimize, close и close-hover;
@@ -91,16 +93,16 @@ RTL/BiDi — не входит в v0.1; добавить в матрицу, ко
 
 Для контрола — критерии в [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md). Для релиза:
 
-- [ ] Все заявленные контролы/сценарии реализованы.
-- [x] Unit- и integration-тесты зелёные.
-- [x] Visual snapshots обновлены и просмотрены.
-- [ ] Ручная матрица chrome/DPI пройдена.
-- [ ] Проверены Compact / Cozy / Comfortable в data-layout.
-- [ ] Нет известных P0/P1.
-- [ ] Performance-бюджеты соблюдены.
-- [ ] Документация и примеры обновлены.
-- [ ] Accessibility-минимум пройден.
-- [ ] Сборка с чистой машины воспроизводится.
+- [x] Все заявленные контролы/сценарии v0.1 реализованы.
+- [x] Unit- и integration-тесты зелёные: **12/12 Debug**.
+- [x] Visual snapshots v0.1 обновлены и просмотрены: Light/Dark/Compact/Popup.
+- [x] Ручная матрица chrome/DPI пройдена для M0.
+- [x] Compact / Cozy / Comfortable проверены на Form Starter.
+- [x] Нет известных P0/P1 в v0.1.
+- [x] Performance-бюджеты M0 соблюдены.
+- [x] Документация и примеры обновлены: [CONTROLS.md](CONTROLS.md), [V01.md](V01.md).
+- [x] Accessibility-минимум v0.1: Tab/Shift+Tab, focus, Enter/Space, Esc, focus trap.
+- [ ] Сборка с чистой машины воспроизводится — clean build-каталоги проверены; clean machine waiver M0.
 
 ## 5. Performance-бюджеты
 
@@ -127,7 +129,31 @@ Phase 1 baseline: idle CPU измерен как 0.000 s за 8 s (≈0%); resiz
 | Private memory | **43.8 MB** | hard 60 MB pass; target 40 miss 3.8 MB |
 | Working set | **64.4 MB** | shared GPU/font pages, informational |
 
-Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest **8/8** в Debug и Release; clean build directory Debug собран с нуля. Visual regression проходит exact-SHA за ~1.5 s. FLIP_DISCARD + single-threaded D3D снизили frame CPU до ~1.8 ms. Реальный mixed-DPI 120/96 проверен на двух мониторах; 150/200% simulated. Snap/Alt+Space/Alt+F4 проверены. Private memory 43.8 MB проходит hard 60 MB; input-to-photon и flicker остаются не измеренными и вынесены в waiver [M0.md](M0.md).
+С 15.11.2026 эти бюджеты являются gate, а не только отчётом: CTest-тест
+`cppui.benchmark` запускает `tests/benchmark_gate.ps1` и падает в Release при
+выходе за пределы. Пороги намеренно грубые (~5× от baseline), чтобы не ловить
+шум CI; они рассчитаны на регресс на порядок. Подробности — в
+[RISKS.md](RISKS.md), G-1.
+
+Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. M0 CTest **8/8** в Debug и Release;
+после v0.1 — **12/12** в Debug. Clean build directory Debug собран с нуля. Visual
+regression проходит exact-SHA за ~1.5 s. FLIP_DISCARD + single-threaded D3D снизили
+frame CPU до ~1.8 ms. Реальный mixed-DPI 120/96 проверен на двух мониторах; 150/200%
+simulated. Snap/Alt+Space/Alt+F4 проверены. Private memory 43.8 MB проходит hard 60 MB;
+input-to-photon и flicker остаются не измеренными и вынесены в waiver [M0.md](M0.md).
+
+### v0.1 результаты
+
+| Проверка | Результат |
+|---|---|
+| `cppui.v01` | TextEdit/CheckBox/Radio/Grid/Scroll/Command/Image/Popup/ToolTip — pass |
+| `cppui.dialog` | modal result, default Enter, owner re-enable, MessageBox cancel — pass |
+| `cppui.visual_v01` | 4 WIC snapshots, Light/Dark/Compact/Popup — pass |
+| Form Starter live | ввод, caret, ToolTip, popup, MessageBox, Yes/No/Cancel — проверено |
+| Density | Compact/Cozy/Comfortable на всех контролах волны |
+| Release CTest | **12/12**, benchmark gate pass |
+| Release metrics v0.1 | frame 8.33 ms / 120 FPS, CPU 1.69 ms, layout 0.182 ms, resize 7.69 ms, startup 96.8 ms |
+| Ограничения | non-modal Dialog, inline IME composition, popup submenu, ellipsis — не в v0.1 |
 
 | Метрика | Target | Hard threshold |
 |---|---:|---:|
@@ -193,8 +219,8 @@ Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest **8/8** в Debug и Rel
 - Windows 2022 runner, MSVC x64.
 - Debug и Release.
 - Configure/Build через CMake presets.
-- CTest, включая DPI matrix, mixed-DPI, chrome, benchmark и visual regression.
-- Artifacts с `cppui-benchmark.txt`.
+- CTest, включая DPI matrix, mixed-DPI, chrome, v0.1 controls/dialog, benchmark gate и visual regression (включая Form Starter).
+- Artifacts с `cppui-benchmark.txt`; visual output загружается при падении.
 - Warnings as errors для собственного кода.
 - Сборка sample.
 
@@ -223,17 +249,17 @@ Debug benchmark: frame ~8.33 ms, layout ~0.124 ms. CTest **8/8** в Debug и Rel
 
 ## 10. Release checklist
 
-- [ ] Все запланированные контролы прошли Definition of Done.
-- [ ] Проверены Light/Dark/System.
-- [ ] 100/125/150/200% DPI и mixed-DPI.
-- [ ] Chrome-матрица пройдена.
-- [ ] RDP/WARP smoke пройден.
-- [ ] Нет новых P0/P1.
-- [ ] Performance-замеры в допустимых пределах.
+- [x] Все запланированные контролы v0.1 прошли Definition of Done.
+- [x] Проверены Light/Dark/System.
+- [x] 100/125/150/200% DPI и mixed-DPI (150/200 simulated, waiver).
+- [x] Chrome-матрица пройдена.
+- [ ] RDP/WARP smoke пройден — WARP render smoke есть, full RDP manual pending.
+- [x] Нет новых P0/P1.
+- [x] Performance-замеры M0 в допустимых пределах.
 - [x] Visual snapshots приняты.
-- [ ] README, API docs и примеры обновлены.
-- [ ] Версия и changelog зафиксированы.
-- [ ] Сборка воспроизводится с чистой машины.
+- [x] README, API docs и примеры обновлены.
+- [ ] Версия и changelog зафиксированы — v0.1 notes есть, git tag не создавался.
+- [ ] Сборка воспроизводится с чистой машины — local clean build only.
 
 ## 11. Риски качества
 

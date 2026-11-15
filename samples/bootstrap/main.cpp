@@ -588,12 +588,8 @@ bool BootstrapApp::OnKeyDown(WPARAM key) {
 }
 
 int BootstrapApp::RunSelfTest(cppui::Win32Window& window) {
-    const cppui::ChromeState chrome{
-        true,
-        false,
-        cppui::ChromeButton::none,
-        cppui::ChromeButton::none,
-    };
+    cppui::ChromeState chrome{};
+    chrome.active = true;
 
     if (!renderer_.Render(chrome, ui_.root())) {
         OutputDebugStringW(L"CppUI self-test: initial UI render failed.\n");
@@ -676,12 +672,8 @@ int BootstrapApp::RunSelfTest(cppui::Win32Window& window) {
 }
 
 int BootstrapApp::RunBenchmark(cppui::Win32Window& window) {
-    const cppui::ChromeState chrome{
-        true,
-        false,
-        cppui::ChromeButton::none,
-        cppui::ChromeButton::none,
-    };
+    cppui::ChromeState chrome{};
+    chrome.active = true;
     using Clock = std::chrono::steady_clock;
     const auto elapsed_ms = [](Clock::time_point start, Clock::time_point end) {
         return std::chrono::duration<double, std::milli>(end - start).count();
@@ -881,13 +873,9 @@ int BootstrapApp::RunVisualCapture(cppui::Win32Window& window) {
         }
         LayoutUiForSize(1000.0f, 640.0f);
 
-        const cppui::ChromeState chrome{
-            true,
-            false,
-            cppui::ChromeButton::none,
-            cppui::ChromeButton::none,
-            theme,
-        };
+        cppui::ChromeState chrome{};
+        chrome.active = true;
+        chrome.theme_mode = theme;
         return renderer_.RenderAndCapture(chrome, ui_.root(), path);
     };
 

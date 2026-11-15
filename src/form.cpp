@@ -3,6 +3,7 @@
 #include <windows.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <utility>
 
@@ -10,11 +11,25 @@
 #include <cppui/ui/form.hpp>
 #include <cppui/ui/host.hpp>
 #include <cppui/ui/painter.hpp>
+#include <cppui/ui/popup.hpp>
 
 #include "platform/win32/win32_window.hpp"
 #include "render/d2d/d2d_renderer.hpp"
 
 namespace cppui {
+namespace {
+
+constexpr UINT_PTR kAnimationTimer = 1;
+constexpr UINT_PTR kTooltipTimer = 2;
+constexpr UINT kAnimationIntervalMs = 16;
+constexpr UINT kTooltipDelayMs = 600;
+
+}  // namespace
+
+bool IsPerMonitorDpiAware() noexcept {
+    const DPI_AWARENESS_CONTEXT context = GetThreadDpiAwarenessContext();
+    return GetAwarenessFromDpiAwarenessContext(context) == DPI_AWARENESS_PER_MONITOR_AWARE;
+}
 
 struct Form::Impl {
     Impl(std::wstring form_title, int width, int height, int min_width, int min_height)
@@ -41,9 +56,16 @@ struct Form::Impl {
     void OnMouseDown(int x, int y);
     void OnMouseUp(int x, int y);
     void OnMouseLeave();
+    void OnMouseWheel(int x, int y, float delta);
     bool OnKeyDown(WPARAM key);
+    bool OnChar(wchar_t character);
+    void OnTimer(UINT_PTR timer_id);
+    void UpdateAnimationTimer();
+    void UpdateImePosition();
+    void HideTooltip();
     [[nodiscard]] Point ToDip(int x, int y) const;
     void OnThemeChanged();
+    bool CapturePng(std::wstring_view path);
     void Shutdown();
 
     std::wstring title;
@@ -55,12 +77,17 @@ struct Form::Impl {
     std::unique_ptr<Win32Window> window;
     std::unique_ptr<D2DRenderer> renderer;
     UiHost ui;
+    PopupHost* popup_host{};
     std::unique_ptr<Widget> pending_content;
     StatusBar* status_view{};
     ThemeMode theme_mode{ThemeMode::light};
     DensityMode density_mode{DensityMode::cozy};
     float dpi{96.0f};
     bool created{false};
+    Point last_mouse{};
+    Widget* tooltip_owner{};
+    bool animation_timer_active{false};
+    std::chrono::steady_clock::time_point last_tick{};
 
     std::function<void(ThemeMode)> on_theme_changed;
     std::function<void(DensityMode)> on_density_changed;
@@ -70,6 +97,17 @@ struct Form::Impl {
 bool Form::Impl::Create() {
     if (created) {
         return true;
+    }
+
+    if (!IsPerMonitorDpiAware()) {
+        static bool warned = false;
+        if (!warned) {
+            warned = true;
+            OutputDebugStringW(
+                L"CppUI: process is not per-monitor DPI aware. Call "
+                L"SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) "
+                L"before creating a Form.\n");
+        }
     }
 
     window = std::make_unique<Win32Window>(GetModuleHandleW(nullptr),
@@ -86,10 +124,13 @@ bool Form::Impl::Create() {
     };
     callbacks.dpi_changed = [this](float new_dpi) { OnDpiChanged(new_dpi); };
     callbacks.key_down = [this](WPARAM key) { return OnKeyDown(key); };
+    callbacks.char_input = [this](wchar_t character) { return OnChar(character); };
     callbacks.mouse_move = [this](int x, int y) { OnMouseMove(x, y); };
     callbacks.mouse_down = [this](int x, int y) { OnMouseDown(x, y); };
     callbacks.mouse_up = [this](int x, int y) { OnMouseUp(x, y); };
+    callbacks.mouse_wheel = [this](int x, int y, float delta) { OnMouseWheel(x, y, delta); };
     callbacks.mouse_leave = [this] { OnMouseLeave(); };
+    callbacks.timer = [this](UINT_PTR timer_id) { OnTimer(timer_id); };
     callbacks.system_theme_changed = [this] {
         if (theme_mode == ThemeMode::system) {
             SetThemeMode(ThemeMode::system);
@@ -136,7 +177,24 @@ void Form::Impl::BuildRoot(std::unique_ptr<Widget> content) {
     status_view->set_left_text(ThemeText());
     UpdateStatusRight();
 
-    auto root = std::make_unique<FormPanel>(std::move(content), std::move(status));
+    auto panel = std::make_unique<FormPanel>(std::move(content), std::move(status));
+    auto root = std::make_unique<PopupHost>(std::move(panel));
+    popup_host = root.get();
+    popup_host->set_focus_bridge(
+        [this]() -> Widget* { return ui.focused(); },
+        [this](Widget* widget) {
+            ui.set_focus(widget);
+            if (window) {
+                window->Invalidate();
+            }
+        });
+    popup_host->set_on_layout_requested([this] {
+        Layout();
+        if (window) {
+            window->Invalidate();
+        }
+    });
+    tooltip_owner = nullptr;
     ui.set_root(std::move(root));
     Layout();
     if (window) {
@@ -176,6 +234,7 @@ void Form::Impl::Layout() {
 
     ui.layout(*renderer,
               Rect{0.0f, kTitleBarHeightDip, std::max(0.0f, dip_width), content_height});
+    UpdateImePosition();
     UpdateStatusRight();
 }
 
@@ -184,7 +243,7 @@ void Form::Impl::UpdateStatusRight() {
         return;
     }
     const int dpi_percent = static_cast<int>(dpi * 100.0f / 96.0f + 0.5f);
-    status_view->set_right_text(L"CppUI M0 · " + std::to_wstring(dpi_percent) + L"% DPI · " +
+    status_view->set_right_text(L"CppUI v0.1 · " + std::to_wstring(dpi_percent) + L"% DPI · " +
                                 DensityName());
 }
 
@@ -259,6 +318,77 @@ void Form::Impl::Paint() {
         return;
     }
     (void)renderer->Render(window->GetChromeState(), ui.root());
+    UpdateAnimationTimer();
+}
+
+void Form::Impl::UpdateAnimationTimer() {
+    if (!created || !window) {
+        return;
+    }
+    if (ui.has_animation()) {
+        if (!animation_timer_active) {
+            last_tick = std::chrono::steady_clock::now();
+            animation_timer_active = true;
+            window->StartTimer(kAnimationTimer, kAnimationIntervalMs);
+        }
+    } else if (animation_timer_active) {
+        animation_timer_active = false;
+        window->StopTimer(kAnimationTimer);
+    }
+}
+
+void Form::Impl::UpdateImePosition() {
+    if (!window) {
+        return;
+    }
+    Widget* const focused = ui.focused();
+    if (focused == nullptr) {
+        return;
+    }
+    const Rect caret = focused->ime_caret_rect();
+    if (caret.width <= 0.0f || caret.height <= 0.0f) {
+        return;
+    }
+    const float scale = dpi / 96.0f;
+    window->SetImeCaretRect(static_cast<int>(std::lround(caret.x * scale)),
+                            static_cast<int>(std::lround(caret.y * scale)),
+                            static_cast<int>(std::lround(caret.height * scale)));
+}
+
+void Form::Impl::HideTooltip() {
+    if (popup_host != nullptr) {
+        popup_host->hide_tooltip();
+    }
+    tooltip_owner = nullptr;
+}
+
+void Form::Impl::OnTimer(UINT_PTR timer_id) {
+    if (!created || !window) {
+        return;
+    }
+    if (timer_id == kTooltipTimer) {
+        window->StopTimer(kTooltipTimer);
+        if (tooltip_owner != nullptr && !tooltip_owner->tooltip().empty() &&
+            popup_host != nullptr && !popup_host->is_open()) {
+            popup_host->show_tooltip(tooltip_owner->tooltip(), last_mouse);
+        }
+        return;
+    }
+    if (timer_id != kAnimationTimer) {
+        return;
+    }
+    if (!ui.has_animation()) {
+        animation_timer_active = false;
+        window->StopTimer(kAnimationTimer);
+        return;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    const float seconds =
+        std::chrono::duration<float>(now - last_tick).count();
+    last_tick = now;
+    ui.tick(std::clamp(seconds, 0.0f, 0.05f));
+    window->Invalidate();
 }
 
 Point Form::Impl::ToDip(int x, int y) const {
@@ -273,6 +403,7 @@ void Form::Impl::OnResize(std::uint32_t width, std::uint32_t height, float new_d
     if (!created || !renderer || !window) {
         return;
     }
+    HideTooltip();
     Layout();
     window->Invalidate();
 }
@@ -282,6 +413,7 @@ void Form::Impl::OnDpiChanged(float new_dpi) {
     if (!created || !renderer || !window) {
         return;
     }
+    HideTooltip();
     Layout();
     window->Invalidate();
 }
@@ -290,8 +422,20 @@ void Form::Impl::OnMouseMove(int x, int y) {
     if (!created) {
         return;
     }
-    ui.mouse_move(ToDip(x, y));
+    last_mouse = ToDip(x, y);
+    ui.mouse_move(last_mouse);
+
     if (window) {
+        Widget* const hovered = ui.hovered();
+        if (hovered != tooltip_owner) {
+            window->StopTimer(kTooltipTimer);
+            HideTooltip();
+            tooltip_owner = hovered;
+            if (hovered != nullptr && !hovered->tooltip().empty() &&
+                (popup_host == nullptr || !popup_host->is_open())) {
+                window->StartTimer(kTooltipTimer, kTooltipDelayMs);
+            }
+        }
         window->Invalidate();
     }
 }
@@ -300,7 +444,12 @@ void Form::Impl::OnMouseDown(int x, int y) {
     if (!created) {
         return;
     }
+    if (window) {
+        window->StopTimer(kTooltipTimer);
+    }
+    HideTooltip();
     ui.mouse_down(ToDip(x, y));
+    UpdateImePosition();
     if (window) {
         window->Invalidate();
     }
@@ -320,20 +469,27 @@ void Form::Impl::OnMouseLeave() {
     if (!created) {
         return;
     }
+    if (window) {
+        window->StopTimer(kTooltipTimer);
+    }
+    HideTooltip();
     ui.mouse_leave();
     if (window) {
         window->Invalidate();
     }
 }
 
-bool Form::Impl::OnKeyDown(WPARAM key) {
-    if (key == VK_ESCAPE) {
-        if (window) {
-            window->Destroy();
-        }
-        return true;
+void Form::Impl::OnMouseWheel(int x, int y, float delta) {
+    if (!created) {
+        return;
     }
+    HideTooltip();
+    if (ui.mouse_wheel(ToDip(x, y), delta) && window) {
+        window->Invalidate();
+    }
+}
 
+bool Form::Impl::OnKeyDown(WPARAM key) {
     if (key == VK_F5 && renderer && created) {
         if (renderer->RecreateDevice()) {
             Layout();
@@ -345,8 +501,20 @@ bool Form::Impl::OnKeyDown(WPARAM key) {
     }
 
     if (created) {
-        const bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-        if (ui.key_down(static_cast<int>(key), shift)) {
+        KeyModifiers modifiers{};
+        modifiers.shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+        modifiers.control = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+        modifiers.alt = (GetKeyState(VK_MENU) & 0x8000) != 0;
+        if (ui.key_down(static_cast<int>(key), modifiers)) {
+            HideTooltip();
+            UpdateImePosition();
+            if (window) {
+                window->Invalidate();
+            }
+            return true;
+        }
+        if (key == VK_ESCAPE && popup_host != nullptr && popup_host->is_open()) {
+            popup_host->close();
             if (window) {
                 window->Invalidate();
             }
@@ -354,6 +522,26 @@ bool Form::Impl::OnKeyDown(WPARAM key) {
         }
     }
     return false;
+}
+
+bool Form::Impl::OnChar(wchar_t character) {
+    if (!created || !ui.char_input(character)) {
+        return false;
+    }
+    HideTooltip();
+    UpdateImePosition();
+    if (window) {
+        window->Invalidate();
+    }
+    return true;
+}
+
+bool Form::Impl::CapturePng(std::wstring_view path) {
+    if (!created || !renderer || !window) {
+        return false;
+    }
+    Layout();
+    return renderer->RenderAndCapture(window->GetChromeState(), ui.root(), path);
 }
 
 void Form::Impl::Shutdown() {
@@ -364,7 +552,10 @@ void Form::Impl::Shutdown() {
         window->Destroy();
     }
     ui.set_root(nullptr);
+    popup_host = nullptr;
     status_view = nullptr;
+    tooltip_owner = nullptr;
+    animation_timer_active = false;
     pending_content.reset();
     window.reset();
     renderer.reset();
@@ -400,6 +591,14 @@ StatusBar* Form::status_bar() noexcept {
 
 const StatusBar* Form::status_bar() const noexcept {
     return impl_ != nullptr ? impl_->status_view : nullptr;
+}
+
+PopupHost* Form::popups() noexcept {
+    return impl_ != nullptr ? impl_->popup_host : nullptr;
+}
+
+const PopupHost* Form::popups() const noexcept {
+    return impl_ != nullptr ? impl_->popup_host : nullptr;
 }
 
 void Form::SetStatusText(std::wstring text) {
@@ -477,6 +676,10 @@ void Form::Close() {
     if (impl_ && impl_->window) {
         impl_->window->Destroy();
     }
+}
+
+bool Form::CapturePng(std::wstring_view path) {
+    return impl_ != nullptr && impl_->CapturePng(path);
 }
 
 bool Form::IsCreated() const noexcept {

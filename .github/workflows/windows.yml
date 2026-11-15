@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: ${{ matrix.configuration }}
@@ -33,4 +37,12 @@ jobs:
         with:
           name: benchmark-${{ matrix.configuration }}
           path: out/build/windows-vs2022-${{ matrix.configuration }}/cppui-benchmark.txt
+          if-no-files-found: ignore
+
+      - name: Upload visual output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-${{ matrix.configuration }}
+          path: out/build/windows-vs2022-${{ matrix.configuration }}/visual-output
           if-no-files-found: ignore

@@ -1,6 +1,6 @@
 # PLAN — создание CppUI
 
-> Статус: Draft · 14.11.2026 · Рабочее название проекта — **CppUI**.
+> Статус: v0.1 Form Starter delivered · 15.11.2026 · Рабочее название проекта — **CppUI**.
 > Визуальное направление: **Signal Teal**; density S/M/L и data-workspace demo зафиксированы в [DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
 > Связанные документы: [CONTROL_BACKLOG.md](CONTROL_BACKLOG.md), [docs/ROADMAP.md](docs/ROADMAP.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/QUALITY.md](docs/QUALITY.md), [docs/DECISIONS.md](docs/DECISIONS.md).
 
@@ -42,11 +42,12 @@ CppUI — компактный нативный UI-фреймворк для Win
 - DPI и multi-monitor на разумном уровне;
 - демо-приложение и визуальный QA.
 
-### 4.2 v0.1 — Form Starter
+### 4.2 v0.1 — Form Starter ✅
 
-После M0 добавляются публичные `Label`, `Panel`/`GroupPanel`, `TextEdit`, `CheckBox`, `RadioButton`, `ProgressBar`, `Loader`, `PopupMenu`, `Dialog`/`MessageBox`, `ToolTip` и необходимый фундамент: команды, scroll, popup, validation, image/icon.
+После M0 добавлены публичные `Label`, `Panel`/`GroupPanel`, `GridPanel`, `TextEdit`, `CheckBox`, `RadioButton`, `ProgressBar`, `Loader`, `PopupMenu`, `Dialog`/`MessageBox`, `ToolTip` и фундамент: `Command`, `ScrollViewer`/`ScrollBar`, `PopupHost`, validation, `Image`/`PictureBox`, иконки в `Button`.
 
-Точный состав и критерии выхода — в [docs/ROADMAP.md](docs/ROADMAP.md).
+Реализовано 15.11.2026, демо — `cppui-form-starter`, **12/12 тестов**. Точный API —
+[docs/CONTROLS.md](docs/CONTROLS.md), итоги — [docs/V01.md](docs/V01.md).
 
 ### 4.3 Полный заявленный список контролов
 
@@ -84,10 +85,12 @@ CppUI — компактный нативный UI-фреймворк для Win
 | **3. Widget core + Button + theme ✅** | 4–5 дней | Дерево виджетов, layout, focus, Button, токены, Light/Dark/System; density-метрики и компактные Button | Демо с кнопками, переключателем темы в шапке и density S/M/L |
 | **4. Preview demo ✅** | 3–4 дня | Экран формы, `FormPanel`/`StatusBar`, action в titlebar, базовая документация | Демо соответствует заявленному объёму M0 |
 | **5. Hardening ✅** | 4–5 дней | Unit/visual tests, CI, профилирование, resize/DPI matrix, исправление P0/P1 | M0 принят с environment-waivers |
+| **v0.1 Form Starter ✅** | 8–12 недель (план) | Поля, панели, scroll, popup, диалоги, validation, image | 12/12 CTest; демо и baselines готовы |
 
-**Итого:** 20–27 рабочих дней, примерно **5–6 календарных недель** с буфером.
+**Итого M0:** 20–27 рабочих дней, примерно **5–6 календарных недель** с буфером.
+v0.1 закрыт следующей волной; его фактическая стоимость уточнена по объёму контролов.
 
-Phase 0 закрыта 14.11.2026: git, CMake, токены Signal Teal, Win32-окно и D3D11/DXGI/D2D/DWrite baseline. Phase 1: `Win32Window`, resize/DPI callbacks, WARP, device-loss recovery и render smoke test. Phase 2: кастомный chrome, системные кнопки, hit testing, maximize/restore и DWM. Phase 3: retained-mode `Widget`/layout, `StackPanel`/`CardPanel`/`Label`/`Button`, `UiHost`, Light/Dark/System, переключатель темы в шапке и начальный `DensityMode` (compact/cozy/comfortable) для Button. Phase 4: Form-preview, `FormPanel`, `StatusBar`, sidebar, titlebar action сброса, density для Button/StatusBar; исправлена синхронизация render target. Phase 5: DPI matrix 96 / 120 / 150 / 200 (150/200 simulated), real mixed-DPI 120/96, benchmark (Release: frame 8.33 ms / CPU ~1.8 ms, layout ~0.15 ms, startup 101 ms), WIC visual regression, chrome/Snap/Alt+F4, top-level `Form` API, CI workflow, external cold start 177 ms, idle CPU ≈0, private memory 43.8 MB. Детали — в [PHASE0](docs/PHASE0.md), [PHASE1](docs/PHASE1.md), [PHASE2](docs/PHASE2.md), [PHASE3](docs/PHASE3.md), [PHASE4](docs/PHASE4.md), [PHASE5](docs/PHASE5.md). M0 принят с environment-waivers: [docs/M0.md](docs/M0.md). Следующая — v0.1 Form Starter.
+Phase 0 закрыта 14.11.2026: git, CMake, токены Signal Teal, Win32-окно и D3D11/DXGI/D2D/DWrite baseline. Phase 1: `Win32Window`, resize/DPI callbacks, WARP, device-loss recovery и render smoke test. Phase 2: кастомный chrome, системные кнопки, hit testing, maximize/restore и DWM. Phase 3: retained-mode `Widget`/layout, `StackPanel`/`CardPanel`/`Label`/`Button`, `UiHost`, Light/Dark/System, переключатель темы в шапке и начальный `DensityMode` (compact/cozy/comfortable) для Button. Phase 4: Form-preview, `FormPanel`, `StatusBar`, sidebar, titlebar action сброса, density для Button/StatusBar; исправлена синхронизация render target. Phase 5: DPI matrix 96 / 120 / 150 / 200 (150/200 simulated), real mixed-DPI 120/96, benchmark (Release: frame 8.33 ms / CPU ~1.8 ms, layout ~0.15 ms, startup 101 ms), WIC visual regression, chrome/Snap/Alt+F4, top-level `Form` API, CI workflow, external cold start 177 ms, idle CPU ≈0, private memory 43.8 MB. Детали — в [PHASE0](docs/PHASE0.md), [PHASE1](docs/PHASE1.md), [PHASE2](docs/PHASE2.md), [PHASE3](docs/PHASE3.md), [PHASE4](docs/PHASE4.md), [PHASE5](docs/PHASE5.md). M0 принят с environment-waivers: [docs/M0.md](docs/M0.md). v0.1 Form Starter закрыт 15.11.2026: контейнеры, TextEdit, выбор, индикаторы, image, PopupHost, Dialog/MessageBox, ToolTip и документация контролов. Следующая — v0.2 Input & Selection.
 
 ### Критерии выхода M0
 
@@ -104,7 +107,7 @@ Phase 0 закрыта 14.11.2026: git, CMake, токены Signal Teal, Win32-�
 
 Последовательность волн:
 
-1. **v0.1 Form Starter** — фундамент и минимальный полезный набор контролов.
+1. **v0.1 Form Starter ✅** — фундамент и минимальный полезный набор контролов.
 2. **v0.2 Input & Selection** — поля ввода, выпадающие списки, вкладки, сплиттеры, дата/время.
 3. **v0.3 Data Controls** — `TreeList`, `GridView`, `PropertyGrid`, `VerticalGrid`, `BarManager`, data binding и виртуализация.
 4. **v1.0** — стабилизация API, доступность, документация, упаковка, дополнительные контролы.
@@ -135,6 +138,11 @@ Phase 0 закрыта 14.11.2026: git, CMake, токены Signal Teal, Win32-�
 | Отсутствие toolchain | Низкая | Низкое | Phase 0, установка VS Build Tools + SDK + CMake/Ninja |
 | Оптимизм в оценках | Высокая | Среднее | Пересмотр после M0 по фактической скорости |
 
+Подробный реестр рисков (R-01…R-15): механизм, триггеры, владельцы, критерии
+закрытия и gate-проверки — в [docs/RISKS.md](docs/RISKS.md). Там же
+зафиксированы риски, которых нет в этой таблице: удалённый CI, хрупкость
+visual-тестов, DPI awareness, UIA, лицензия.
+
 ## 10. Оценки и допущения
 
 - Один опытный разработчик, full-time; без второго дизайнера и без cross-platform.
@@ -154,7 +162,7 @@ Phase 0 закрыта 14.11.2026: git, CMake, токены Signal Teal, Win32-�
 6. Полнота `BarManager`: menu bar, toolbar, status bar, shortcuts.
 7. Тайминг UIA и уровень поддержки high contrast.
 8. Дистрибуция: source-only, статическая библиотека или DLL после 1.0.
-9. Когда делать `DensityMode` глобальным для всех контролов; в Phase 3 уже есть метрики и компактный Button, остальные контролы подключаются в Phase 4.
+9. `DensityMode` стал общим для всех контролов v0.1; вопрос закрыт, новые контролы обязаны читать `Painter::density()`.
 10. Оставаться ли на Segoe UI или добавить IBM Plex/Golos как font-профиль.
 
 Решения и их статус ведутся в [docs/DECISIONS.md](docs/DECISIONS.md).

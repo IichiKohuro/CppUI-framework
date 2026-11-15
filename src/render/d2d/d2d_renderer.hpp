@@ -61,12 +61,19 @@ public:
                              float radius,
                              const Color& color,
                              float width = 1.0f) override;
+    void draw_line(Point from,
+                   Point to,
+                   const Color& color,
+                   float width = 1.0f) override;
+    void draw_image(const Rect& rect, const Image& image, float opacity = 1.0f) override;
     void draw_text(std::wstring_view text,
                    const Rect& rect,
                    FontRole role,
                    const Color& color,
                    TextAlign align = TextAlign::leading,
                    TextVAlign vertical = TextVAlign::center) override;
+    void push_clip(const Rect& rect) override;
+    void pop_clip() override;
 
 private:
     bool BuildResources();

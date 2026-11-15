@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include <cppui/theme/mode.hpp>
 #include <cppui/ui/density.hpp>
@@ -11,6 +12,17 @@
 namespace cppui {
 
 class StatusBar;
+class PopupHost;
+
+// Per-monitor DPI awareness is the host process's responsibility. Call
+//
+//   SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+//
+// before creating any window or Form. Custom chrome hit testing and DIP layout
+// assume per-monitor V2; a system-DPI or DPI-unaware process gets virtualized
+// geometry instead of a hard failure. Form logs a diagnostic when it detects
+// this. The check reads the calling thread's awareness context.
+[[nodiscard]] bool IsPerMonitorDpiAware() noexcept;
 
 // Top-level form host: owns the Win32 window, renderer, UI host and status bar.
 // Platform and render types stay behind a pimpl so the public header has no
@@ -34,6 +46,8 @@ public:
 
     [[nodiscard]] StatusBar* status_bar() noexcept;
     [[nodiscard]] const StatusBar* status_bar() const noexcept;
+    [[nodiscard]] PopupHost* popups() noexcept;
+    [[nodiscard]] const PopupHost* popups() const noexcept;
     void SetStatusText(std::wstring text);
 
     void SetThemeMode(ThemeMode mode);
@@ -49,6 +63,7 @@ public:
     int Run();
     void Invalidate();
     void Close();
+    [[nodiscard]] bool CapturePng(std::wstring_view path);
 
     [[nodiscard]] bool IsCreated() const noexcept;
     [[nodiscard]] void* NativeHandle() const noexcept;

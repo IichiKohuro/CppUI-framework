@@ -1,7 +1,7 @@
 # ARCHITECTURE — техническая архитектура CppUI
 
-> Статус: Draft · M0 accepted with waivers · 14.11.2026.
-> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [ROADMAP.md](ROADMAP.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [QUALITY.md](QUALITY.md), [PHASE0.md](PHASE0.md), [PHASE1.md](PHASE1.md), [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md), [PHASE4.md](PHASE4.md), [PHASE5.md](PHASE5.md), [M0.md](M0.md).
+> Статус: v0.1 Form Starter delivered · 15.11.2026.
+> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [ROADMAP.md](ROADMAP.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [QUALITY.md](QUALITY.md), [V01.md](V01.md), [CONTROLS.md](CONTROLS.md), [PHASE0.md](PHASE0.md), [PHASE1.md](PHASE1.md), [PHASE2.md](PHASE2.md), [PHASE3.md](PHASE3.md), [PHASE4.md](PHASE4.md), [PHASE5.md](PHASE5.md), [M0.md](M0.md).
 
 ## 1. Ограничения и цель
 
@@ -145,14 +145,17 @@ Hybrid hit-testing (client-drawn кнопки + non-client поведение Wi
 
 ### 5.3 Диалоги
 
-`Dialog` использует тот же chrome и content host, но:
+`Dialog` реализован отдельным top-level окном на том же `Win32Window`, `D2DRenderer`,
+`UiHost` и токенах:
 
-- блокирует owner-окно при modal (`ShowDialog`);
-- возвращает фокус владельцу;
-- имеет собственные `onClose`/`DialogResult`;
-- не создаёт отдельную копию кнопок окна.
+- блокирует owner-окно на время `ShowModal`;
+- выполняет изолированный nested message loop и после закрытия возвращает фокус;
+- имеет собственный `DialogSurface` (контент + правый ряд кнопок) и `DialogResult`;
+- X/Esc возвращают `cancel`, Enter активирует default-кнопку;
+- `MessageBox` строится поверх `Dialog` и принимает локализуемые подписи.
 
-Механика modal loop должна быть изолирована от `Form`, чтобы не превращать форму в набор режимов.
+Modal loop не протекает в `Form`: `Form` не обрастает режимами `ShowDialog`.
+Non-modal режим и owner-политика вне modal — зона v0.2.
 
 ## 6. Рендер
 
@@ -209,21 +212,33 @@ public:
 ### 7.2 События и фокус
 
 - Hit-testing по дереву с учётом z-order, clip и disabled state.
-- Pointer capture во время drag.
+- Pointer capture во время drag (text selection, scrollbar, popup).
 - Focus manager: Tab/Shift+Tab, стрелки в группах, Enter/Space, Esc для popup/dialog.
+- `focus_trap` у `PopupHost` и `BusyOverlay` замыкает Tab и блокирует ввод в фон.
 - `disabled` и `readonly` — состояния виджета, а не отсутствие обработчика.
 - Мышь и клавиатура должны приводить к одинаковому результату.
 - Tooltip и popup получают события через общий popup-менеджер.
 
-### 7.3 Сервисы
+### 7.3 Реализованные сервисы v0.1
 
-**Command/Action.** Одна команда хранит `enabled/checked/text/icon/shortcut` и умеет выполниться из Button, Menu Item или shortcut. `BarManager` — менеджер команд и баров, а не самостоятельная копия логики.
+- `Command` — text/shortcut/enabled/checked + execute.
+- `PopupHost` — контент + modal popup + пассивный tooltip, позиционирование,
+  click-outside, focus trap и отложенное разрушение popup.
+- `ScrollViewer`/`ScrollBar` — clip, wheel, drag и контракт под будущую virtualization.
+- `Validation` — `Widget::set_validation_error` + inline-текст; `TextEdit` рисует danger-рамку.
+- `TextEdit` — caret/anchor, selection, clipboard, undo/redo, max length, IME result string.
+- `Image`/`PictureBox` — WIC → premultiplied BGRA → D2D bitmap.
+- `DensityMode` — единые метрики через `Painter::density()` для всех контролов волны.
+
+### 7.4 Сервисы следующих волн
+
+**Command/Action.** Базовая `Command` уже есть; `BarManager` будет менеджером команд и баров, а не самостоятельной копией логики.
 
 **Scroll/Virtualization.** `ScrollViewer` предоставляет viewport, scrollbar и контракт для виртуализированных списков. Реализация item recycling — обязательное условие для `TreeList`/`GridView`.
 
-**Popup.** Единый `PopupHost` управляет позиционированием, z-order, dismiss по Esc/клику вне, фокусом и ограничением размеров. На нём строятся `PopupMenu`, `ComboBox`, `DropDownButton`, `ToolTip` и редакторы `PropertyGrid`.
+**Popup.** `PopupHost` уже используется `PopupMenu` и `ToolTip`; `ComboBox`, `DropDownButton` и редакторы `PropertyGrid` подключатся к нему в v0.2+.
 
-**Validation.** Ошибки привязаны к полю/контролу, отображаются через `ErrorProvider`/inline message, не ломая layout. Ошибки не должны быть исключениями в paint path.
+**Validation.** Базовое состояние ошибки уже в `Widget`; `ErrorProvider` и редакторы ячеек появятся вместе с data-контролами.
 
 **Data.** До `TreeList`/`GridView`/`PropertyGrid` фиксируются:
 
@@ -256,7 +271,7 @@ public:
 
 ## 10. Структура проекта
 
-Фактическая структура Phase 3:
+Фактическая структура v0.1:
 
 ```text
 CppUI-framework/
@@ -267,36 +282,52 @@ CppUI-framework/
 ├─ include/cppui/ui/density.hpp
 ├─ include/cppui/ui/widget.hpp
 ├─ include/cppui/ui/widgets.hpp
+├─ include/cppui/ui/containers.hpp
+├─ include/cppui/ui/input.hpp
+├─ include/cppui/ui/indicators.hpp
+├─ include/cppui/ui/popup.hpp
+├─ include/cppui/ui/dialog.hpp
+├─ include/cppui/ui/image.hpp
+├─ include/cppui/ui/command.hpp
+├─ include/cppui/ui/clipboard.hpp
 ├─ include/cppui/form.hpp
 ├─ include/cppui/ui/form.hpp
 ├─ include/cppui/ui/host.hpp
 ├─ src/form.cpp
-├─ src/theme/theme.cpp
-├─ src/theme/mode.cpp
-├─ src/chrome/chrome_state.hpp
-├─ src/platform/win32/win32_window.hpp
-├─ src/platform/win32/win32_window.cpp
-├─ src/render/d2d/d2d_renderer.hpp
-├─ src/render/d2d/d2d_renderer.cpp
 ├─ src/ui/widget.cpp
 ├─ src/ui/widgets.cpp
+├─ src/ui/containers.cpp
+├─ src/ui/input.cpp
+├─ src/ui/indicators.cpp
+├─ src/ui/popup.cpp
+├─ src/ui/dialog.cpp
+├─ src/ui/image.cpp
 ├─ src/ui/form.cpp
 ├─ src/ui/host.cpp
+├─ src/platform/win32/win32_window.*
+├─ src/platform/win32/clipboard.cpp
+├─ src/platform/win32/image.cpp
+├─ src/render/d2d/d2d_renderer.*
 ├─ samples/bootstrap/main.cpp
+├─ samples/form_starter/main.cpp
+├─ samples/form_starter/assets/
 ├─ tests/theme_tests.cpp
 ├─ tests/ui_tests.cpp
+├─ tests/v01_tests.cpp
 ├─ tests/form_tests.cpp
+├─ tests/dialog_tests.cpp
+├─ tests/dpi_awareness_tests.cpp
 ├─ tests/visual_test.ps1
+├─ tests/v01_visual_test.ps1
 ├─ tests/dpi_matrix_test.ps1
 ├─ tests/chrome_matrix_test.ps1
 ├─ tests/baselines/
-├─ docs/PHASE1.md
-├─ docs/PHASE2.md
-├─ docs/PHASE3.md
-├─ docs/PHASE4.md
-├─ docs/PHASE5.md
+├─ docs/V01.md
+├─ docs/CONTROLS.md
+├─ docs/PHASE1.md … PHASE5.md
 ├─ .github/workflows/windows.yml
 ├─ tools/build.ps1
+├─ tools/make_assets.ps1
 ├─ CMakeLists.txt
 └─ CMakePresets.json
 ```
@@ -337,8 +368,10 @@ CppUI-framework/
 ### Build targets
 
 - `cppui` — статическая библиотека.
-- `cppui_gallery` — демо-приложение.
-- `cppui_tests` — unit/integration tests.
+- `cppui-bootstrap` — технический demo предыдущих фаз.
+- `cppui-form-starter` — demo v0.1 на публичном `Form`.
+- `cppui_tests`, `cppui_ui_tests`, `cppui_v01_tests`, `cppui_form_tests`,
+  `cppui_dialog_tests` и render/DPI/chrome тесты.
 
 CMake-опции:
 
@@ -369,6 +402,9 @@ Warnings: `/W4 /permissive- /Zc:__cplusplus`; в CI — `/WX` для собст�
 - UIA для полностью кастомных контролов требует отдельной работы.
 - Нет стабильного ABI до 1.0; распространять предпочтительно исходниками/статической библиотекой.
 - IME, BiDi и сложные текстовые сценарии — отдельная зона тестирования.
+- IME v0.1: финальный текст и candidate window у caret; inline composition preview
+  остаётся системным.
+- `Dialog` v0.1 только модальный; non-modal — v0.2.
 - `PropertyGrid` без рефлексии ограничен явными дескрипторами.
 
 ## 13. Открытые технические решения

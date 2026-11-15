@@ -1,7 +1,7 @@
 # ROADMAP — релизы и контрольные точки
 
-> Статус: Draft · 14.11.2026.
-> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [QUALITY.md](QUALITY.md), [ARCHITECTURE.md](ARCHITECTURE.md).
+> Статус: v0.1 Form Starter delivered · 15.11.2026.
+> Связанные документы: [PLAN.md](../PLAN.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md), [QUALITY.md](QUALITY.md), [ARCHITECTURE.md](ARCHITECTURE.md), [V01.md](V01.md), [CONTROLS.md](CONTROLS.md).
 
 ## 1. Принципы планирования
 
@@ -17,8 +17,8 @@
 
 | Релиз | Цель | Ориентировочно от старта | Основной результат |
 |---|---|---:|---|
-| **M0 Technical Preview** | Проверить архитектуру и визуал | 5–6 недель | Форма, Button, темы, custom chrome |
-| **v0.1 Form Starter** | Минимальный полезный toolkit | 8–12 недель | Базовые поля, панели, диалоги, статус-бар |
+| **M0 Technical Preview** | Проверить архитектуру и визуал | 5–6 недель | Форма, Button, темы, custom chrome — ✅ с waivers |
+| **v0.1 Form Starter** | Минимальный полезный toolkit | 8–12 недель | Базовые поля, панели, диалоги, статус-бар — ✅ [V01](V01.md) |
 | **v0.2 Input & Selection** | Полноценный ввод и выбор | 14–20 недель | ComboBox, ListBox, TabControl, SplitContainer, DateEdit |
 | **v0.3 Data Controls** | Работа с данными | 22–32 недели | TreeList, GridView, PropertyGrid, BarManager |
 | **v1.0** | Стабильный релиз | 30–40 недель (6–9 месяцев) | API freeze, документация, доступность, extras |
@@ -82,17 +82,34 @@
 
 ### Критерии выхода
 
-- [ ] Демо-приложение с формой, полем ввода, чекбоксами, радио-группой, статус-баром, диалогом и popup-меню.
-- [ ] Текстовый ввод: selection, clipboard, undo/redo, IME.
-- [ ] Валидация отображается и не ломает layout.
-- [ ] Keyboard navigation покрывает все контролы волны.
-- [ ] Scroll работает для `TextEdit`/панелей; API готов к virtualization.
-- [ ] Есть документация на каждый публичный контрол.
+- [x] Демо-приложение с формой, полем ввода, чекбоксами, радио-группой, статус-баром, диалогом и popup-меню. Демо — `cppui-form-starter`.
+- [x] Текстовый ввод: selection, clipboard, undo/redo, IME (финальный текст + candidate window).
+- [x] Валидация отображается и не ломает layout.
+- [x] Keyboard navigation покрывает все контролы волны: Tab/Shift+Tab, Space/Enter, стрелки, Home/End, Esc.
+- [x] Scroll работает для `TextEdit`/панелей; API готов к virtualization.
+- [x] Есть документация на каждый публичный контрол — [CONTROLS.md](CONTROLS.md).
+
+### Итог v0.1
+
+Волна закрыта 15.11.2026: **12/12 CTest в Debug**, визуальные baselines
+Light/Dark/Compact/Popup, modal `Dialog`/`MessageBox`, `PopupHost` с focus trap и
+`ToolTip` проверены в живом окне. Подробности и ограничения (non-modal Dialog,
+inline IME composition, подменю popup) — в [V01.md](V01.md).
 
 ### Главный риск
 
 `TextEdit` может съесть больше времени, чем ожидается. Если так, v0.1 не расширяем:
-`MemoEdit`, `SpinEdit` и остальные поля остаются в v0.2.
+`MemoEdit`, `SpinEdit` и остальные поля остаются в v0.2. В фактической реализации
+`TextEdit` закрыт, а сложные режимы ввода вынесены в v0.2.
+
+## 4.1 v0.1 — что сознательно не вошло
+
+- `Dialog` только модальный.
+- IME: системный inline composition, без собственной отрисовки превью.
+- `TextEdit` только однострочный.
+- `PopupMenu` без подменю/скролла.
+- `Label` без ellipsis/mnemonics.
+- UIA, high contrast, reduced motion, SVG — следующие волны.
 
 ## 5. v0.2 — Input & Selection
 
@@ -208,7 +225,7 @@ M0 (Form + Button)
 |---|---|---|
 | После Phase 2 (chrome) | Snap Layouts, resize, DPI, DWM | Если слишком нестабильно — упростить часть chrome до fallback, не блокируя виджеты |
 | После M0 | Фактическая скорость, качество API, визуал | Уточнить оценки v0.1–v0.3; при необходимости урезать v0.1 |
-| После v0.1 | Удобство text/popup/validation | Не начинать v0.2, пока не закрыты P0/P1 и не стабилен focus |
+| После v0.1 ✅ | Удобство text/popup/validation | v0.1 закрыт 12/12; можно начинать v0.2, P0/P1 не зафиксированы |
 | После v0.2 | Реальная стоимость ListView/TabControl | Пересмотреть объём v0.3; data-контролы не резать по качеству |
 | Перед v0.3 | Есть ли реальный data-сценарий | Если нет — отложить `TreeList`/`PropertyGrid`, сделать v1.0 на базовых контролах |
 | Перед v1.0 | API и доступность | Заморозить API; не добавлять новые крупные контролы |

@@ -1,7 +1,13 @@
 # CONTROL_BACKLOG — каталог контролов и волны реализации
 
-> Статус: Draft · 14.11.2026.
-> Связанные документы: [PLAN.md](PLAN.md), [docs/ROADMAP.md](docs/ROADMAP.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
+> Статус: v0.1 Form Starter delivered · 15.11.2026.
+> Связанные документы: [PLAN.md](PLAN.md), [docs/ROADMAP.md](docs/ROADMAP.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md), [docs/V01.md](docs/V01.md), [docs/CONTROLS.md](docs/CONTROLS.md).
+
+> **v0.1 закрыт:** Label, Panel/GroupPanel/StackPanel/GridPanel, ScrollViewer/ScrollBar,
+> TextEdit, CheckBox, RadioButton/RadioGroup, ProgressBar, Loader/ProgressRing,
+> BusyOverlay, PopupMenu, ToolTip, Dialog, MessageBox, Image/PictureBox, Command,
+> Validation и DensityMode. API и ограничения — [docs/CONTROLS.md](docs/CONTROLS.md).
+> Следующая волна — v0.2 Input & Selection.
 
 ## 1. Назначение
 

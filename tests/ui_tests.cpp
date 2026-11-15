@@ -32,6 +32,11 @@ public:
                              float,
                              const cppui::Color&,
                              float) override {}
+    void draw_line(cppui::Point,
+                   cppui::Point,
+                   const cppui::Color&,
+                   float) override {}
+    void draw_image(const cppui::Rect&, const cppui::Image&, float) override {}
     void draw_text(std::wstring_view,
                    const cppui::Rect&,
                    cppui::FontRole,

@@ -16,6 +16,7 @@ enum class ChromeButton {
 };
 
 struct ChromeState {
+    const wchar_t* title{nullptr};
     bool active{false};
     bool maximized{false};
     ChromeButton hovered{ChromeButton::none};

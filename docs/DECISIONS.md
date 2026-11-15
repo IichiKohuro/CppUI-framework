@@ -1,6 +1,6 @@
 # DECISIONS — журнал решений
 
-> Статус: Draft · 14.11.2026.
+> Статус: v0.1 delivered · 15.11.2026.
 > Связанные документы: [PLAN.md](../PLAN.md), [ARCHITECTURE.md](ARCHITECTURE.md), [ROADMAP.md](ROADMAP.md), [CONTROL_BACKLOG.md](../CONTROL_BACKLOG.md).
 
 ## 1. Статусы
@@ -54,6 +54,14 @@
 | D-035 | Публичный `Form` API через pimpl | Accepted | `Form` владеет Win32Window/D2DRenderer/UiHost/StatusBar, но public header не тянет windows.h. Поддерживает content, theme/density, статус, titlebar action, Show/Run; integration-тест `cppui.form`. Demo остаётся расширенным harness |
 | D-036 | Реальный mixed-DPI тест | Accepted | PowerShell `cppui.dpi` переносит окно между мониторами 120/96 DPI, проверяет `GetDpiForWindow` и client area; на одном DPI делает SKIP. Snap Layouts/Alt+Space/Alt+F4 проверены визуально в [M0.md](M0.md) |
 | D-037 | M0 sign-off с environment-waivers | Accepted | 150/200 real DPI, clean-machine, remote CI и flicker/input-to-photon недоступны в окружении; 150/200 simulated, fresh build dir, local CI и resize stress приняты. Private memory 43.8 MB проходит hard 60 MB |
+| D-038 | **Performance budgets и DPI awareness как CTest gates** | Accepted | `cppui.benchmark` проверяет Release-метрики по порогам через `tests/benchmark_gate.ps1`, Debug пропускает пороги; `cppui.dpi_awareness` и публичный `IsPerMonitorDpiAware()` фиксируют требование PMv2, `Form::Create` пишет диагностику. Реестр и остаточные риски — [RISKS.md](RISKS.md) |
+| D-039 | v0.1: **Form Starter** с полным набором базовых контролов | Accepted | Реализованы Panel/GroupPanel/GridPanel, ScrollViewer/ScrollBar, TextEdit, CheckBox, RadioGroup, ProgressBar/Loader/BusyOverlay, PictureBox, PopupMenu, ToolTip, Dialog/MessageBox и общий DensityMode. Демо — `cppui-form-starter`; API — [CONTROLS.md](CONTROLS.md) |
+| D-040 | Popup — **внутри Form через PopupHost**, а не отдельный HWND | Accepted | Единый z-order, DIP-позиционирование, click-outside, focus trap и пассивный tooltip без второго окна. Закрытый popup хранится в `retired_`, чтобы callback пункта меню не разрушал объект под своим стеком. `ComboBox`/`DropDownButton` подключатся к этому же host |
+| D-041 | Dialog — **отдельное top-level окно с изолированным modal loop** | Accepted | Owner отключается только на время ShowModal, после закрытия фокус возвращается. `Dialog` использует тот же chrome/renderer/tokens, не добавляя режимы в `Form`; `MessageBox` строится поверх Dialog |
+| D-042 | TextEdit v0.1: **UTF-16 модель с caret/anchor и снимками undo** | Accepted | Selection, clipboard, Ctrl+Z/Y и лимит 100 снимков. IME поддержан на уровне result string и `ImmSetCandidateWindow` у caret; inline composition preview остаётся системным. Memo/пароль/маска — v0.2 |
+| D-043 | `GridPanel`: **weight 0 = auto-sized колонка** | Accepted | Star-колонки делят остаток, auto-колонки измеряются по содержимому. Это закрывает header с правой кнопкой и табличные формы без отдельного DockPanel |
+| D-044 | **Focus trap** у PopupHost и BusyOverlay | Accepted | Открытый popup/overlay ограничивает Tab-порядок своим поддеревом; фон не получает клавиатуру. Это часть accessibility-минимума v0.1 |
+| D-045 | Image — **immutable BGRA + Painter::draw_image** | Accepted | WIC-загрузка в platform-слое; виджеты не видят COM. PictureBox поддерживает contain/cover/stretch; Button рисует иконку. SVG и кеш bitmap — следующие волны |
 
 ## 3. Предложенные решения
 
@@ -83,7 +91,7 @@
 | O-013 | Mica/acrylic | Визуал и рендер | Post-MVP, отдельный эксперимент |
 | O-014 | Waitable swap chain / frame latency | Render pipeline | Проверить в Phase 1, если Present(1,0) даёт плохой input latency |
 | O-015 | Нужен ли render thread | Архитектура | Только при доказанной проблеме с UI-thread render |
-| O-016 | Когда распространять density на все контролы | v0.1/v0.2 | Сначала API/токены, затем контролы волнами |
+| O-016 | Когда распространять density на все контролы | v0.1/v0.2 | Закрыто: `DensityMode` общий для всех контролов v0.1 |
 | O-017 | Оставаться ли на Segoe UI или бандлить IBM Plex/Golos | Визуал, лицензии, вес сборки | Segoe UI default; font-профили после MVP |
 | O-018 | Нужны ли дополнительные theme presets (Studio Indigo/Graphite) | Визуал, QA | Только после стабилизации Signal Teal |
 

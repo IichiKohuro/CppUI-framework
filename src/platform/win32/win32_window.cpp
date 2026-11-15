@@ -3,14 +3,17 @@
 #include <windowsx.h>
 
 #include <dwmapi.h>
+#include <imm.h>
 
+#include <algorithm>
+#include <atomic>
 #include <utility>
 
 namespace cppui {
 namespace {
 
-constexpr wchar_t kWindowClass[] = L"CppUI.MainWindow";
 constexpr int kResizeBorderDip = 7;
+std::atomic<unsigned int> g_window_class_counter{0};
 
 UINT WindowDpi(HWND hwnd) noexcept {
     const UINT dpi = GetDpiForWindow(hwnd);
@@ -30,6 +33,8 @@ Win32Window::Win32Window(HINSTANCE instance,
                          int min_width_dip,
                          int min_height_dip)
     : instance_(instance),
+      class_name_(L"CppUI.Window." +
+                  std::to_wstring(++g_window_class_counter)),
       title_(std::move(title)),
       width_dip_(width_dip),
       height_dip_(height_dip),
@@ -39,7 +44,7 @@ Win32Window::Win32Window(HINSTANCE instance,
 Win32Window::~Win32Window() {
     Destroy();
     if (class_registered_) {
-        UnregisterClassW(kWindowClass, instance_);
+        UnregisterClassW(class_name_.c_str(), instance_);
         class_registered_ = false;
     }
 }
@@ -59,7 +64,7 @@ bool Win32Window::Create(Callbacks callbacks) {
     window_class.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     window_class.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
     window_class.hIconSm = window_class.hIcon;
-    window_class.lpszClassName = kWindowClass;
+    window_class.lpszClassName = class_name_.c_str();
 
     if (RegisterClassExW(&window_class) == 0) {
         return false;
@@ -70,7 +75,7 @@ bool Win32Window::Create(Callbacks callbacks) {
     const UINT initial_dpi = system_dpi == 0 ? 96U : system_dpi;
 
     hwnd_ = CreateWindowExW(0,
-                            kWindowClass,
+                            class_name_.c_str(),
                             title_.c_str(),
                             WS_OVERLAPPEDWINDOW,
                             CW_USEDEFAULT,
@@ -82,7 +87,7 @@ bool Win32Window::Create(Callbacks callbacks) {
                             instance_,
                             this);
     if (hwnd_ == nullptr) {
-        UnregisterClassW(kWindowClass, instance_);
+        UnregisterClassW(class_name_.c_str(), instance_);
         class_registered_ = false;
         return false;
     }
@@ -122,12 +127,57 @@ int Win32Window::Run() {
     return static_cast<int>(message.wParam);
 }
 
+int Win32Window::RunModal() {
+    if (hwnd_ == nullptr) {
+        return 1;
+    }
+
+    MSG message{};
+    while (hwnd_ != nullptr && IsWindow(hwnd_) != FALSE) {
+        const BOOL result = GetMessageW(&message, nullptr, 0, 0);
+        if (result == -1) {
+            return 1;
+        }
+        if (result == 0) {
+            PostQuitMessage(static_cast<int>(message.wParam));
+            break;
+        }
+        TranslateMessage(&message);
+        DispatchMessageW(&message);
+    }
+    return 0;
+}
+
 void Win32Window::Destroy() noexcept {
     if (hwnd_ != nullptr) {
+        for (UINT_PTR timer : timers_) {
+            KillTimer(hwnd_, timer);
+        }
+        timers_.clear();
         const HWND hwnd = hwnd_;
         hwnd_ = nullptr;
         DestroyWindow(hwnd);
     }
+}
+
+void Win32Window::StartTimer(UINT_PTR timer_id, UINT milliseconds) noexcept {
+    if (hwnd_ == nullptr || milliseconds == 0) {
+        return;
+    }
+    if (timers_.contains(timer_id)) {
+        return;
+    }
+    if (SetTimer(hwnd_, timer_id, milliseconds, nullptr) != 0) {
+        timers_.insert(timer_id);
+    }
+}
+
+void Win32Window::StopTimer(UINT_PTR timer_id) noexcept {
+    if (hwnd_ == nullptr) {
+        return;
+    }
+    KillTimer(hwnd_, timer_id);
+    timers_.erase(timer_id);
 }
 
 void Win32Window::Invalidate() noexcept {
@@ -142,6 +192,7 @@ bool Win32Window::IsWindowMinimized() const noexcept {
 
 ChromeState Win32Window::GetChromeState() const noexcept {
     return ChromeState{
+        title_.c_str(),
         active_,
         hwnd_ != nullptr && IsZoomed(hwnd_) != FALSE,
         hovered_,
@@ -511,6 +562,63 @@ void Win32Window::NotifyResize(HWND hwnd, UINT width, UINT height) noexcept {
     callbacks_.resized(width, height, dpi_);
 }
 
+void Win32Window::CenterOnWindow(HWND owner) noexcept {
+    if (hwnd_ == nullptr || owner == nullptr || IsWindow(owner) == FALSE) {
+        CenterOnPrimaryMonitor();
+        return;
+    }
+
+    RECT owner_rect{};
+    RECT window_rect{};
+    if (!GetWindowRect(owner, &owner_rect) || !GetWindowRect(hwnd_, &window_rect)) {
+        return;
+    }
+
+    MONITORINFO monitor_info{};
+    monitor_info.cbSize = sizeof(monitor_info);
+    const HMONITOR monitor = MonitorFromWindow(owner, MONITOR_DEFAULTTONEAREST);
+    if (!GetMonitorInfoW(monitor, &monitor_info)) {
+        return;
+    }
+
+    const int width = window_rect.right - window_rect.left;
+    const int height = window_rect.bottom - window_rect.top;
+    int x = owner_rect.left + ((owner_rect.right - owner_rect.left) - width) / 2;
+    int y = owner_rect.top + ((owner_rect.bottom - owner_rect.top) - height) / 2;
+    x = std::clamp(x, static_cast<int>(monitor_info.rcWork.left),
+                   static_cast<int>(monitor_info.rcWork.right) - width);
+    y = std::clamp(y, static_cast<int>(monitor_info.rcWork.top),
+                   static_cast<int>(monitor_info.rcWork.bottom) - height);
+
+    SetWindowPos(hwnd_, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+void Win32Window::SetImeCaretRect(int client_x, int client_y, int height) noexcept {
+    if (hwnd_ == nullptr) {
+        return;
+    }
+    HIMC context = ImmGetContext(hwnd_);
+    if (context == nullptr) {
+        return;
+    }
+
+    POINT point{client_x, client_y};
+    (void)ClientToScreen(hwnd_, &point);
+
+    COMPOSITIONFORM composition{};
+    composition.dwStyle = CFS_POINT;
+    composition.ptCurrentPos = point;
+    (void)ImmSetCompositionWindow(context, &composition);
+
+    CANDIDATEFORM candidate{};
+    candidate.dwIndex = 0;
+    candidate.dwStyle = CFS_CANDIDATEPOS;
+    candidate.ptCurrentPos = point;
+    candidate.rcArea = RECT{point.x, point.y - height, point.x + 2, point.y + height};
+    (void)ImmSetCandidateWindow(context, &candidate);
+    ImmReleaseContext(hwnd_, context);
+}
+
 void Win32Window::CenterOnPrimaryMonitor() noexcept {
     if (hwnd_ == nullptr) {
         return;
@@ -827,9 +935,72 @@ LRESULT Win32Window::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARA
             }
             break;
 
-        case WM_DESTROY:
-            PostQuitMessage(0);
+        case WM_CHAR:
+        case WM_IME_CHAR:
+            if (callbacks_.char_input != nullptr &&
+                callbacks_.char_input(static_cast<wchar_t>(wparam))) {
+                return 0;
+            }
+            break;
+
+        case WM_IME_COMPOSITION:
+            if ((lparam & GCS_RESULTSTR) != 0) {
+                HIMC context = ImmGetContext(hwnd);
+                if (context != nullptr) {
+                    const LONG bytes = ImmGetCompositionStringW(context, GCS_RESULTSTR, nullptr, 0);
+                    if (bytes > 0) {
+                        std::wstring text(static_cast<std::size_t>(bytes) / sizeof(wchar_t), L'\0');
+                        const LONG copied = ImmGetCompositionStringW(context,
+                                                                   GCS_RESULTSTR,
+                                                                   text.data(),
+                                                                   bytes);
+                        if (copied > 0) {
+                            text.resize(static_cast<std::size_t>(copied) / sizeof(wchar_t));
+                            if (callbacks_.char_input != nullptr) {
+                                for (wchar_t character : text) {
+                                    (void)callbacks_.char_input(character);
+                                }
+                            }
+                        }
+                    }
+                    ImmReleaseContext(hwnd, context);
+                }
+                return 0;
+            }
+            break;
+
+        case WM_MOUSEWHEEL:
+            if (callbacks_.mouse_wheel != nullptr) {
+                POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+                (void)ScreenToClient(hwnd, &point);
+                const float delta = static_cast<float>(GET_WHEEL_DELTA_WPARAM(wparam)) /
+                                    static_cast<float>(WHEEL_DELTA);
+                callbacks_.mouse_wheel(point.x, point.y, delta);
+            }
             return 0;
+
+        case WM_TIMER:
+            if (callbacks_.timer != nullptr) {
+                callbacks_.timer(wparam);
+                return 0;
+            }
+            break;
+
+        case WM_DESTROY:
+            for (UINT_PTR timer : timers_) {
+                KillTimer(hwnd, timer);
+            }
+            timers_.clear();
+            if (quit_on_destroy_) {
+                PostQuitMessage(0);
+            }
+            return 0;
+
+        case WM_CLOSE:
+            if (callbacks_.closing != nullptr) {
+                callbacks_.closing();
+            }
+            break;
 
         case WM_NCDESTROY:
             break;

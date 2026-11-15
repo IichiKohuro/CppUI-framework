@@ -37,8 +37,16 @@ add_library(cppui STATIC
     src/theme/mode.cpp
     src/platform/win32/win32_window.cpp
     src/render/d2d/d2d_renderer.cpp
+    src/platform/win32/clipboard.cpp
+    src/platform/win32/image.cpp
     src/ui/widget.cpp
     src/ui/widgets.cpp
+    src/ui/containers.cpp
+    src/ui/input.cpp
+    src/ui/image.cpp
+    src/ui/indicators.cpp
+    src/ui/popup.cpp
+    src/ui/dialog.cpp
     src/ui/form.cpp
     src/ui/host.cpp
     src/form.cpp
@@ -71,6 +79,7 @@ target_link_libraries(cppui
         gdi32
         ole32
         advapi32
+        imm32
         windowscodecs
 )
 cppui_configure_warnings(cppui)
@@ -87,6 +96,22 @@ if(CPPUI_BUILD_SAMPLES)
     )
     cppui_configure_warnings(cppui_bootstrap)
     set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT cppui_bootstrap)
+
+    add_executable(cppui_form_starter WIN32
+        samples/form_starter/main.cpp
+    )
+    target_link_libraries(cppui_form_starter PRIVATE cppui::cppui)
+    target_include_directories(cppui_form_starter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    set_target_properties(cppui_form_starter PROPERTIES
+        OUTPUT_NAME "cppui-form-starter"
+        VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:cppui_form_starter>"
+    )
+    cppui_configure_warnings(cppui_form_starter)
+    add_custom_command(TARGET cppui_form_starter POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_CURRENT_SOURCE_DIR}/samples/form_starter/assets"
+                "$<TARGET_FILE_DIR:cppui_form_starter>/assets"
+    )
 endif()
 
 if(CPPUI_BUILD_TESTS)
@@ -111,12 +136,42 @@ if(CPPUI_BUILD_TESTS)
     add_test(NAME cppui.form COMMAND cppui_form_tests)
     set_tests_properties(cppui.form PROPERTIES TIMEOUT 30)
 
+    add_executable(cppui_dpi_awareness_tests tests/dpi_awareness_tests.cpp)
+    target_link_libraries(cppui_dpi_awareness_tests PRIVATE cppui::cppui)
+    cppui_configure_warnings(cppui_dpi_awareness_tests)
+
+    add_test(NAME cppui.dpi_awareness COMMAND cppui_dpi_awareness_tests)
+
+    add_executable(cppui_v01_tests tests/v01_tests.cpp)
+    target_link_libraries(cppui_v01_tests PRIVATE cppui::cppui)
+    cppui_configure_warnings(cppui_v01_tests)
+
+    add_test(NAME cppui.v01 COMMAND cppui_v01_tests)
+    set_tests_properties(cppui.v01 PROPERTIES TIMEOUT 30)
+
+    add_executable(cppui_dialog_tests tests/dialog_tests.cpp)
+    target_link_libraries(cppui_dialog_tests PRIVATE cppui::cppui)
+    cppui_configure_warnings(cppui_dialog_tests)
+
+    add_test(NAME cppui.dialog COMMAND cppui_dialog_tests)
+    set_tests_properties(cppui.dialog PROPERTIES TIMEOUT 40)
+
     if(CPPUI_BUILD_SAMPLES)
         add_test(NAME cppui.render_smoke COMMAND cppui_bootstrap --self-test)
         set_tests_properties(cppui.render_smoke PROPERTIES LABELS "render")
 
-        add_test(NAME cppui.benchmark COMMAND cppui_bootstrap --benchmark)
-        set_tests_properties(cppui.benchmark PROPERTIES LABELS "perf" TIMEOUT 120)
+        add_test(
+            NAME cppui.benchmark
+            COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+                    -File "${CMAKE_CURRENT_SOURCE_DIR}/tests/benchmark_gate.ps1"
+                    -Exe "$<TARGET_FILE:cppui_bootstrap>"
+                    -Configuration "$<CONFIG>"
+        )
+        set_tests_properties(cppui.benchmark PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+            LABELS "perf"
+            TIMEOUT 120
+        )
 
         add_test(
             NAME cppui.visual
@@ -126,6 +181,19 @@ if(CPPUI_BUILD_TESTS)
                     -Baseline "${CMAKE_CURRENT_SOURCE_DIR}/tests/baselines"
         )
         set_tests_properties(cppui.visual PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+            LABELS "visual"
+            TIMEOUT 120
+        )
+
+        add_test(
+            NAME cppui.visual_v01
+            COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+                    -File "${CMAKE_CURRENT_SOURCE_DIR}/tests/v01_visual_test.ps1"
+                    -Exe "$<TARGET_FILE:cppui_form_starter>"
+                    -Baseline "${CMAKE_CURRENT_SOURCE_DIR}/tests/baselines"
+        )
+        set_tests_properties(cppui.visual_v01 PROPERTIES
             WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
             LABELS "visual"
             TIMEOUT 120

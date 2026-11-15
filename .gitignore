@@ -1,6 +1,7 @@
 # CMake / build output
 /out/
 /build/
+/_verify/
 /CMakeUserPresets.json
 /compile_commands.json
 

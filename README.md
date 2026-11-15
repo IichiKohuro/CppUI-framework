@@ -2,8 +2,8 @@
 
 **CppUI** — рабочее название лёгкого UI-фреймворка для Windows на C++20. Цель — быстрый и предсказуемый десктопный toolkit с кастомным окном, аппаратной отрисовкой, аккуратными темами и API, которое не заставляет писать инфраструктуру заново в каждом приложении.
 
-> Статус: **M0 Technical Preview принят с environment-waivers** (см. [docs/M0.md](docs/M0.md)). Следующая волна — v0.1 Form Starter.
-> Дата: 14.11.2026.
+> Статус: **v0.1 Form Starter реализован** (см. [docs/V01.md](docs/V01.md)); M0 принят с environment-waivers.
+> Дата: 15.11.2026.
 
 ## Ключевые решения
 
@@ -28,37 +28,48 @@
 | [docs/PHASE4.md](docs/PHASE4.md) | Form preview, StatusBar, titlebar actions |
 | [docs/PHASE5.md](docs/PHASE5.md) | DPI matrix, benchmark, CI, hardening results |
 | [docs/M0.md](docs/M0.md) | M0 sign-off, доказательства и environment-waivers |
+| [docs/V01.md](docs/V01.md) | v0.1 Form Starter: объём, демо, тесты, ограничения |
+| [docs/CONTROLS.md](docs/CONTROLS.md) | Публичный API каждого контрола v0.1 |
+| [docs/RISKS.md](docs/RISKS.md) | Реестр рисков и автоматические gates |
 | [CONTROL_BACKLOG.md](CONTROL_BACKLOG.md) | Полный каталог контролов, недостающие элементы, зависимости и волны |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Релизы, ориентировочные сроки, критерии выхода |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архитектура, стек, окно, рендер, API и структура проекта |
 | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) | Визуальный язык, токены, спецификация формы и кнопок |
 | [docs/DESIGN_REFERENCES.md](docs/DESIGN_REFERENCES.md) | Аудит `design_chats`: какие дизайны, палитры и паттерны стоит взять |
 | [docs/QUALITY.md](docs/QUALITY.md) | Тестовая стратегия, DPI-матрица, performance-бюджеты и release checklist |
+| [docs/RISKS.md](docs/RISKS.md) | Реестр рисков, триггеры, владельцы и gate-проверки |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Журнал принятых и открытых решений |
 | [design/README.md](design/README.md) | Описание макетов, галереи контролов и скриншотов |
 
-## Phase 4: Form preview
+## v0.1 Form Starter
 
-![Phase 4 form preview](docs/images/phase4-preview.png)
+![Form Starter, светлая тема](docs/images/v01-form-light.png)
 
-Экран собран как форма: sidebar с разделами, основная карточка настроек, `FormPanel`, закреплённый снизу `StatusBar` и дополнительное действие сброса в titlebar. Работают Light/Dark/System, density S/M/L, hover/pressed/focus, клики, Tab/Shift+Tab, Space/Enter и обновление статуса при каждом действии.
+Экран собран на публичном `Form`: `TextEdit`, `CheckBox`, `RadioGroup`, `ProgressBar`,
+`Loader`, `PictureBox`, `PopupMenu`, `Dialog`/`MessageBox` и `ToolTip`. Работают Light/Dark/System,
+density S/M/L, hover/pressed/focus, Tab/Shift+Tab, undo/redo, clipboard, IME result string,
+валидация без сдвига layout и модальные окна с возвратом фокуса.
 
-Тёмная тема: [phase4-dark.png](docs/images/phase4-dark.png). Компактный режим: [phase4-compact.png](docs/images/phase4-compact.png). Подробности — в [docs/PHASE4.md](docs/PHASE4.md).
+Тёмная тема: [v01-form-dark.png](docs/images/v01-form-dark.png). Компактный режим:
+[v01-form-compact.png](docs/images/v01-form-compact.png). Popup:
+[v01-form-popup.png](docs/images/v01-form-popup.png). MessageBox:
+[v01-messagebox.png](docs/images/v01-messagebox.png). API — [docs/CONTROLS.md](docs/CONTROLS.md).
 
 ## Hardening (Phase 5)
 
-- CTest **8/8** в Debug и Release: theme, UI, Form, DPI matrix, mixed-DPI, chrome, benchmark, visual regression.
+- CTest **12/12** после v0.1: theme, UI, v0.1 controls, Form, Dialog, DPI awareness, render smoke,
+  DPI matrix, mixed-DPI, chrome, benchmark gate, visual regression для M0 и Form Starter.
 - Simulated DPI matrix **96 / 120 / 150 / 200** с Light/Dark и S/M/L.
 - Реальная mixed-DPI проверка на двух мониторах: **120 DPI / 96 DPI**.
 - Snap Layouts, Alt+Space и Alt+F4 проверены; screenshots в [docs/M0.md](docs/M0.md).
-- Visual snapshots Light/Dark/Compact в `tests/baselines`, сравнение через WIC/D2D.
-- Публичный `Form` API с Create/SetContent/theme/density/status/Show/Run.
-- Release benchmark: **120 FPS** (VSync), **~1.8 ms CPU/кадр**, layout **~0.15 ms**.
-- Startup до первого кадра **101 ms**; idle CPU **≈0%**.
-- Private memory **43.8 MB** (hard 60 MB), working set 64.4 MB включает shared GPU.
-- Clean build-каталог Debug собран с нуля; 8/8 тестов зелёные.
+- Visual snapshots Light/Dark/Compact в `tests/baselines`, сравнение через WIC/D2D; для v0.1 добавлены Form Starter и popup.
+- Публичный `Form` API с Create/SetContent/theme/density/status/Show/Run/CapturePng.
+- v0.1: `ScrollViewer`, `TextEdit`, `CheckBox`, `RadioGroup`, `ProgressBar`, `Loader`, `PopupHost`, `Dialog`, `MessageBox`, `Image`, `Command`.
+- Release benchmark после v0.1: **120 FPS** (VSync), **~1.7 ms CPU/кадр**, layout **~0.18 ms**, startup **97 ms**.
+- M0 idle CPU **≈0%**; private memory **43.8 MB** (hard 60 MB), working set 64.4 MB включает shared GPU.
+- Clean build-каталог Debug собран с нуля; после v0.1 — **12/12** тестов.
 
-M0 принят с waivers: 150/200% DPI simulated, clean-machine и remote CI недоступны в текущем окружении. `Form` API — [include/cppui/form.hpp](include/cppui/form.hpp). Подробности — в [docs/PHASE5.md](docs/PHASE5.md).
+M0 принят с waivers: 150/200% DPI simulated, clean-machine и remote CI недоступны в текущем окружении. `Form` API — [include/cppui/form.hpp](include/cppui/form.hpp). Подробности M0 — в [docs/PHASE5.md](docs/PHASE5.md), v0.1 — в [docs/V01.md](docs/V01.md).
 
 ## Визуальный концепт
 
@@ -99,6 +110,9 @@ M0 принят с waivers: 150/200% DPI simulated, clean-machine и remote CI �
 - [x] Проверен реальный переход между двумя мониторами 120 DPI / 96 DPI.
 - [x] Snap Layouts, Alt+Space и Alt+F4 проверены.
 - [x] M0 принят с environment-waivers: [docs/M0.md](docs/M0.md).
+- [x] v0.1 Form Starter: поля, панели, scroll, popup, dialog, validation, image, tooltips.
+- [x] 12/12 CTest, visual baselines Light/Dark/Compact/Popup, модальные Dialog/MessageBox.
+- [x] Документация API всех контролов: [docs/CONTROLS.md](docs/CONTROLS.md).
 
 ## Сборка
 
@@ -136,14 +150,18 @@ Pop-Location
 ```
 
 `--self-test` проходит четыре комбинации DPI/density/theme; `--benchmark`
-пишет frame/layout/resize/theme/density-метрики в `cppui-benchmark.txt`.
-`--capture-visual` пишет Light/Dark/Compact PNG в `visual-output/`; CTest
-`cppui.visual` сравнивает их с `tests/baselines/`. В живом окне `F5`
-принудительно пересоздаёт render device, а `Esc` закрывает его. Кастомный chrome проверяется вручную: min/max/close, resize и drag title bar.
+пишет frame/layout/resize/theme/density-метрики в `cppui-benchmark.txt`, а CTest
+`cppui.benchmark` проверяет Release-пороги. `--capture-visual` пишет Light/Dark/Compact
+PNG; Form Starter дополнительно снимает popup. CTest `cppui.visual` и
+`cppui.visual_v01` сравнивают их с `tests/baselines/`. В живом окне `F5`
+принудительно пересоздаёт render device; Esc закрывает popup, а окно — Alt+F4.
+Кастомный chrome проверяется вручную: min/max/close, resize и drag title bar.
 
 ## Ближайший шаг
 
-v0.1 Form Starter: публичные TextEdit, CheckBox/RadioButton, Panel/GroupPanel, ProgressBar/Loader, PopupMenu, Dialog/MessageBox, ToolTip и общий `DensityMode` для всех контролов.
+v0.2 Input & Selection: `MemoEdit`, `ComboBox`, `CheckedComboBox`, `ListBox`, `ListView`,
+`SpinEdit`, `DropDownButton`, `SplitButton`, `ToggleSwitch`, `Slider`, `DateEdit`/`Calendar`,
+`TabControl`, `SplitContainer`, file/folder dialogs и начало UIA.
 
 ## Лицензия
 

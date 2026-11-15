@@ -10,6 +10,7 @@
 #include <d2d1helper.h>
 #include <wincodec.h>
 
+#include <cppui/ui/image.hpp>
 #include <cppui/ui/widget.hpp>
 
 namespace cppui {
@@ -635,6 +636,65 @@ void D2DRenderer::stroke_rounded_rect(const Rect& rect,
     }
 }
 
+void D2DRenderer::draw_line(Point from, Point to, const Color& color, float width) {
+    if (ID2D1SolidColorBrush* const brush = BrushFor(color)) {
+        d2d_context_->DrawLine(D2D1::Point2F(from.x, from.y),
+                               D2D1::Point2F(to.x, to.y),
+                               brush,
+                               width);
+    }
+}
+
+void D2DRenderer::draw_image(const Rect& rect, const Image& image, float opacity) {
+    if (!d2d_context_ || !image.valid() || rect.width <= 0.0f || rect.height <= 0.0f) {
+        return;
+    }
+
+    const D2D1_SIZE_U size = D2D1::SizeU(static_cast<UINT32>(image.width()),
+                                         static_cast<UINT32>(image.height()));
+    const D2D1_PIXEL_FORMAT format =
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED);
+    const D2D1_BITMAP_PROPERTIES1 properties =
+        D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_NONE, format);
+    Microsoft::WRL::ComPtr<ID2D1Bitmap1> bitmap;
+    const HRESULT hr = d2d_context_->CreateBitmap(
+        size,
+        image.pixels().data(),
+        static_cast<UINT32>(image.width()) * 4u,
+        properties,
+        bitmap.GetAddressOf());
+    if (FAILED(hr) || !bitmap) {
+        last_error_ = hr;
+        return;
+    }
+
+    const D2D1_RECT_F destination =
+        D2D1::RectF(rect.x, rect.y, rect.right(), rect.bottom());
+    const D2D1_RECT_F source = D2D1::RectF(0.0f,
+                                           0.0f,
+                                           static_cast<float>(image.width()),
+                                           static_cast<float>(image.height()));
+    d2d_context_->DrawBitmap(bitmap.Get(),
+                             destination,
+                             std::clamp(opacity, 0.0f, 1.0f),
+                             D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
+                             source);
+}
+
+void D2DRenderer::push_clip(const Rect& rect) {
+    if (d2d_context_) {
+        d2d_context_->PushAxisAlignedClip(
+            D2D1::RectF(rect.x, rect.y, rect.right(), rect.bottom()),
+            D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+    }
+}
+
+void D2DRenderer::pop_clip() {
+    if (d2d_context_) {
+        d2d_context_->PopAxisAlignedClip();
+    }
+}
+
 void D2DRenderer::draw_text(std::wstring_view text,
                             const Rect& rect,
                             FontRole role,
@@ -830,18 +890,19 @@ void D2DRenderer::DrawScene(const ChromeState& chrome, Widget* content) noexcept
                            brush_on_accent_.Get(),
                            1.0f);
 
-    constexpr std::wstring_view caption = L"CppUI";
+    const std::wstring_view caption =
+        chrome.title != nullptr && chrome.title[0] != L'\0' ? chrome.title : L"CppUI";
     d2d_context_->DrawTextW(caption.data(),
                             static_cast<UINT32>(caption.size()),
                             caption_format_.Get(),
-                            D2D1::RectF(44.0f, 8.0f, 92.0f, 32.0f),
+                            D2D1::RectF(44.0f, 8.0f, 246.0f, 32.0f),
                             primary_brush,
                             D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
-    const D2D1_RECT_F badge = D2D1::RectF(94.0f, 12.0f, 152.0f, 28.0f);
+    const D2D1_RECT_F badge = D2D1::RectF(254.0f, 12.0f, 312.0f, 28.0f);
     d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(badge, 8.0f, 8.0f),
                                        brush_accent_soft_.Get());
-    constexpr std::wstring_view badge_label = L"PHASE 4";
+    constexpr std::wstring_view badge_label = L"v0.1";
     d2d_context_->DrawTextW(badge_label.data(),
                             static_cast<UINT32>(badge_label.size()),
                             badge_format_.Get(),

@@ -8,6 +8,8 @@
 
 namespace cppui {
 
+class Image;
+
 enum class FontRole {
     caption,
     body,
@@ -44,12 +46,22 @@ public:
                                      float radius,
                                      const Color& color,
                                      float width = 1.0f) = 0;
+    virtual void draw_line(Point from,
+                           Point to,
+                           const Color& color,
+                           float width = 1.0f) = 0;
+    virtual void draw_image(const Rect& rect, const Image& image, float opacity = 1.0f) = 0;
     virtual void draw_text(std::wstring_view text,
                            const Rect& rect,
                            FontRole role,
                            const Color& color,
                            TextAlign align = TextAlign::leading,
                            TextVAlign vertical = TextVAlign::center) = 0;
+
+    // Clip stack used by scrollable containers. The default is a no-op so a
+    // lightweight test painter can ignore clipping.
+    virtual void push_clip(const Rect& rect) { (void)rect; }
+    virtual void pop_clip() {}
 };
 
 }  // namespace cppui

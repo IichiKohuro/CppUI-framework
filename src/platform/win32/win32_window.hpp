@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <set>
 #include <string>
 
 #include "chrome/chrome_state.hpp"
@@ -20,13 +21,17 @@ public:
         std::function<void(std::uint32_t width, std::uint32_t height, float dpi)> resized;
         std::function<void(float dpi)> dpi_changed;
         std::function<bool(WPARAM key)> key_down;
+        std::function<bool(wchar_t character)> char_input;
         std::function<void(int x, int y)> mouse_move;
         std::function<void()> mouse_leave;
         std::function<void(int x, int y)> mouse_down;
         std::function<void(int x, int y)> mouse_up;
+        std::function<void(int x, int y, float delta)> mouse_wheel;
+        std::function<void(UINT_PTR timer_id)> timer;
         std::function<void()> system_theme_changed;
         std::function<void(ThemeMode mode)> theme_selected;
         std::function<void(ChromeButton button)> chrome_action;
+        std::function<void()> closing;
     };
 
     Win32Window(HINSTANCE instance,
@@ -45,8 +50,14 @@ public:
     [[nodiscard]] bool Create(Callbacks callbacks);
     void Show(int show_command) noexcept;
     [[nodiscard]] int Run();
+    [[nodiscard]] int RunModal();
+    void SetQuitOnDestroy(bool enabled) noexcept { quit_on_destroy_ = enabled; }
     void Destroy() noexcept;
     void Invalidate() noexcept;
+    void CenterOnWindow(HWND owner) noexcept;
+    void SetImeCaretRect(int client_x, int client_y, int height) noexcept;
+    void StartTimer(UINT_PTR timer_id, UINT milliseconds) noexcept;
+    void StopTimer(UINT_PTR timer_id) noexcept;
 
     [[nodiscard]] HWND Handle() const noexcept { return hwnd_; }
     [[nodiscard]] float Dpi() const noexcept { return dpi_; }
@@ -75,6 +86,7 @@ private:
 
     HINSTANCE instance_{};
     HWND hwnd_{};
+    std::wstring class_name_;
     std::wstring title_;
     int width_dip_{};
     int height_dip_{};
@@ -83,6 +95,7 @@ private:
     float dpi_{96.0f};
     Callbacks callbacks_{};
     bool class_registered_{false};
+    bool quit_on_destroy_{true};
     bool active_{false};
     ChromeButton hovered_{ChromeButton::none};
     ChromeButton pressed_{ChromeButton::none};
@@ -91,6 +104,7 @@ private:
     ChromeButton theme_pressed_{ChromeButton::none};
     ChromeButton action_hovered_{ChromeButton::none};
     ChromeButton action_pressed_{ChromeButton::none};
+    std::set<UINT_PTR> timers_;
 };
 
 }  // namespace cppui
