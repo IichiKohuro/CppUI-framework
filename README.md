@@ -167,4 +167,6 @@ v0.2 Input & Selection: `MemoEdit`, `ComboBox`, `CheckedComboBox`, `ListBox`, `L
 
 ## Лицензия
 
-Пока не выбрана. Это одно из открытых решений в [docs/DECISIONS.md](docs/DECISIONS.md). До определения лицензии не стоит делать репозиторий публичным.
+MIT — см. [LICENSE](LICENSE). Решение O-002 зафиксировано в
+[docs/DECISIONS.md](docs/DECISIONS.md). Сторонние шрифты и ассеты в репозиторий
+не добавлены: используется системный Segoe UI.
