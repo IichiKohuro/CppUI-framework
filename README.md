@@ -1,5 +1,9 @@
 # CppUI
 
+[![windows](https://github.com/IichiKohuro/CppUI-framework/actions/workflows/windows.yml/badge.svg?branch=main)](https://github.com/IichiKohuro/CppUI-framework/actions/workflows/windows.yml)
+[![CI](https://github.com/IichiKohuro/CppUI-framework/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/IichiKohuro/CppUI-framework/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-informational)](LICENSE)
+
 **CppUI** — рабочее название лёгкого UI-фреймворка для Windows на C++20. Цель — быстрый и предсказуемый десктопный toolkit с кастомным окном, аппаратной отрисовкой, аккуратными темами и API, которое не заставляет писать инфраструктуру заново в каждом приложении.
 
 > Статус: **v0.1 Form Starter реализован** (см. [docs/V01.md](docs/V01.md)); M0 принят с environment-waivers.

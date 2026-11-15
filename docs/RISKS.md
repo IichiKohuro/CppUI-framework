@@ -35,9 +35,9 @@ senior C++/Win32-разработчик). Ревью — после каждой
 | R-06 | Визуальная несогласованность | M/M | Partial | `cppui.visual*` |
 | R-07 | Отсутствие/хрупкость toolchain | L/L | Mitigated | `cppui.*` + CI |
 | R-08 | Оптимизм в оценках | H/M | Open | пере-баз после v0.1 |
-| R-09 | Удалённый CI ни разу не выполнялся | H/M | Blocked | G-3 |
+| R-09 | Удалённый CI ни разу не выполнялся | H/M | Mitigated | G-3 |
 | R-10 | Performance-бюджеты не были gate | M/M | Mitigated | G-1 |
-| R-11 | Visual-тесты хрупкие по конструкции | M/M | Partial | `cppui.visual_v01_warp` + diff |
+| R-11 | Visual-тесты хрупкие по конструкции | M/M | Mitigated | `cppui.visual_v01_warp` + diff |
 | R-12 | DPI awareness не выставлялся библиотекой | M/H | Mitigated | G-2 |
 | R-13 | UIA/accessibility отложен архитектурно | M/H | Partial | metadata в `Widget` |
 | R-14 | Лицензия и публичность репозитория | M/H | Mitigated | LICENSE в корне, решение O-002 |
@@ -56,17 +56,17 @@ senior C++/Win32-разработчик). Ревью — после каждой
 | R-04 | Partial | Selection, clipboard, undo/redo, max length, read-only, IME result string; тесты в `cppui.v01`. | CJK IME вручную, inline composition, double-click, Memo. |
 | R-05 | Open | Контракт `PropertyDescriptor` зафиксирован как обязательный до v0.3. | Кода нет; решение O-005 откладывает VerticalGrid. |
 | R-06 | Partial | Baselines Light/Dark/Compact/Popup; focus-ring и border clipping исправлены. | Нет автоматической матрицы всех состояний hover/focus/disabled. |
-| R-07 | Mitigated | VS 2026/MSVC 19.51, Windows SDK 10.0.26100, CMake 4.3, локальный Debug/Release. | Удалённый runner = R-09. |
+| R-07 | Mitigated | VS 2026/MSVC 19.51, Windows SDK 10.0.26100, CMake 4.3; удалённый запуск подтверждён в R-09 (VS 2022-пресеты зелёные). | Локальный CMake 4.3 против 3.x на раннере — пресеты совместимы, но не пиннятся. |
 | R-08 | Open | v0.1 закрыт; фактические замеры производительности есть. | Нет учёта часов на контрол, ROADMAP не пере-базирован. |
-| R-09 | Blocked | Workflow-файлы и CTest готовы. | Нет git remote; ни одного remote run. |
+| R-09 | Mitigated | Публичный репозиторий `IichiKohuro/CppUI-framework`; первый push 15.11.2026. `windows` (VS 2022 Debug+Release) и `CI` (Ninja Debug) зелёные, 14/14 CTest на раннере. | Один runner-образ `windows-2022`; нет прогона на PR и на других DPI/шрифтах. |
 | R-10 | Mitigated | G-1 проверяет Release-бюджеты; текущий прогон зелёный. | Пороги грубые, дрейф 20% не ловят. |
-| R-11 | Partial | WARP-прогон Form Starter проходит; при mismatch создаётся diff PNG. | Нет CI-runner и второго шрифтового/GPU окружения. |
+| R-11 | Mitigated | Захват в фиксированном 1120x800 DIP не зависит от разрешения десктопа; те же 4 baseline проходят локально (hardware, 120 Гц) и на CI-раннере (WARP, 42 fps, десктоп 1024x768). | Нет второго шрифтового окружения и обновления baseline через CI. |
 | R-12 | Mitigated | `IsPerMonitorDpiAware`, G-2, PMv2 в Form Starter, диагностика в `Form::Create`. | Библиотека осознанно не меняет процесс глобально. |
 | R-13 | Partial | В `Widget` добавлены accessible name/role/value; контролы заполняют metadata. | UIA AutomationPeer и Narrator-тест отсутствуют. |
 | R-14 | Mitigated | Выбрана MIT, добавлен [LICENSE](../LICENSE), обновлены README и O-002. | Лицензию может пересмотреть владелец до v1.0. |
 | R-15 | Accepted | README, ARCHITECTURE, ADR, тесты и demo покрывают основной контекст. | Онбординг нового разработчика не измерялся. |
 
-**Итог:** 5 Mitigated, 6 Partial, 2 Open, 1 Blocked, 1 Accepted. Все риски имеют
+**Итог:** 7 Mitigated, 5 Partial, 2 Open, 0 Blocked, 1 Accepted. Все риски имеют
 владельца, gate/ручную проверку и записанный остаток; необработанных карточек нет.
 
 ## 3. Карточки рисков
@@ -239,7 +239,7 @@ v0.3.
 
 **Критерий закрытия.** Пересмотренный ROADMAP на фактических данных.
 
-### R-09. Удалённый CI ни разу не выполнялся — H/M, Blocked
+### R-09. Удалённый CI ни разу не выполнялся — H/M, Mitigated
 
 **Механизм.** Workflow есть, но в репозитории нет git remote, и ни один run не
 запускался. Пути артефактов, пресеты, PowerShell-тесты на раннере с другим DPI
@@ -247,11 +247,36 @@ v0.3.
 
 **Триггер.** Первый push/PR; падение configure; visual-тест на WARP-раннере.
 
-**Что делать.** Добавить remote и прогнать оба workflow (`windows.yml`,
-`ci.yml`) на PR. Зафиксировать ссылку на зелёный run в README или M0.
-Сохранять visual-output при падении (уже настроено в `windows.yml`).
+**Что сделано.** 15.11.2026 создан публичный репозиторий
+[IichiKohuro/CppUI-framework](https://github.com/IichiKohuro/CppUI-framework) и
+запушен `main`. Первый прогон нашёл два настоящих блокера, которые локальная
+машина не воспроизводила:
 
-**Критерий закрытия.** G-3: зелёный удалённый run Debug и Release.
+1. `cppui.visual_v01(_warp)` — окно 1120x800 не влезает в десктоп раннера
+   1024x768, PNG выходил 1044x788 и не совпадал с baseline по размеру.
+   Исправлено: `Form::CapturePng(path, width_dip, height_dip)` раскладывает
+   offscreen-таргет в фиксированном размере и восстанавливает клиентский layout.
+2. `cppui.benchmark` (Release) — `theme_switch_avg_ms=20.31` при пороге 20.0.
+   Метрика была wall-clock, а `Render` блокируется в `Present(1, 0)`, поэтому
+   измеряла частоту обновления дисплея (48 Гц на раннере), а не стоимость
+   кадра. Бюджеты переведены на CPU-время процесса, добавлен
+   `renderer=hardware|warp` и трёхкратный запас для WARP.
+
+Зелёные прогоны: [windows](https://github.com/IichiKohuro/CppUI-framework/actions/runs/43727087458)
+(Debug+Release, VS 2022, 14/14 CTest) и [CI](https://github.com/IichiKohuro/CppUI-framework/actions/runs/43727087448)
+(Ninja Debug). Visual-тесты на раннере проходят с теми же baseline.
+
+**Остаток.** Один runner-образ `windows-2022`; прогонов на PR ещё не было
+(только push в `main`); раннер отдаёт паравиртуальный GPU, где CPU-время
+процесса не растёт — кадровые бюджеты там справочные, реальными остаются
+`layout_avg_ms` и `startup_to_first_frame_ms`.
+
+**Замечание по окружению.** Аккаунт GitHub ограничен trade controls: приватные
+репозитории недоступны, поэтому remote публичный. Это согласуется с MIT
+([R-14](#r14-лицензия-и-публичность-репозитория--mh-mitigated)), но означает,
+что приватный CI в этом аккаунте сейчас невозможен.
+
+**Критерий закрытия.** G-3: зелёный удалённый run Debug и Release. — выполнено.
 
 ### R-10. Performance-бюджеты не были gate — M/M, Mitigated
 
@@ -271,23 +296,26 @@ WARP: раньше gate сравнивал wall-clock, квантованный 
 **Критерий закрытия.** G-1 зелёный в Release; при падении видно, какая метрика
 и на сколько вышла за предел.
 
-### R-11. Visual-тесты хрупкие по конструкции — M/M, Partial
+### R-11. Visual-тесты хрупкие по конструкции — M/M, Mitigated
 
 **Механизм.** PowerShell + `System.Drawing` + WIC + сравнение PNG, снятых на
 конкретной GPU/DPI/шрифтах. На WARP или другом раннере антиалиасинг текста
-отличается.
+отличается, а окно может не влезть в десктоп.
 
-**Что делать / сделано.** `cppui.visual_v01_warp` запускает Form Starter под
-`CPPUI_FORCE_WARP=1`; WARP проходит текущие baseline с расхождением <0.1%.
-Оба visual-скрипта при превышении допуска сохраняют `diff-*.png` в
-`visual-output`, который CI загружает при падении. Baseline снимаются при
-фиксированном 96-DPI capture-профиле.
+**Что сделано.** `cppui.visual_v01_warp` запускает Form Starter под
+`CPPUI_FORCE_WARP=1`. Оба visual-скрипта при превышении допуска сохраняют
+`diff-*.png` в `visual-output`, который CI загружает при падении. Захват идёт
+через `Form::CapturePng(path, width_dip, height_dip)` в фиксированном размере
+1120x800 DIP: результат не зависит от разрешения десктопа, поэтому первый же
+CI-прогон на 1024x768-раннере прошёл с теми же baseline, что и локальный
+(расхождение <0.1%).
 
-**Остаток.** Удалённого CI и второго шрифтового окружения нет; структурные
-hit-area проверяются отдельно в `cppui.chrome`, а не внутри visual-скрипта.
+**Остаток.** Второе шрифтовое окружение не проверялось (на раннере тот же
+Segoe UI); структурные hit-area проверяются в `cppui.chrome`, а не внутри
+visual-скрипта; обновление baseline остаётся ручным.
 
 **Критерий закрытия.** Visual-тест стабилен на двух разных конфигурациях
-(локально и CI) без обновления baseline.
+(локально и CI) без обновления baseline. — выполнено.
 
 ### R-12. DPI awareness не выставлялся библиотекой — M/H, Mitigated
 
@@ -387,12 +415,19 @@ ctest --preset windows-vs2026-release -R cppui.benchmark --output-on-failure
 PMv2, и что `SetProcessDpiAwarenessContext` переводит процесс в PMv2.
 `Form::Create` предупреждает в debugger output, если хост забыл awareness.
 
-### G-3. Удалённый CI (заблокирован)
+### G-3. Удалённый CI (зелёный)
 
-Нужен git remote и первый push. До этого workflow считается непроверенным:
-[windows.yml](../.github/workflows/windows.yml) — VS 2022 Debug/Release,
-[ci.yml](../.github/workflows/ci.yml) — Ninja Debug. Оба запускают CTest,
-поэтому G-1 и G-2 подключаются автоматически.
+Репозиторий: [IichiKohuro/CppUI-framework](https://github.com/IichiKohuro/CppUI-framework).
+Оба workflow запускаются на push в `main` и на PR:
+
+| Workflow | Пресет | Прогон |
+|---|---|---|
+| [windows.yml](../.github/workflows/windows.yml) | VS 2022 Debug + Release | [run 43727087458](https://github.com/IichiKohuro/CppUI-framework/actions/runs/43727087458) |
+| [ci.yml](../.github/workflows/ci.yml) | Ninja Debug (MSVC env) | [run 43727087448](https://github.com/IichiKohuro/CppUI-framework/actions/runs/43727087448) |
+
+Оба запускают полный CTest, поэтому G-1 и G-2 подключаются автоматически.
+При падении visual-теста workflow выгружает `visual-output` с `diff-*.png`, а
+benchmark — `cppui-benchmark.txt`.
 
 ## 5. Журнал ревизий
 
@@ -400,13 +435,15 @@ PMv2, и что `SetProcessDpiAwarenessContext` переводит процес�
 |---|---|
 | 15.11.2026 | Реестр создан; R-10 и R-12 закрыты gates G-1/G-2; R-09 переведён в Blocked (нет remote); подтверждены 11/11 CTest в Debug и Release |
 | 15.11.2026 | Полная ревизия 15 рисков. R-01: maximize в work area + тест. R-02: 3 render failures → WARP. R-11: WARP visual gate + diff PNG. R-13: accessible name/role/value в Widget. R-03/R-07/R-10/R-12 — Mitigated; R-05/R-08/R-14 — Open; R-09 — Blocked; R-15 — Accepted. **14/14 CTest в Debug и Release**. |
+| 15.11.2026 | Выбрана MIT (R-14 → Mitigated), создан публичный репозиторий, первый удалённый прогон. Найдены и исправлены два CI-блокера: visual-захват зависел от разрешения десктопа, benchmark гейтил wall-clock, квантованный частотой дисплея. R-09 и R-11 → Mitigated; G-3 закрыт. **14/14 CTest локально и на раннере**. |
 
 ## 6. Ближайшие действия
 
-1. **R-09:** добавить remote и получить первый зелёный run — это разблокирует
-   доверие ко всем остальным gate.
-2. **R-14:** владельцу выбрать лицензию; без этого публичный push запрещён.
-3. **R-13:** spike UIA AutomationPeer для Button/TextEdit и Narrator-проверка.
-4. **R-02:** TDR/RDP soak и порог 10 → остановка рендера с диагностикой.
-5. **R-08:** пересчитать ROADMAP по фактическим часам после v0.1.
-6. **R-05:** контракт PropertyDescriptor до старта v0.3.
+1. **PR-прогон:** первый pull request проверит `pull_request`-триггер и
+   сохранение артефактов при падении; сейчас прогоны были только на push.
+2. **R-13:** spike UIA AutomationPeer для Button/TextEdit и Narrator-проверка.
+3. **R-02:** TDR/RDP soak и порог 10 → остановка рендера с диагностикой.
+4. **R-08:** пересчитать ROADMAP по фактическим часам после v0.1.
+5. **R-05:** контракт PropertyDescriptor до старта v0.3.
+6. **R-01/R-04/R-06:** ручные матрицы 150/200%, CJK-IME и состояний
+   hover/focus/disabled — это остатки Partial, автоматизировать их дороже.

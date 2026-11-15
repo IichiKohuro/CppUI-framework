@@ -61,6 +61,21 @@ if ($metrics.ContainsKey('cpu_measure') -and $metrics['cpu_measure'] -ne 'ok') {
 $renderer = if ($metrics.ContainsKey('renderer')) { $metrics['renderer'] } else { 'unknown' }
 Write-Host "Renderer: $renderer"
 
+# Some CI runners present a paravirtual GPU: rasterization happens outside the
+# process, so process CPU time stays at 0 and frame CPU budgets cannot catch a
+# regression there. Say so instead of reporting a green gate that measured
+# nothing; layout and startup are in-process and remain real gates on any host.
+$frameCpu = 0.0
+if ($metrics.ContainsKey('frame_cpu_avg_ms')) {
+    $frameCpu = [double]::Parse($metrics['frame_cpu_avg_ms'],
+        [System.Globalization.CultureInfo]::InvariantCulture)
+}
+if ($frameCpu -lt 0.01) {
+    Write-Host ('NOTE: process CPU time does not advance on this host ' +
+        '(frame_cpu_avg_ms=0). Frame CPU budgets are informational here; ' +
+        'layout_avg_ms and startup_to_first_frame_ms remain enforced.')
+}
+
 # Frame wall-clock time is quantized by Present(1, 0): 8.3 ms on a 120 Hz
 # monitor, ~21 ms on the 48 Hz virtual display of a CI runner. Budgets are
 # therefore expressed in process CPU time, which is refresh independent. The
