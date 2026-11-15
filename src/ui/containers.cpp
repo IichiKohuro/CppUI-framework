@@ -11,6 +11,10 @@ namespace {
 
 constexpr float kScrollBarThickness = 12.0f;
 constexpr float kMinThumbLength = 24.0f;
+// Focus rings of CheckBox/RadioButton extend ~3 DIP outside their layout
+// bounds. Keep a small hover/focus halo inside the panel clip so the first
+// column does not get a flat left edge when a control receives focus.
+constexpr float kContentClipMargin = 6.0f;
 
 float ContentHeightLimit() noexcept {
     return 100000.0f;
@@ -91,10 +95,10 @@ void Panel::paint(Painter& painter) const {
     }
 
     if (clip_children_) {
-        const Rect clip{content_rect_.x - 2.0f,
-                        content_rect_.y - 2.0f,
-                        content_rect_.width + 4.0f,
-                        content_rect_.height + 4.0f};
+        const Rect clip{content_rect_.x - kContentClipMargin,
+                        content_rect_.y - kContentClipMargin,
+                        content_rect_.width + kContentClipMargin * 2.0f,
+                        content_rect_.height + kContentClipMargin * 2.0f};
         painter.push_clip(clip);
         paint_children(painter);
         painter.pop_clip();
@@ -172,13 +176,13 @@ void GroupPanel::paint(Painter& painter) const {
                        header.bottom(),
                        header.width,
                        std::max(0.0f, bounds().bottom() - padding.bottom - header.bottom())};
-    // Control strokes are centered on their bounds. A clip exactly at the
-    // content edge would shave half of the left/top border and make every
-    // first column control look cut off.
-    const Rect clip{content.x - 2.0f,
-                    content.y - 2.0f,
-                    content.width + 4.0f,
-                    content.height + 4.0f};
+    // Control strokes are centered on their bounds, and checkbox/radio focus
+    // rings extend a few DIP outside them. Keep enough halo inside the panel
+    // clip so the first column never looks cut off on focus.
+    const Rect clip{content.x - kContentClipMargin,
+                    content.y - kContentClipMargin,
+                    content.width + kContentClipMargin * 2.0f,
+                    content.height + kContentClipMargin * 2.0f};
     painter.push_clip(clip);
     paint_children(painter);
     painter.pop_clip();
