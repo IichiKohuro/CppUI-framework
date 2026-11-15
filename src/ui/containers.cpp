@@ -91,7 +91,11 @@ void Panel::paint(Painter& painter) const {
     }
 
     if (clip_children_) {
-        painter.push_clip(content_rect_);
+        const Rect clip{content_rect_.x - 2.0f,
+                        content_rect_.y - 2.0f,
+                        content_rect_.width + 4.0f,
+                        content_rect_.height + 4.0f};
+        painter.push_clip(clip);
         paint_children(painter);
         painter.pop_clip();
     } else {
@@ -168,7 +172,14 @@ void GroupPanel::paint(Painter& painter) const {
                        header.bottom(),
                        header.width,
                        std::max(0.0f, bounds().bottom() - padding.bottom - header.bottom())};
-    painter.push_clip(content);
+    // Control strokes are centered on their bounds. A clip exactly at the
+    // content edge would shave half of the left/top border and make every
+    // first column control look cut off.
+    const Rect clip{content.x - 2.0f,
+                    content.y - 2.0f,
+                    content.width + 4.0f,
+                    content.height + 4.0f};
+    painter.push_clip(clip);
     paint_children(painter);
     painter.pop_clip();
 }

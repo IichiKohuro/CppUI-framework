@@ -536,6 +536,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show_command) {
     const bool capture = std::wstring_view(GetCommandLineW()).find(L"--capture-visual") !=
                          std::wstring_view::npos;
 
+    // The visual harness runs at the legacy 96-DPI coordinate space so the PNG
+    // baselines do not depend on the monitor the test happens to run on. The
+    // real app opts into per-monitor V2 before creating its first window.
+    if (!capture) {
+        SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    }
+
     FormStarterApp app;
     const int result = app.Run(instance, show_command, capture);
 

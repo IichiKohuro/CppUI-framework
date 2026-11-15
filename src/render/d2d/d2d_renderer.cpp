@@ -695,6 +695,49 @@ void D2DRenderer::pop_clip() {
     }
 }
 
+void D2DRenderer::push_rounded_clip(const Rect& rect, float radius) {
+    if (!d2d_context_ || !d2d_factory_ || rounded_clip_layer_) {
+        return;
+    }
+
+    const D2D1_ROUNDED_RECT rounded{
+        D2D1::RectF(rect.x, rect.y, rect.right(), rect.bottom()), radius, radius};
+    Microsoft::WRL::ComPtr<ID2D1RoundedRectangleGeometry> geometry;
+    if (FAILED(d2d_factory_->CreateRoundedRectangleGeometry(rounded,
+                                                            geometry.GetAddressOf()))) {
+        push_clip(rect);
+        rounded_clip_rect_fallback_ = true;
+        return;
+    }
+    if (FAILED(d2d_context_->CreateLayer(nullptr, rounded_clip_layer_.GetAddressOf()))) {
+        push_clip(rect);
+        rounded_clip_rect_fallback_ = true;
+        return;
+    }
+
+    D2D1_LAYER_PARAMETERS1 parameters{};
+    parameters.contentBounds =
+        D2D1::RectF(rect.x - 2.0f, rect.y - 2.0f, rect.right() + 2.0f, rect.bottom() + 2.0f);
+    parameters.geometricMask = geometry.Get();
+    parameters.maskAntialiasMode = D2D1_ANTIALIAS_MODE_PER_PRIMITIVE;
+    parameters.maskTransform = D2D1::Matrix3x2F::Identity();
+    parameters.opacity = 1.0f;
+    parameters.layerOptions = D2D1_LAYER_OPTIONS1_NONE;
+    d2d_context_->PushLayer(parameters, rounded_clip_layer_.Get());
+}
+
+void D2DRenderer::pop_rounded_clip() {
+    if (rounded_clip_rect_fallback_) {
+        rounded_clip_rect_fallback_ = false;
+        pop_clip();
+        return;
+    }
+    if (rounded_clip_layer_) {
+        d2d_context_->PopLayer();
+        rounded_clip_layer_.Reset();
+    }
+}
+
 void D2DRenderer::draw_text(std::wstring_view text,
                             const Rect& rect,
                             FontRole role,
@@ -899,16 +942,18 @@ void D2DRenderer::DrawScene(const ChromeState& chrome, Widget* content) noexcept
                             primary_brush,
                             D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
-    const D2D1_RECT_F badge = D2D1::RectF(254.0f, 12.0f, 312.0f, 28.0f);
-    d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(badge, 8.0f, 8.0f),
-                                       brush_accent_soft_.Get());
-    constexpr std::wstring_view badge_label = L"v0.1";
-    d2d_context_->DrawTextW(badge_label.data(),
-                            static_cast<UINT32>(badge_label.size()),
-                            badge_format_.Get(),
-                            badge,
-                            brush_accent_.Get(),
-                            D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    if (chrome.show_badge) {
+        const D2D1_RECT_F badge = D2D1::RectF(254.0f, 12.0f, 312.0f, 28.0f);
+        d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(badge, 8.0f, 8.0f),
+                                           brush_accent_soft_.Get());
+        constexpr std::wstring_view badge_label = L"v0.1";
+        d2d_context_->DrawTextW(badge_label.data(),
+                                static_cast<UINT32>(badge_label.size()),
+                                badge_format_.Get(),
+                                badge,
+                                brush_accent_.Get(),
+                                D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    }
 
     const float button_width = kCaptionButtonWidthDip;
     const float close_left = window_size.width - button_width;
@@ -928,54 +973,58 @@ void D2DRenderer::DrawScene(const ChromeState& chrome, Widget* content) noexcept
 
     const float action_right = switch_left - kThemeSwitcherGapDip;
     const float action_left = action_right - kChromeActionWidthDip;
-    const D2D1_RECT_F action_rect = D2D1::RectF(action_left,
-                                                switch_top,
-                                                action_right,
-                                                switch_top + kThemeSwitcherHeightDip);
-    const bool action_hot = chrome.action_hovered == ChromeButton::action_reset ||
-                            chrome.action_pressed == ChromeButton::action_reset;
-    if (action_hot) {
-        d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(action_rect, 6.0f, 6.0f),
-                                           brush_surface_hover_.Get());
+    if (chrome.show_chrome_action) {
+        const D2D1_RECT_F action_rect = D2D1::RectF(action_left,
+                                                    switch_top,
+                                                    action_right,
+                                                    switch_top + kThemeSwitcherHeightDip);
+        const bool action_hot = chrome.action_hovered == ChromeButton::action_reset ||
+                                chrome.action_pressed == ChromeButton::action_reset;
+        if (action_hot) {
+            d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(action_rect, 6.0f, 6.0f),
+                                               brush_surface_hover_.Get());
+        }
+
+        ID2D1SolidColorBrush* const action_icon =
+            action_hot ? brush_accent_.Get() : primary_brush;
+        const float action_center_x = (action_left + action_right) * 0.5f;
+        d2d_context_->DrawEllipse(
+            D2D1::Ellipse(D2D1::Point2F(action_center_x, center_y), 4.5f, 4.5f),
+            action_icon,
+            1.2f);
+        d2d_context_->DrawLine(D2D1::Point2F(action_center_x + 2.0f, center_y - 5.8f),
+                               D2D1::Point2F(action_center_x + 6.0f, center_y - 5.8f),
+                               action_icon,
+                               1.2f);
+        d2d_context_->DrawLine(D2D1::Point2F(action_center_x + 6.0f, center_y - 5.8f),
+                               D2D1::Point2F(action_center_x + 6.0f, center_y - 1.8f),
+                               action_icon,
+                               1.2f);
     }
 
-    ID2D1SolidColorBrush* const action_icon =
-        action_hot ? brush_accent_.Get() : primary_brush;
-    const float action_center_x = (action_left + action_right) * 0.5f;
-    d2d_context_->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(action_center_x, center_y), 4.5f, 4.5f),
-                              action_icon,
-                              1.2f);
-    d2d_context_->DrawLine(D2D1::Point2F(action_center_x + 2.0f, center_y - 5.8f),
-                           D2D1::Point2F(action_center_x + 6.0f, center_y - 5.8f),
-                           action_icon,
-                           1.2f);
-    d2d_context_->DrawLine(D2D1::Point2F(action_center_x + 6.0f, center_y - 5.8f),
-                           D2D1::Point2F(action_center_x + 6.0f, center_y - 1.8f),
-                           action_icon,
-                           1.2f);
+    if (chrome.show_theme_switcher) {
+        const D2D1_RECT_F theme_switch = D2D1::RectF(switch_left,
+                                                     switch_top,
+                                                     switch_right,
+                                                     switch_top + kThemeSwitcherHeightDip);
+        d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(theme_switch, 7.0f, 7.0f),
+                                           brush_surface_soft_.Get());
+        d2d_context_->DrawRoundedRectangle(D2D1::RoundedRect(theme_switch, 7.0f, 7.0f),
+                                           brush_border_.Get(),
+                                           1.0f);
 
-    const D2D1_RECT_F theme_switch = D2D1::RectF(switch_left,
-                                                 switch_top,
-                                                 switch_right,
-                                                 switch_top + kThemeSwitcherHeightDip);
-    d2d_context_->FillRoundedRectangle(D2D1::RoundedRect(theme_switch, 7.0f, 7.0f),
-                                       brush_surface_soft_.Get());
-    d2d_context_->DrawRoundedRectangle(D2D1::RoundedRect(theme_switch, 7.0f, 7.0f),
-                                       brush_border_.Get(),
-                                       1.0f);
+        const ChromeButton theme_buttons[] = {
+            ChromeButton::theme_light,
+            ChromeButton::theme_dark,
+            ChromeButton::theme_system,
+        };
+        const ThemeMode theme_modes[] = {
+            ThemeMode::light,
+            ThemeMode::dark,
+            ThemeMode::system,
+        };
 
-    const ChromeButton theme_buttons[] = {
-        ChromeButton::theme_light,
-        ChromeButton::theme_dark,
-        ChromeButton::theme_system,
-    };
-    const ThemeMode theme_modes[] = {
-        ThemeMode::light,
-        ThemeMode::dark,
-        ThemeMode::system,
-    };
-
-    for (int index = 0; index < 3; ++index) {
+        for (int index = 0; index < 3; ++index) {
         const float segment_left = switch_left + kThemeOptionWidthDip * static_cast<float>(index);
         const D2D1_RECT_F segment = D2D1::RectF(segment_left + 2.0f,
                                                 switch_top + 2.0f,
@@ -1039,11 +1088,14 @@ void D2DRenderer::DrawScene(const ChromeState& chrome, Widget* content) noexcept
                                    1.0f);
         }
     }
+    }
 
-    d2d_context_->DrawLine(D2D1::Point2F(separator_x, 11.0f),
-                           D2D1::Point2F(separator_x, kTitleBarHeightDip - 11.0f),
-                           brush_border_.Get(),
-                           1.0f);
+    if (chrome.show_theme_switcher || chrome.show_chrome_action) {
+        d2d_context_->DrawLine(D2D1::Point2F(separator_x, 11.0f),
+                               D2D1::Point2F(separator_x, kTitleBarHeightDip - 11.0f),
+                               brush_border_.Get(),
+                               1.0f);
+    }
 
     const D2D1_RECT_F close_rect =
         D2D1::RectF(close_left, 0.0f, window_size.width, kTitleBarHeightDip);
@@ -1233,6 +1285,8 @@ bool D2DRenderer::SaveTargetPng(std::wstring_view png_path) {
 }
 
 void D2DRenderer::ReleaseTarget() noexcept {
+    rounded_clip_layer_.Reset();
+    rounded_clip_rect_fallback_ = false;
     if (d2d_context_) {
         d2d_context_->SetTarget(nullptr);
     }

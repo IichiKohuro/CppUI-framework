@@ -55,6 +55,8 @@ public:
     void Destroy() noexcept;
     void Invalidate() noexcept;
     void CenterOnWindow(HWND owner) noexcept;
+    void Activate() noexcept;
+    void SetChromeExtras(bool theme_switcher, bool action, bool badge = true) noexcept;
     void SetImeCaretRect(int client_x, int client_y, int height) noexcept;
     void StartTimer(UINT_PTR timer_id, UINT milliseconds) noexcept;
     void StopTimer(UINT_PTR timer_id) noexcept;
@@ -97,6 +99,9 @@ private:
     bool class_registered_{false};
     bool quit_on_destroy_{true};
     bool active_{false};
+    bool show_theme_switcher_{true};
+    bool show_chrome_action_{true};
+    bool show_badge_{true};
     ChromeButton hovered_{ChromeButton::none};
     ChromeButton pressed_{ChromeButton::none};
     ThemeMode theme_mode_{ThemeMode::light};

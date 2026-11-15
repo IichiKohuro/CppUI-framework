@@ -179,6 +179,7 @@ bool Dialog::Impl::Create() {
                                            170);
     window->SetQuitOnDestroy(false);
     window->SetThemeMode(theme_mode);
+    window->SetChromeExtras(false, false, false);
 
     Win32Window::Callbacks callbacks{};
     callbacks.paint = [this] { Paint(); };
@@ -473,9 +474,7 @@ DialogResult Dialog::ShowModal(void* owner_handle) {
         impl_->window->CenterOnWindow(impl_->owner);
     }
     impl_->window->Show(SW_SHOWNORMAL);
-    if (impl_->window->Handle() != nullptr) {
-        SetForegroundWindow(impl_->window->Handle());
-    }
+    impl_->window->Activate();
     (void)impl_->window->RunModal();
 
     if (impl_->owner != nullptr && IsWindow(impl_->owner) != FALSE) {

@@ -80,6 +80,7 @@ target_link_libraries(cppui
         ole32
         advapi32
         imm32
+        winmm
         windowscodecs
 )
 cppui_configure_warnings(cppui)

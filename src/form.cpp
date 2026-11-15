@@ -2,6 +2,8 @@
 
 #include <windows.h>
 
+#include <timeapi.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -87,6 +89,7 @@ struct Form::Impl {
     Point last_mouse{};
     Widget* tooltip_owner{};
     bool animation_timer_active{false};
+    bool timer_period_active{false};
     std::chrono::steady_clock::time_point last_tick{};
 
     std::function<void(ThemeMode)> on_theme_changed;
@@ -327,6 +330,12 @@ void Form::Impl::UpdateAnimationTimer() {
     }
     if (ui.has_animation()) {
         if (!animation_timer_active) {
+            if (!timer_period_active) {
+                // WM_TIMER is normally quantized to ~15.6 ms. A 1 ms timer
+                // period keeps the 60 Hz spinner phase from visibly stepping.
+                timeBeginPeriod(1);
+                timer_period_active = true;
+            }
             last_tick = std::chrono::steady_clock::now();
             animation_timer_active = true;
             window->StartTimer(kAnimationTimer, kAnimationIntervalMs);
@@ -334,6 +343,10 @@ void Form::Impl::UpdateAnimationTimer() {
     } else if (animation_timer_active) {
         animation_timer_active = false;
         window->StopTimer(kAnimationTimer);
+        if (timer_period_active) {
+            timeEndPeriod(1);
+            timer_period_active = false;
+        }
     }
 }
 
@@ -380,6 +393,10 @@ void Form::Impl::OnTimer(UINT_PTR timer_id) {
     if (!ui.has_animation()) {
         animation_timer_active = false;
         window->StopTimer(kAnimationTimer);
+        if (timer_period_active) {
+            timeEndPeriod(1);
+            timer_period_active = false;
+        }
         return;
     }
 
@@ -556,6 +573,10 @@ void Form::Impl::Shutdown() {
     status_view = nullptr;
     tooltip_owner = nullptr;
     animation_timer_active = false;
+    if (timer_period_active) {
+        timeEndPeriod(1);
+        timer_period_active = false;
+    }
     pending_content.reset();
     window.reset();
     renderer.reset();

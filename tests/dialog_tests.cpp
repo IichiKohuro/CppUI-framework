@@ -52,7 +52,10 @@ int main() {
 
         std::thread closer([] {
             HWND window = WaitForWindow(L"CppUI v0.1 Dialog Test", std::chrono::seconds(8));
-            if (window != nullptr) {
+            for (int attempt = 0; attempt < 50 && window != nullptr &&
+                                  IsWindow(window) != FALSE;
+                 ++attempt) {
+                Sleep(100);
                 PostMessageW(window, WM_KEYDOWN, VK_RETURN, 0);
             }
         });
@@ -73,9 +76,42 @@ int main() {
     }
 
     {
+        cppui::Dialog dialog(L"CppUI v0.1 Mouse Test", 440, 200);
+        dialog.AddButton(L"OK", cppui::DialogResult::ok, cppui::ButtonStyle::primary);
+        dialog.SetDefaultResult(cppui::DialogResult::ok);
+
+        std::thread clicker([] {
+            HWND window = WaitForWindow(L"CppUI v0.1 Mouse Test", std::chrono::seconds(8));
+            const LPARAM point = MAKELPARAM(378, 159);
+            // The window exists at WM_CREATE, before the first layout. Repeat
+            // the click until the dialog is gone so the test does not depend
+            // on how fast the first frame is rendered.
+            for (int attempt = 0; attempt < 50 && window != nullptr &&
+                                  IsWindow(window) != FALSE;
+                 ++attempt) {
+                Sleep(150);
+                PostMessageW(window, WM_MOUSEMOVE, 0, point);
+                Sleep(30);
+                PostMessageW(window, WM_LBUTTONDOWN, MK_LBUTTON, point);
+                Sleep(30);
+                PostMessageW(window, WM_LBUTTONUP, 0, point);
+            }
+        });
+        const cppui::DialogResult result = dialog.ShowModal(owner);
+        clicker.join();
+        if (result != cppui::DialogResult::ok) {
+            std::cerr << "FAIL: mouse click on dialog button did not return OK\n";
+            passed = false;
+        }
+    }
+
+    {
         std::thread closer([] {
             HWND window = WaitForWindow(L"CppUI v0.1 MessageBox Test", std::chrono::seconds(8));
-            if (window != nullptr) {
+            for (int attempt = 0; attempt < 50 && window != nullptr &&
+                                  IsWindow(window) != FALSE;
+                 ++attempt) {
+                Sleep(100);
                 PostMessageW(window, WM_CLOSE, 0, 0);
             }
         });

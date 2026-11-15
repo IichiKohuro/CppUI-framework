@@ -74,6 +74,8 @@ public:
                    TextVAlign vertical = TextVAlign::center) override;
     void push_clip(const Rect& rect) override;
     void pop_clip() override;
+    void push_rounded_clip(const Rect& rect, float radius) override;
+    void pop_rounded_clip() override;
 
 private:
     bool BuildResources();
@@ -141,6 +143,8 @@ private:
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_close_hover_;
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_on_close_;
     std::unordered_map<std::uint32_t, Microsoft::WRL::ComPtr<ID2D1SolidColorBrush>> dynamic_brushes_;
+    Microsoft::WRL::ComPtr<ID2D1Layer> rounded_clip_layer_;
+    bool rounded_clip_rect_fallback_{false};
 };
 
 }  // namespace cppui

@@ -365,6 +365,8 @@ void Close(DialogResult result = DialogResult::cancel);
 `DialogResult`: `none`, `ok`, `cancel`, `yes`, `no`.
 Модальный цикл отключает owner, возвращает фокус после закрытия, X/Esc дают `cancel`,
 Enter активирует default-кнопку. Тема и density берутся из `Form` при `ShowModal(Form&)`.
+В title bar диалога остаются только системные caption-кнопки: theme switch и action
+скрыты намеренно.
 
 ### `MessageBox`
 
@@ -429,6 +431,10 @@ bool CapturePng(std::wstring_view path);
 `StatusBar` — часть `Form`; `set_left_text`/`set_right_text` доступны через
 `form.status_bar()`. `CapturePng` синхронно рисует текущий кадр в PNG (используется
 визуальными тестами). `NativeHandle()` — escape hatch для Win32-интеграции.
+
+Перед созданием формы хост должен включить Per-Monitor V2:
+`SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)`.
+Form Starter делает это сам; библиотека не меняет глобальный DPI-контекст молча.
 
 ## 11. Ограничения и lifetime
 

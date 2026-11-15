@@ -60,9 +60,9 @@ void PictureBox::paint(Painter& painter) const {
                            draw_height};
     }
 
-    painter.push_clip(bounds());
+    painter.push_rounded_clip(bounds(), corner_radius_);
     painter.draw_image(destination, *image_, 1.0f);
-    painter.pop_clip();
+    painter.pop_rounded_clip();
     painter.stroke_rounded_rect(bounds(), corner_radius_, tokens.border, 1.0f);
 }
 

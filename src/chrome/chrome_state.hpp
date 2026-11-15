@@ -26,6 +26,9 @@ struct ChromeState {
     ChromeButton theme_pressed{ChromeButton::none};
     ChromeButton action_hovered{ChromeButton::none};
     ChromeButton action_pressed{ChromeButton::none};
+    bool show_theme_switcher{true};
+    bool show_chrome_action{true};
+    bool show_badge{true};
 };
 
 inline constexpr float kTitleBarHeightDip = 40.0f;

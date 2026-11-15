@@ -147,7 +147,7 @@ input-to-photon и flicker остаются не измеренными и вы�
 | Проверка | Результат |
 |---|---|
 | `cppui.v01` | TextEdit/CheckBox/Radio/Grid/Scroll/Command/Image/Popup/ToolTip — pass |
-| `cppui.dialog` | modal result, default Enter, owner re-enable, MessageBox cancel — pass |
+| `cppui.dialog` | modal result, default Enter, mouse click on button center, owner re-enable, MessageBox cancel — pass |
 | `cppui.visual_v01` | 4 WIC snapshots, Light/Dark/Compact/Popup — pass |
 | Form Starter live | ввод, caret, ToolTip, popup, MessageBox, Yes/No/Cancel — проверено |
 | Density | Compact/Cozy/Comfortable на всех контролах волны |

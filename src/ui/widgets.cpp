@@ -387,9 +387,12 @@ void Button::paint(Painter& painter) const {
                               bounds().y + 1.5f,
                               std::max(0.0f, bounds().width - 3.0f),
                               std::max(0.0f, bounds().height - 3.0f)};
+        // An accent ring disappears on an accent-filled primary button.
+        const Color focus_color = style_ == ButtonStyle::primary ? tokens.on_accent
+                                                                  : tokens.accent;
         painter.stroke_rounded_rect(focus_rect,
                                     std::max(1.0f, metrics.control_radius - 1.0f),
-                                    tokens.accent,
+                                    focus_color,
                                     1.5f);
     }
 }

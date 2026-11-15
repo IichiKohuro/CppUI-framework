@@ -202,7 +202,19 @@ ChromeState Win32Window::GetChromeState() const noexcept {
         theme_pressed_,
         action_hovered_,
         action_pressed_,
+        show_theme_switcher_,
+        show_chrome_action_,
+        show_badge_,
     };
+}
+
+void Win32Window::SetChromeExtras(bool theme_switcher, bool action, bool badge) noexcept {
+    show_theme_switcher_ = theme_switcher;
+    show_chrome_action_ = action;
+    show_badge_ = badge;
+    if (hwnd_ != nullptr) {
+        InvalidateRect(hwnd_, nullptr, FALSE);
+    }
 }
 
 void Win32Window::SetThemeMode(ThemeMode mode) noexcept {
@@ -252,7 +264,7 @@ ChromeButton Win32Window::ButtonAt(POINT screen_point) const noexcept {
 }
 
 ChromeButton Win32Window::ThemeButtonAt(POINT screen_point) const noexcept {
-    if (hwnd_ == nullptr) {
+    if (hwnd_ == nullptr || !show_theme_switcher_) {
         return ChromeButton::none;
     }
 
@@ -298,7 +310,7 @@ ChromeButton Win32Window::ThemeButtonAt(POINT screen_point) const noexcept {
 }
 
 ChromeButton Win32Window::ActionButtonAt(POINT screen_point) const noexcept {
-    if (hwnd_ == nullptr) {
+    if (hwnd_ == nullptr || !show_chrome_action_) {
         return ChromeButton::none;
     }
 
@@ -562,6 +574,18 @@ void Win32Window::NotifyResize(HWND hwnd, UINT width, UINT height) noexcept {
     callbacks_.resized(width, height, dpi_);
 }
 
+void Win32Window::Activate() noexcept {
+    if (hwnd_ == nullptr) {
+        return;
+    }
+    ShowWindow(hwnd_, SW_SHOWNORMAL);
+    SetWindowPos(hwnd_, HWND_TOP, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+    (void)SetForegroundWindow(hwnd_);
+    (void)SetActiveWindow(hwnd_);
+    (void)SetFocus(hwnd_);
+}
+
 void Win32Window::CenterOnWindow(HWND owner) noexcept {
     if (hwnd_ == nullptr || owner == nullptr || IsWindow(owner) == FALSE) {
         CenterOnPrimaryMonitor();
@@ -693,9 +717,12 @@ LRESULT Win32Window::HandleMessage(HWND hwnd, UINT message, WPARAM wparam, LPARA
                     params->rgrc[0].right -= frame_x;
                     params->rgrc[0].bottom -= frame_y;
                 }
-                return 0;
             }
-            break;
+            // Returning 0 for both TRUE and FALSE is required: otherwise the
+            // first WM_NCCALCSIZE (FALSE) leaves a standard caption on the
+            // dialog, shrinking its client area by ~40 px and shifting every
+            // button/hit area.
+            return 0;
 
         case WM_NCPAINT:
             return 0;

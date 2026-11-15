@@ -62,6 +62,14 @@ public:
     // lightweight test painter can ignore clipping.
     virtual void push_clip(const Rect& rect) { (void)rect; }
     virtual void pop_clip() {}
+
+    // Rounded clip for pictures and other shaped content. The default falls
+    // back to a rectangular clip so custom painters need no extra code.
+    virtual void push_rounded_clip(const Rect& rect, float radius) {
+        (void)radius;
+        push_clip(rect);
+    }
+    virtual void pop_rounded_clip() { pop_clip(); }
 };
 
 }  // namespace cppui
