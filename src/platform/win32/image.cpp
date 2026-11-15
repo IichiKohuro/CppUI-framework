@@ -5,10 +5,13 @@
 #include <wincodec.h>
 #include <wrl/client.h>
 
+#include <atomic>
 #include <utility>
 
 namespace cppui {
 namespace {
+
+std::atomic<std::uint64_t> g_image_id{0};
 
 void SetError(std::wstring* error, const wchar_t* text) {
     if (error != nullptr) {
@@ -28,7 +31,7 @@ struct ComGuard {
 }  // namespace
 
 Image::Image(int width, int height, std::vector<std::uint8_t> pixels)
-    : width_(width), height_(height), pixels_(std::move(pixels)) {}
+    : id_(++g_image_id), width_(width), height_(height), pixels_(std::move(pixels)) {}
 
 std::shared_ptr<Image> Image::FromPixels(int width,
                                          int height,

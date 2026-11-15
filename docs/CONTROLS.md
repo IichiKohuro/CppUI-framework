@@ -398,7 +398,8 @@ bool valid() const;
 ```
 
 WIC загружает PNG/JPEG в premultiplied BGRA. Изображение immutable и может
-разделяться между контролами.
+разделяться между контролами; renderer кеширует D2D bitmap по `Image::id()`, поэтому
+анимация не пересоздаёт текстуру на каждом кадре.
 
 ### `PictureBox`
 

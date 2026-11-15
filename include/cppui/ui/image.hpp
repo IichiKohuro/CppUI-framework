@@ -23,12 +23,14 @@ public:
 
     [[nodiscard]] int width() const noexcept { return width_; }
     [[nodiscard]] int height() const noexcept { return height_; }
+    [[nodiscard]] std::uint64_t id() const noexcept { return id_; }
     [[nodiscard]] bool valid() const noexcept { return width_ > 0 && height_ > 0 && !pixels_.empty(); }
     [[nodiscard]] const std::vector<std::uint8_t>& pixels() const noexcept { return pixels_; }
 
 private:
     Image(int width, int height, std::vector<std::uint8_t> pixels);
 
+    std::uint64_t id_{};
     int width_{};
     int height_{};
     std::vector<std::uint8_t> pixels_;

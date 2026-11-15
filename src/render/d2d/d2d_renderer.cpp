@@ -650,22 +650,28 @@ void D2DRenderer::draw_image(const Rect& rect, const Image& image, float opacity
         return;
     }
 
-    const D2D1_SIZE_U size = D2D1::SizeU(static_cast<UINT32>(image.width()),
-                                         static_cast<UINT32>(image.height()));
-    const D2D1_PIXEL_FORMAT format =
-        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED);
-    const D2D1_BITMAP_PROPERTIES1 properties =
-        D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_NONE, format);
     Microsoft::WRL::ComPtr<ID2D1Bitmap1> bitmap;
-    const HRESULT hr = d2d_context_->CreateBitmap(
-        size,
-        image.pixels().data(),
-        static_cast<UINT32>(image.width()) * 4u,
-        properties,
-        bitmap.GetAddressOf());
-    if (FAILED(hr) || !bitmap) {
-        last_error_ = hr;
-        return;
+    auto cached = image_cache_.find(image.id());
+    if (cached != image_cache_.end()) {
+        bitmap = cached->second;
+    } else {
+        const D2D1_SIZE_U size = D2D1::SizeU(static_cast<UINT32>(image.width()),
+                                             static_cast<UINT32>(image.height()));
+        const D2D1_PIXEL_FORMAT format =
+            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED);
+        const D2D1_BITMAP_PROPERTIES1 properties =
+            D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_NONE, format);
+        const HRESULT hr = d2d_context_->CreateBitmap(
+            size,
+            image.pixels().data(),
+            static_cast<UINT32>(image.width()) * 4u,
+            properties,
+            bitmap.GetAddressOf());
+        if (FAILED(hr) || !bitmap) {
+            last_error_ = hr;
+            return;
+        }
+        image_cache_.emplace(image.id(), bitmap);
     }
 
     const D2D1_RECT_F destination =
@@ -1295,6 +1301,7 @@ void D2DRenderer::ReleaseTarget() noexcept {
 
 void D2DRenderer::ReleaseDeviceResources() noexcept {
     ReleaseTarget();
+    image_cache_.clear();
     brush_window_.Reset();
     brush_surface_.Reset();
     brush_surface_soft_.Reset();

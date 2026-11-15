@@ -143,6 +143,7 @@ private:
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_close_hover_;
     Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_on_close_;
     std::unordered_map<std::uint32_t, Microsoft::WRL::ComPtr<ID2D1SolidColorBrush>> dynamic_brushes_;
+    std::unordered_map<std::uint64_t, Microsoft::WRL::ComPtr<ID2D1Bitmap1>> image_cache_;
     Microsoft::WRL::ComPtr<ID2D1Layer> rounded_clip_layer_;
     bool rounded_clip_rect_fallback_{false};
 };
